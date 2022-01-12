@@ -1,8 +1,9 @@
 package com.freedy.expression.token;
 
+import com.freedy.expression.exception.EvaluateException;
+import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Functional;
 import com.freedy.expression.function.VarargsFunction;
-import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -12,9 +13,7 @@ import lombok.Setter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Freedy
@@ -93,6 +92,9 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
 
             Object result;
             if (!ReflectionUtils.hasField(root, varName)) {
+                if (!context.containsVariable(varName)) {
+                    throw new EvaluateException("? is not defined", varName);
+                }
                 result = doRelevantOps(context.getVariable(varName), varName);
             } else {
                 result = doRelevantOps(ReflectionUtils.getter(root, varName), varName);
@@ -104,7 +106,15 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
         } else {
             Functional function = context.getFunction(methodName);
             if (function == null) {
-                throw new EvaluateException("no such function ?", getFullMethodName(methodName, methodArgsName)).errToken(this.errStr(methodName));
+                StringJoiner joiner = new StringJoiner(",");
+                for (String s : context.getFunctionNameSet()) {
+                    String methodName = this.methodName.toLowerCase(Locale.ROOT);
+                    String lowerCase = s.toLowerCase(Locale.ROOT);
+                    if (lowerCase.contains(methodName) || methodName.contains(lowerCase)) {
+                        joiner.add(s + "(unknown args)");
+                    }
+                }
+                throw new EvaluateException("no such function ?,you can call these function: ?", getFullMethodName(methodName, methodArgsName), joiner).errToken(this.errStr(methodName));
             }
             Object[] args = getMethodArgs(unsteadyArgList);
             Object invoke;
@@ -116,13 +126,27 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                 if (var != null && args != null) {
                     int count = method.getParameterCount();
                     Object[] nArgs = new Object[count];
+                    //拷贝非可变参数参数
                     System.arraycopy(args, 0, nArgs, 0, count - 1);
-                    Object[] varArg = Arrays.copyOfRange(args, count - 1, args.length);
+                    //检测可变参数数组的所有元素是否都是相同类型
+                    Class<?> eleType = checkArrType(args, count - 1, args.length);
+                    Object[] varArg;
+                    //拷贝可变数组
+                    if (eleType != null) {
+                        //noinspection unchecked
+                        varArg = Arrays.copyOfRange(args, count - 1, args.length, (Class<Object[]>) eleType.arrayType());
+                    } else {
+                        varArg = Arrays.copyOfRange(args, count - 1, args.length);
+                    }
                     nArgs[count - 1] = varArg;
                     args = nArgs;
                 }
                 invoke = method.invoke(function, args);
-            } catch (Exception e) {
+            }catch (Exception e) {
+                Throwable cause = e.getCause();
+                if (cause.getClass()==ClassCastException.class){
+                    throw new EvaluateException("class cast failed,please check you delivery param. cause: ?",e.getCause());
+                }
                 throw new EvaluateException("invoke target function ? failed!->?", getFullMethodName(methodName, methodArgsName), (e instanceof InvocationTargetException ex) ? ex.getCause() : e).errToken(this.errStr(methodArgsName));
             }
             Object result = doRelevantOps(invoke, getFullMethodName(methodName, methodArgsName));
@@ -131,6 +155,19 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
             }
             return executeChain(result.getClass(), result, executeCount, executeLastRelevantOps);
         }
+    }
+
+    private Class<?> checkArrType(Object[] arr, int start, int end) {
+        if (start > end) {
+            throw new IllegalArgumentException("start index ? gt end index ?", start, end);
+        }
+        Class<?> cl = arr[start].getClass();
+        for (int i = start + 1; i < end; i++) {
+            if (arr[i].getClass() != cl) {
+                return null;
+            }
+        }
+        return cl;
     }
 
 }

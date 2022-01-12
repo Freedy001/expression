@@ -10,5 +10,11 @@
         <module name="expression" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="expression" options="&quot;--add-exports java.base/jdk.internal.misc=ALL-UNNAMED&quot;" />
+    </option>
   </component>
 </project>

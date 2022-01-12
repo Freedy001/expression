@@ -47,7 +47,7 @@ public sealed abstract class Token implements Comparable, Executable
     protected List<Token> originToken;
     //获取子token ,其子token是有该token与其他token计算而来
     protected Token sonToken;
-    protected int offset;
+    protected int offset=9900_43;
     protected List<String> errStr;
     protected Token nextToken;
     protected EvaluationContext context;

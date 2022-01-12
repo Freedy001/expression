@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 @NoArgsConstructor
 public abstract sealed class ClassToken extends Token implements Assignable
         permits DirectAccessToken, DotSplitToken, ReferenceToken, StaticToken {
-    protected final Pattern strPattern = Pattern.compile("^'(.*?)'$");
+    protected final Pattern strPattern = Pattern.compile("^'([^']*?)'$");
     protected final Pattern numeric = Pattern.compile("\\d+|\\d+[lL]");
     protected final Pattern tokenStreamArg = Pattern.compile("^@block\\{(.*)}$");
     private final Pattern relevantOpsPattern = Pattern.compile("(?:\\?|\\[.*]|\\? *?\\[.*])+");

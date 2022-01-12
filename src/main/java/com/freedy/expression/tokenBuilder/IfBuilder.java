@@ -3,6 +3,8 @@ package com.freedy.expression.tokenBuilder;
 import com.freedy.expression.TokenStream;
 import com.freedy.expression.token.IfToken;
 import com.freedy.expression.utils.StringUtils;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,10 +17,11 @@ public class IfBuilder extends Builder {
 
     // if
     //(if|else +if) *?\((.*?)\) *?\{(?:(.*?)}(?= *else)|(.*)})|else *?\{(.*)}
-    private static final Pattern ifPattern = Pattern.compile("^(if|else +if) *?\\((.*?)\\) *?\\{(?:(.*?)}(?= *else)|(.*)})|else *?\\{(.*)}");
+    private static final Pattern ifPattern = Pattern.compile("(if|else +if) *?\\((.*?)\\) *?\\{(?:(.*?)}(?= *else)|(.*)})|else *?\\{(.*)}");
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+        if (!token.startsWith("if")) return false;
         Matcher matcher = ifPattern.matcher(token);
         if (!matcher.find()) return false;
 
@@ -62,6 +65,8 @@ public class IfBuilder extends Builder {
         } while (matcher.find());
         return true;
     }
+
+
 
     @Override
     public int priority() {

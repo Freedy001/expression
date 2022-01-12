@@ -3,10 +3,10 @@ package com.freedy.expression.stander;
 import com.freedy.expression.EvaluationContext;
 import com.freedy.expression.Expression;
 import com.freedy.expression.TokenStream;
-import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.function.VarFunction;
 import com.freedy.expression.exception.EvaluateException;
+import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.exception.StopSignal;
+import com.freedy.expression.function.VarFunction;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,7 +30,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
     }
 
     @Override
-    public Object apply(Object... obj) throws Exception {
+    public Object apply(Object... obj) {
         if (obj != null && obj.length != argName.length) {
             throw new IllegalArgumentException("unmatched args ?(?*)", funcName, argName);
         }
@@ -41,7 +41,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
             }
         }
 
-        Expression expression = new Expression(funcBody, (EvaluationContext) Proxy.newProxyInstance(subContext.getClass().getClassLoader(), subContext.getClass().getInterfaces(), (proxy1, method, args) -> {
+        Expression expression = new Expression(funcBody, (EvaluationContext) Proxy.newProxyInstance(subContext.getClass().getClassLoader(), new Class[]{EvaluationContext.class}, (proxy1, method, args) -> {
             String methodName = method.getName();
             if (methodName.equals("getVariable")) {
                 String varName = (String) args[0];

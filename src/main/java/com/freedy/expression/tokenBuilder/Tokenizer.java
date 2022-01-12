@@ -30,6 +30,7 @@ public class Tokenizer {
 
     //[<=>| static !+_*?()]
     private static final Set<Character> operationSet = Set.of('=', '<', '>', '|', '&', '!', '+', '-', '*', '/', '(', ')', '?');
+    private static final Set<Character> operationWithOutBracketSet = Set.of('=', '<', '>', '|', '&', '!', '+', '-', '*', '/', '?');
     private static final Set<Character> bracket = Set.of('(', ')');
     private static final List<Builder> builderSet = new ArrayList<>();
 
@@ -255,7 +256,7 @@ public class Tokenizer {
                 //构建token
                 if (inspectChar == '(') {
                     int index = preNonempty(chars, i);
-                    if (index == -1 || operationSet.contains(chars[index])) {
+                    if (index == -1 || (operationWithOutBracketSet.contains(chars[index]))) {
                         if (StringUtils.hasText(token)) {
                             ExpressionSyntaxException.thr(expression, token + "@(");
                         }

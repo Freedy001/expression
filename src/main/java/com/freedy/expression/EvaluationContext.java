@@ -1,9 +1,12 @@
 package com.freedy.expression;
 
 import com.freedy.expression.function.Functional;
+import lombok.SneakyThrows;
 
 import java.lang.ref.Cleaner;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Freedy
@@ -13,6 +16,7 @@ import java.util.List;
 @SuppressWarnings("UnusedReturnValue")
 public interface EvaluationContext {
     Cleaner cleaner = Cleaner.create();
+
     Object setVariable(String name, Object variable);
 
     Object getVariable(String name);
@@ -31,11 +35,18 @@ public interface EvaluationContext {
 
     Functional getFunction(String name);
 
+    Set<String> getFunctionNameSet();
+
     boolean containsFunction(String funcName);
 
     Functional removeFunction(String name);
 
     void clearFunction();
+
+
+    default Class<?> findClas(String className) throws ClassNotFoundException {
+        return Class.forName(className);
+    }
 
     default String filterName(String name){
         if (name.matches("^[@#].*")){

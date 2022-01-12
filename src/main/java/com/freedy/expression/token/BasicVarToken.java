@@ -24,7 +24,7 @@ public final class BasicVarToken extends Token {
     @Override
     public Object doCalculate(Class<?> desiredType) {
         if (isType("str")) {
-            return checkAndSelfOps(ReflectionUtils.convertType(value, desiredType));
+            return checkAndSelfOps(ReflectionUtils.convertType(value.substring(1, value.length() - 1), desiredType));
         }
         if (isType("numeric")) { //int long
             if (desiredType.getName().matches("java\\.lang\\.Integer|int")) {

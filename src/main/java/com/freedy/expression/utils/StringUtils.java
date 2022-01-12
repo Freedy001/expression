@@ -156,8 +156,13 @@ public class StringUtils {
         ArrayList<String> result = new ArrayList<>();
         int[] leftQuote = new int[leftBracket.length];
         int lastSplit = 0;
+        boolean quote = false;
         outer:
         for (int i = 0; i < chars.length; i++) {
+            if (chars[i] == '\'') {
+                quote = !quote;
+            }
+            if (quote) continue;
 
             for (int j = 0; j < leftBracket.length; j++) {
                 if (chars[i] == leftBracket[j]) {

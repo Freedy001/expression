@@ -13,7 +13,7 @@ public class DotSplitBuilder extends Builder {
     boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //点分token
         if (tokenStream.getLastToken() == null || !tokenStream.getLastToken().isValue(")")) return false;
-        DotSplitToken dotToken = new DotSplitToken(token);
+        DotSplitToken dotToken = new DotSplitToken(token.substring(1));
         if (token.matches("^\\? *?\\..+")) {
             dotToken.setRelevantOps("?");
             buildExecuteChain(dotToken, token.split("\\.", 2)[1], holder);

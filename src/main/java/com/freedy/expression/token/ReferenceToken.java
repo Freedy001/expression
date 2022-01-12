@@ -37,9 +37,6 @@ public final class ReferenceToken extends ClassToken {
     public void assignFrom(Token assignment) {
         ExecuteStep step = getLastPropertyStep();
         Object variable = getVariable();
-        if (variable == null) {
-            throw new EvaluateException("there is no ? in the context", reference).errToken(this.errStr(reference));
-        }
         if (step == null) {
             relevantAssign(
                     relevantOps,
@@ -48,6 +45,9 @@ public final class ReferenceToken extends ClassToken {
                     () -> doAssign(assignment.calculateResult(ANY_TYPE))
             );
             return;
+        }
+        if (variable==null){
+            throw new EvaluateException("? is null", reference).errToken(this.errStr(reference));
         }
         relevantAssign(
                 step.getRelevantOps(),
@@ -78,6 +78,9 @@ public final class ReferenceToken extends ClassToken {
             throw new EvaluateException("reference is null");
         }
         checkContext();
+        if (!context.containsVariable(reference)) {
+            throw new EvaluateException("? is not defined", reference).errToken(this.errStr(reference));
+        }
         return context.getVariable(reference);
     }
 }

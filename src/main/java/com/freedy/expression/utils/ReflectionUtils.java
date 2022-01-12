@@ -51,6 +51,9 @@ public class ReflectionUtils {
 
     public static Object getFieldVal(Class<?> objectClass, Object object, String fieldName) {
         try {
+            if (objectClass.getName().startsWith("[") && fieldName.equals("length")) {
+                return Array.getLength(object);
+            }
             Field field = getFieldRecursion(objectClass, fieldName);
             if (field == null) {
                 throw new IllegalArgumentException("no such field: ?", fieldName);
@@ -316,7 +319,7 @@ public class ReflectionUtils {
             case "int", "long",
                     "double", "float",
                     "boolean", "short",
-                    "byte", "char" -> {
+                    "byte", "char", "void" -> {
                 return true;
             }
         }

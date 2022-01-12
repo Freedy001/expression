@@ -5,6 +5,7 @@ import com.freedy.expression.token.LoopToken;
 import com.freedy.expression.utils.StringUtils;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
+import org.w3c.dom.Node;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,7 +51,8 @@ public class loopBuilder extends Builder {
         return true;
     }
 
-    private Node convertStr(String token) {
+    @Override
+    protected Node convertStr(String token) {
         int length = token.length();
         char[] chars = token.toCharArray();
         int bracket = 0;
@@ -80,13 +82,6 @@ public class loopBuilder extends Builder {
     }
 
 
-    @ToString
-    @AllArgsConstructor
-    static class Node {
-        String result;
-        String aimedStr;
-        int aimedIndex;
-    }
 
 
     @Override

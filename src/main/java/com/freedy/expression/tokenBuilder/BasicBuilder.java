@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 public class BasicBuilder extends Builder{
 
 
-    private static final Pattern strPattern = Pattern.compile("^'(.*?)'$");
+    private static final Pattern strPattern = Pattern.compile("^'([^']*?)'$");
 
     private static final Pattern numericPattern = Pattern.compile("\\d+|\\d+[lL]|\\d+?\\.\\d+");
 
@@ -31,7 +31,7 @@ public class BasicBuilder extends Builder{
         //构建string Token
         matcher = strPattern.matcher(token);
         if (matcher.find()) {
-            BasicVarToken numeric = new BasicVarToken("str", matcher.group(1));
+            BasicVarToken numeric = new BasicVarToken("str", token);
             tokenStream.addToken(numeric);
             return true;
         }

@@ -59,7 +59,6 @@ public final class LoopToken extends Token {
                         try {
                             context.setVariable(variableName, i);
                             result = subExpression.getValue();
-                            loopTokenStream.close();
                         } catch (Throwable e) {
                             StopSignal signal = StopSignal.getInnerSignal(e);
                             if (signal != null) {
@@ -73,6 +72,8 @@ public final class LoopToken extends Token {
                             } else {
                                 throw e;
                             }
+                        } finally {
+                            loopTokenStream.close();
                         }
                     }
                 } else {
@@ -80,7 +81,6 @@ public final class LoopToken extends Token {
                         try {
                             context.setVariable(variableName, i);
                             result = subExpression.getValue();
-                            loopTokenStream.close();
                         } catch (Throwable e) {
                             StopSignal signal = StopSignal.getInnerSignal(e);
                             if (signal != null) {
@@ -94,6 +94,8 @@ public final class LoopToken extends Token {
                             } else {
                                 throw e;
                             }
+                        } finally {
+                            loopTokenStream.close();
                         }
                     }
                 }
@@ -115,7 +117,6 @@ public final class LoopToken extends Token {
                             try {
                                 context.setVariable(variableName, o);
                                 result = subExpression.getValue();
-                                loopTokenStream.close();
                             } catch (Throwable e) {
                                 StopSignal signal = StopSignal.getInnerSignal(e);
                                 if (signal != null) {
@@ -129,6 +130,8 @@ public final class LoopToken extends Token {
                                 } else {
                                     throw e;
                                 }
+                            } finally {
+                                loopTokenStream.close();
                             }
                         }
                         return result;
@@ -139,7 +142,6 @@ public final class LoopToken extends Token {
                             try {
                                 context.setVariable(variableName, array[i]);
                                 result = subExpression.getValue();
-                                loopTokenStream.close();
                             } catch (Throwable e) {
                                 StopSignal signal = StopSignal.getInnerSignal(e);
                                 if (signal != null) {
@@ -153,6 +155,8 @@ public final class LoopToken extends Token {
                                 } else {
                                     throw e;
                                 }
+                            } finally {
+                                loopTokenStream.close();
                             }
                         }
                         return result;
@@ -165,7 +169,6 @@ public final class LoopToken extends Token {
                         try {
                             context.setVariable(variableName, o);
                             result = subExpression.getValue();
-                            loopTokenStream.close();
                         } catch (Throwable e) {
                             StopSignal signal = StopSignal.getInnerSignal(e);
                             if (signal != null) {
@@ -179,6 +182,8 @@ public final class LoopToken extends Token {
                             } else {
                                 throw e;
                             }
+                        } finally {
+                            loopTokenStream.close();
                         }
                     }
                     return result;
@@ -187,7 +192,6 @@ public final class LoopToken extends Token {
                     try {
                         context.setVariable(variableName, o);
                         result = subExpression.getValue();
-                        loopTokenStream.close();
                     } catch (Throwable e) {
                         StopSignal signal = StopSignal.getInnerSignal(e);
                         if (signal != null) {
@@ -201,12 +205,15 @@ public final class LoopToken extends Token {
                         } else {
                             throw e;
                         }
+                    } finally {
+                        loopTokenStream.close();
                     }
                 }
                 return result;
 
             }
             if (iterable instanceof TokenStream ifStream){
+                int loopCount = 0;
                 while (true){
                     Boolean value = subExpression.setTokenStream(ifStream).getValue(Boolean.class);
                     if (value==null){
@@ -214,9 +221,8 @@ public final class LoopToken extends Token {
                     }
                     if (value){
                         try {
-                            context.setVariable(variableName, true);
+                            context.setVariable(variableName, loopCount++);
                             result = subExpression.setTokenStream(loopTokenStream).getValue();
-                            loopTokenStream.close();
                         } catch (Throwable e) {
                             StopSignal signal = StopSignal.getInnerSignal(e);
                             if (signal != null) {
@@ -230,12 +236,15 @@ public final class LoopToken extends Token {
                             } else {
                                 throw e;
                             }
+                        } finally {
+                            loopTokenStream.close();
                         }
                     }else {
                         return result;
                     }
                     ifStream.close();
                 }
+                return result;
             }
             //非可迭代元素
             try {

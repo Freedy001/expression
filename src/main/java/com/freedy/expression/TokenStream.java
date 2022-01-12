@@ -49,6 +49,7 @@ public class TokenStream implements Executable {
 
 
     private List<List<Token>> blockStream = new ArrayList<>();
+    @Getter
     private final List<String> defTokenList = new ArrayList<>();
     private boolean hasSort = false;
 

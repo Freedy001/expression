@@ -1,6 +1,9 @@
 package com.freedy.expression.function;
 
 /**
+ * 可变参数类型必须为Object因为运行时无法获取lambda表达式的泛型
+ * 如果声明为其他类型则会发生类型转换异常！
+ *
  * @author Freedy
  * @date 2021/12/24 17:14
  */
