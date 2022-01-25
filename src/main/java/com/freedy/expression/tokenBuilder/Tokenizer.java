@@ -191,9 +191,22 @@ public class Tokenizer {
         int leftBracesCount = 0;
         int leftBracketCount = 0;
 
-
+        boolean quote = false;
+        boolean bigQuote = false;
         for (int i = 0; i < length; i++) {
             char inspectChar = chars[i];
+
+            if (!quote && inspectChar == '"') {
+                bigQuote = !bigQuote;
+                continue;
+            }
+            if (bigQuote) continue;
+            if (inspectChar == '\'') {
+                quote = !quote;
+                continue;
+            }
+            if (quote) continue;
+
 
             if (inspectChar == '{') {
                 leftBracesCount++;
@@ -218,13 +231,7 @@ public class Tokenizer {
             if (leftBracesCount > 0 || leftBracketCount > 0) continue;
 
 
-            if (inspectChar == '\'') {
-                quoteInside = !quoteInside;
-                continue;
-            }
-
-
-            if (inspectChar == ' ' || !operationSet.contains(inspectChar) || quoteInside) {
+            if (inspectChar == ' ' || !operationSet.contains(inspectChar)) {
                 continue;
             }
 
@@ -376,7 +383,7 @@ public class Tokenizer {
     private static void buildToken(TokenStream tokenStream, String token) {
         if (StringUtils.isEmpty(token)) return;
         Builder.ExceptionMsgHolder holder = new Builder.ExceptionMsgHolder();
-        Class<?> errBuilder = Object.class;
+        Class<?> errBuilder = null;
         err:
         try {
             boolean success = false;
@@ -413,7 +420,7 @@ public class Tokenizer {
                     .thr();
         }
         if (holder.isErr) {
-            ExpressionSyntaxException.tokenThr(errBuilder.getSimpleName() + " throw a exception ->" + holder.msg, tokenStream.getExpression(), new ErrMsgToken(token).errStr(holder.getErrPart()));
+            ExpressionSyntaxException.buildThr(errBuilder, holder.msg, tokenStream.getExpression(), holder.getElements(),new ErrMsgToken(token).errStr(holder.getErrPart()));
         }
     }
 

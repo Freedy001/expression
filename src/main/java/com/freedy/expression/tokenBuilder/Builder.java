@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Arrays;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,12 +25,25 @@ public abstract class Builder {
 
     public final Pattern relevantAccess = Pattern.compile("(.*?)((?:\\?|\\[.*]|\\? *?\\[.*])+)");
 
+    /**
+     * 用于构建 token
+     *
+     * @param tokenStream token容器
+     * @param token       需要被构建的字符串
+     * @param holder      异常holder,抛异常应该往holder里面放然后返回false 不应该直接抛异常
+     *                    否则该token字符串不会被后续的token构建器解析
+     * @return 是否构建成功
+     */
     abstract boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder);
 
-    //优先级 越小越高
+    /**
+     * @return 优先级 越小越高
+     */
     abstract int priority();
 
-
+    /**
+     * 构建执行链
+     */
     protected void buildExecuteChain(ClassToken token, String suffixStr, ExceptionMsgHolder holder) {
 
         //构建执行链
@@ -120,19 +134,26 @@ public abstract class Builder {
     @Getter
     public static class ExceptionMsgHolder {
         boolean isErr = false;
+        StackTraceElement[] elements;
         String msg;
         String[] errPart;
 
         public ExceptionMsgHolder setMsg(String msg) {
-            isErr = true;
+            err();
             this.msg = msg;
             return this;
         }
 
         public ExceptionMsgHolder setErrorPart(String... errPart) {
-            isErr = true;
+            err();
             this.errPart = errPart;
             return this;
+        }
+
+        void err() {
+            isErr = true;
+            StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+            elements = Arrays.copyOfRange(trace,3,trace.length);
         }
     }
 

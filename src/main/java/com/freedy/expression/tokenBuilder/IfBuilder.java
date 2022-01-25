@@ -3,8 +3,6 @@ package com.freedy.expression.tokenBuilder;
 import com.freedy.expression.TokenStream;
 import com.freedy.expression.token.IfToken;
 import com.freedy.expression.utils.StringUtils;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,6 +20,12 @@ public class IfBuilder extends Builder {
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         if (!token.startsWith("if")) return false;
+        if (!token.endsWith("}")) {
+            int i = token.lastIndexOf("}");
+            holder.setMsg("illegal if statement,if token must end with '};'")
+                    .setErrorPart(i == -1 ? token : token.substring(i));
+            return false;
+        }
         Matcher matcher = ifPattern.matcher(token);
         if (!matcher.find()) return false;
 

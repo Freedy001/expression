@@ -1,9 +1,10 @@
+//检验正则表达式
 for(i:condition(@block{true})){
     printInline('请输入正则表达式(exit终止程序):');
     def reg=stdin();
     if(reg.equals('exit')){
-        return;
-    }
+        break;
+    };
     def pattern=T(java.util.regex.Pattern).compile(reg);
     for(ii:condition(@block{true})){
         printInline('输入匹配字符串(0退出):');

@@ -1,12 +1,10 @@
 package com.freedy.expression.stander;
 
-import com.freedy.expression.EvaluationContext;
-import com.freedy.expression.Expression;
-import com.freedy.expression.PureEvaluationContext;
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.*;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.*;
+import com.freedy.expression.tokenBuilder.Tokenizer;
 import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
@@ -24,8 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.freedy.expression.utils.ReflectionUtils.convertToWrapper;
@@ -44,13 +40,25 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     private Object root = new ROOT(this);
     private EvaluationContext superContext;
     private final HashMap<String, String> importMap = new HashMap<>();
+    private final Expression selfExp = new Expression();
+
+    {
+        variableMap.put("context", this);
+        importMap.put("package:java.lang", "*");
+        importMap.put("package:java.util", "*");
+        importMap.put("package:java.io", "*");
+        importMap.put("package:java.time", "*");
+        importMap.put("package:java.math", "*");
+        importMap.put("package:java.util.function", "*");
+        importMap.put("package:java.util.regex", "*");
+        importMap.put("package:java.util.stream", "*");
+    }
 
     public static final Map<String, TokenStream> CLASS_MAP = new HashMap<>();
-    private final static Scanner SCANNER = new Scanner(System.in);
     private final static Unsafe UNSAFE = (Unsafe) ReflectionUtils.getter(Unsafe.class, null, "theUnsafe");
     private final static ClassLoader APP_CLASSLOADER = StanderEvaluationContext.class.getClassLoader();
     private final static long CLASS_OFFSET = UNSAFE.objectFieldOffset(ClassLoader.class, "classes");
-
+    public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
 
     @Getter
     @Setter
@@ -91,6 +99,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     }
 
     {
+
         registerFunctionWithHelp("print", "same as System.out.println()", (Consumer._1ParameterConsumer<Object>) System.out::println);
 
         registerFunctionWithHelp("printInline", "same as System.out.print()", (Consumer._1ParameterConsumer<Object>) System.out::print);
@@ -168,12 +177,12 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                 form.
                 example:
                 you hava a java interface like this
-                public interface Test{
+                public interface com.freedy.expression.com.freedy.expression.Test{
                     void test1(int o1,int o2);
                     void test1(Object o1);
                 }
                 then code below:
-                def a=newInterface('package.Test',
+                def a=newInterface('package.com.freedy.expression.com.freedy.expression.Test',
                     'test1','o1','o2',@block{
                         //your code
                         print('i am test1'+o1+o2);
@@ -258,8 +267,6 @@ public class StanderEvaluationContext extends PureEvaluationContext {
 
         registerFunctionWithHelp("int", "transfer to int", (Function._1ParameterFunction<Object, Integer>) o -> o == null ? null : new BigDecimal(o.toString()).setScale(0, RoundingMode.DOWN).intValue());
 
-        registerFunctionWithHelp("context", "get context object", (Suppler<EvaluationContext>) () -> this);
-
         registerFunctionWithHelp("lf", "list function", (Function._1ParameterFunction<Object, List<String>>) o -> getMethod(getClassByArg(o)));
 
         registerFunctionWithHelp("lv", "list variable", (Function._1ParameterFunction<Object, List<String>>) o -> {
@@ -315,7 +322,9 @@ public class StanderEvaluationContext extends PureEvaluationContext {
 
             StanderEvaluationContext context = new StanderEvaluationContext();
             //计算表达式
-            new Expression(tokenStreams, context).getValue();
+            selfExp.setContext(context);
+            selfExp.setTokenStream(tokenStreams);
+            selfExp.getValue();
             Map<String, Object> varMap = context.getVariableMap();
             Map<String, Functional> funcMap = context.getFunMap();
             Set<String> importSet = new HashSet<>();
@@ -410,20 +419,24 @@ public class StanderEvaluationContext extends PureEvaluationContext {
 
         registerFunctionWithHelp("lic", "list all inner class", (Function._1ParameterFunction<Object, List<Class<?>>>) o -> List.of(getClassByArg(o).getDeclaredClasses()));
 
-        registerFunctionWithHelp("stdin", "stander input same as new Scanner(System.in).nextLine()", (Suppler<String>) SCANNER::nextLine);
-
-        registerFunctionWithHelp("help", "detail help", (Consumer._1ParameterConsumer<String>) funcName -> {
-            selfFuncHelp.forEach((k, v) -> {
-                if (k.toLowerCase(Locale.ROOT).contains(funcName.toLowerCase(Locale.ROOT))) {
-                    System.out.println("function:");
-                    System.out.println("\t\033[95m" + k + "\033[0;39m");
-                    System.out.println("explain:");
-                    System.out.println("\t\033[34m" + v.replace("\n", "\n    ") + "\033[0;39m");
-                    System.out.println();
-                    System.out.println();
-                }
-            });
+        registerFunctionWithHelp("stdin", "stander input same as new Scanner(System.in).nextLine()", (Suppler<String>) () -> {
+            if (CommanderLine.JAR_ENV) {
+                return CommanderLine.READER.readLine();
+            } else {
+                return CommanderLine.SCANNER.nextLine();
+            }
         });
+
+        registerFunctionWithHelp("help", "detail help", (Consumer._1ParameterConsumer<String>) funcName -> selfFuncHelp.forEach((k, v) -> {
+            if (k.toLowerCase(Locale.ROOT).contains(funcName.toLowerCase(Locale.ROOT))) {
+                System.out.println("function:");
+                System.out.println("\t\033[95m" + k + "\033[0;39m");
+                System.out.println("explain:");
+                System.out.println("\t\033[34m" + v.replace("\n", "\n    ") + "\033[0;39m");
+                System.out.println();
+                System.out.println();
+            }
+        }));
 
         registerFunctionWithHelp("loadedClass", "list loaded classes by your string", (VarFunction._1ParameterFunction<Object, Set<Class<?>>>) tip -> {
             //noinspection unchecked
@@ -468,9 +481,9 @@ public class StanderEvaluationContext extends PureEvaluationContext {
 
         registerFunctionWithHelp("allVar", "get var map", (Suppler<Map<String, Object>>) () -> variableMap);
 
-        registerFunctionWithHelp("readFile", "read all byte from giving file", (Function._1ParameterFunction<String, byte[]>) path -> {
+        registerFunctionWithHelp("readFile", "read all byte from giving file", (Function._1ParameterFunction<String, String>) path -> {
             @Cleanup FileInputStream inputStream = new FileInputStream(path);
-            return inputStream.readAllBytes();
+            return new String(inputStream.readAllBytes(), CHARSET);
         });
 
 
@@ -517,6 +530,42 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                 }
             }
             return builder.toString();
+        });
+
+        registerFunctionWithHelp("esc", "input a escape char", (Function._1ParameterFunction<String, String>) o -> {
+            StringBuilder builder = new StringBuilder();
+            int length = o.length();
+            if (length % 2 != 0) {
+                throw new java.lang.IllegalArgumentException("illegal escape character");
+            }
+            int lastSplit = 0;
+            for (int i = 2; i <= length; i += 2) {
+                switch (o.substring(lastSplit, i)) {
+                    case "\\\"" -> builder.append("\"");
+                    case "\\'" -> builder.append("'");
+                    case "\\t" -> builder.append("\t");
+                    case "\\b" -> builder.append("\b");
+                    case "\\n" -> builder.append("\n");
+                    case "\\r" -> builder.append("\r");
+                    case "\\f" -> builder.append("\f");
+                    case "\\\\" -> builder.append("\\");
+                    default -> {
+                        if (o.contains("\\")) {
+                            throw new java.lang.IllegalArgumentException("illegal escape character");
+                        }
+                        return o;
+                    }
+                }
+                lastSplit = i;
+            }
+            return builder.toString();
+        });
+
+        registerFunctionWithHelp("require", "execute script", (Consumer._1ParameterConsumer<String>) path -> {
+            @Cleanup FileInputStream stream = new FileInputStream(path);
+            selfExp.setContext(this);
+            selfExp.setTokenStream(Tokenizer.getTokenStream(new String(stream.readAllBytes(),CHARSET)));
+            selfExp.getValue();
         });
     }
 
@@ -607,9 +656,9 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         return func;
     }
 
-    private Functional registerFunctionWithHelp(String funcName, String help, Functional functional) {
+    private void registerFunctionWithHelp(String funcName, String help, Functional functional) {
         selfFuncHelp.put(funcName + Arrays.stream(functional.getClass().getDeclaredMethods()[0].getParameters()).map(param -> param.getType().getSimpleName() + " " + param.getName()).collect(Collectors.joining(",", "(", ")")), help);
-        return registerFunction(funcName, functional);
+        registerFunction(funcName, functional);
     }
 
     @Override

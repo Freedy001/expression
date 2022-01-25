@@ -12,6 +12,8 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <encoding>UTF-8</encoding>
+        <kotlin.version>1.6.10</kotlin.version>
     </properties>
 
     <dependencies>
@@ -41,12 +43,19 @@
             <version>0.152</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.jline/jline -->
         <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib</artifactId>
-            <version>3.3.0</version>
+            <groupId>org.jline</groupId>
+            <artifactId>jline</artifactId>
+            <version>3.21.0</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/net.java.dev.jna/jna -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.10.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -62,19 +71,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <!-- 指定maven编译的jdk版本,如果不指定,maven3默认用jdk 1.5 maven2默认用jdk1.3 -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                    <compilerArgs>
-                        <arg>--add-exports java.base/jdk.internal.misc=ALL-UNNAMED</arg>
-                    </compilerArgs>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -95,6 +91,19 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <!-- 指定maven编译的jdk版本,如果不指定,maven3默认用jdk 1.5 maven2默认用jdk1.3 -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <arg>--add-exports</arg>
+                        <arg>java.base/jdk.internal.misc=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

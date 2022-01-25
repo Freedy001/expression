@@ -60,6 +60,9 @@ public final class ReferenceToken extends ClassToken {
 
     private void doChainAssign(Token assignment, ExecuteStep step, Object variable) {
         variable = executeChain(variable.getClass(), variable, executableCount - 1);
+        if (variable==null){
+            throw new EvaluateException("can not assign! because the execute chain return a null value").errToken(this);
+        }
         Type desiredType = Objects.requireNonNull(ReflectionUtils.getFieldRecursion(variable.getClass(), step.getPropertyName())).getGenericType();
         Object result = assignment.calculateResult(desiredType);
         ReflectionUtils.setter(variable, step.getPropertyName(), result);

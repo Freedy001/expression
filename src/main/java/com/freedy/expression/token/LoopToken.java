@@ -48,8 +48,8 @@ public final class LoopToken extends Token {
         subExpression.setTokenStream(loopTokenStream);
         Object result = null;
 
-        if (context.containsVariable(variableName)){
-            throw new EvaluateException("you have already def var ?",variableName);
+        if (context.containsVariable(variableName)) {
+            throw new EvaluateException("you have already def var ?", variableName);
         }
 
         try {
@@ -69,9 +69,9 @@ public final class LoopToken extends Token {
                                 if ("break".equals(signalMsg)) {
                                     break;
                                 }
-                            } else {
-                                throw e;
                             }
+                            throw e;
+
                         } finally {
                             loopTokenStream.close();
                         }
@@ -91,9 +91,9 @@ public final class LoopToken extends Token {
                                 if ("break".equals(signalMsg)) {
                                     break;
                                 }
-                            } else {
-                                throw e;
                             }
+                            throw e;
+
                         } finally {
                             loopTokenStream.close();
                         }
@@ -127,9 +127,9 @@ public final class LoopToken extends Token {
                                     if ("break".equals(signalMsg)) {
                                         break;
                                     }
-                                } else {
-                                    throw e;
                                 }
+                                throw e;
+
                             } finally {
                                 loopTokenStream.close();
                             }
@@ -152,9 +152,9 @@ public final class LoopToken extends Token {
                                     if ("break".equals(signalMsg)) {
                                         break;
                                     }
-                                } else {
-                                    throw e;
                                 }
+                                    throw e;
+
                             } finally {
                                 loopTokenStream.close();
                             }
@@ -179,9 +179,9 @@ public final class LoopToken extends Token {
                                 if ("break".equals(signalMsg)) {
                                     break;
                                 }
-                            } else {
-                                throw e;
                             }
+                                throw e;
+
                         } finally {
                             loopTokenStream.close();
                         }
@@ -202,9 +202,8 @@ public final class LoopToken extends Token {
                             if ("break".equals(signalMsg)) {
                                 break;
                             }
-                        } else {
-                            throw e;
                         }
+                        throw e;
                     } finally {
                         loopTokenStream.close();
                     }
@@ -212,14 +211,14 @@ public final class LoopToken extends Token {
                 return result;
 
             }
-            if (iterable instanceof TokenStream ifStream){
+            if (iterable instanceof TokenStream ifStream) {
                 int loopCount = 0;
-                while (true){
+                while (true) {
                     Boolean value = subExpression.setTokenStream(ifStream).getValue(Boolean.class);
-                    if (value==null){
+                    if (value == null) {
                         throw new EvaluateException("null value return").errToken(this.errStr(executeTokenStream.getExpression()));
                     }
-                    if (value){
+                    if (value) {
                         try {
                             context.setVariable(variableName, loopCount++);
                             result = subExpression.setTokenStream(loopTokenStream).getValue();
@@ -233,16 +232,15 @@ public final class LoopToken extends Token {
                                 if ("break".equals(signalMsg)) {
                                     break;
                                 }
-                            } else {
-                                throw e;
                             }
+                            throw e;
                         } finally {
+                            ifStream.close();
                             loopTokenStream.close();
                         }
-                    }else {
+                    } else {
                         return result;
                     }
-                    ifStream.close();
                 }
                 return result;
             }
@@ -259,6 +257,8 @@ public final class LoopToken extends Token {
             }
         } finally {
             context.removeVariable(variableName);
+            executeTokenStream.close();
+            loopTokenStream.close();
         }
 
 

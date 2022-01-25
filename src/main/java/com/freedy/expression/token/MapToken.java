@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 public final class MapToken extends Token {
     private String mapStr;
     private String relevantOpsName;
-    private final Pattern strPattern = Pattern.compile("^'([^']*?)'$");
+    private final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
 
     public MapToken(String value) {
         super("map", value);

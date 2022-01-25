@@ -1,4 +1,4 @@
-
+//通关脚本定义java类
 defClass('com.freedy.expression.stander.TestDefClass',@block{
 
     def a=10;
@@ -33,3 +33,5 @@ defClass('com.freedy.expression.stander.TestDefClass',@block{
 print(code('com.freedy.expression.stander.TestDefClass'));
 
 def test=new ('com.freedy.expression.stander.TestDefClass',12.2,'4234');
+
+test.fun1(1,'2');

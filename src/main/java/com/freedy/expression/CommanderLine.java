@@ -1,7 +1,10 @@
 package com.freedy.expression;
 
+import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.PlaceholderParser;
+import com.freedy.expression.utils.ReflectionUtils;
+import com.freedy.expression.utils.StringUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -15,14 +18,25 @@ import io.netty.handler.codec.string.StringEncoder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.jline.reader.Candidate;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.DefaultHighlighter;
+import org.jline.reader.impl.DefaultParser;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Freedy
@@ -30,19 +44,125 @@ import java.util.function.Function;
  */
 public class CommanderLine {
 
-    public static LogRecorder logRecorder = new LogRecorder(System.out);
-
-    static {
-        System.setOut(new PrintStream(logRecorder));
-    }
-
+    public final static boolean JAR_ENV = Objects.requireNonNull(CommanderLine.class.getResource("")).getProtocol().equals("jar");
+    public final static LogRecorder LOG_RECORDER = new LogRecorder(System.out);
+    private final static ExpressionPasser PARSER = new ExpressionPasser();
+    public final static Scanner SCANNER = new Scanner(System.in);
+    public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
+    private final static Terminal TERMINAL;
+    public final static LineReader READER;
     @Setter
     @Getter
-    private static EvaluationContext context = new StanderEvaluationContext();
-    private final static ExpressionPasser passer = new ExpressionPasser();
-    private final static Scanner scanner = new Scanner(System.in);
-    private final static String charset = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
+    private static StanderEvaluationContext context = new StanderEvaluationContext();
     private static Channel pc;
+
+    static {
+        System.setOut(new PrintStream(LOG_RECORDER));
+        try {
+            TERMINAL = TerminalBuilder.terminal();
+            TERMINAL.puts(InfoCmp.Capability.clear_screen);
+            READER = LineReaderBuilder.builder().terminal(TERMINAL).completer((reader1, line, candidates) -> {
+                String lineStr = line.word();
+                if (StringUtils.isEmpty(lineStr)) {
+                    candidates.addAll(getDefaultTipCandidate("", ""));
+                } else {
+                    String subLine = lineStr.substring(0, line.wordCursor());
+                    String suffix = lineStr.substring(line.wordCursor());
+                    int[] str = findEvaluateStr(subLine);
+                    if (str == null) {
+                        return;
+                    }
+                    if (str.length == 1) {
+                        Set<Candidate> set = getDefaultTipCandidate(subLine.substring(0, str[0]), "");
+                        candidates.addAll(set);
+                    } else {
+                        String resultStr = subLine.substring(str[0], str[1]);
+                        String baseStr = lineStr.substring(0, str[0]) + resultStr;
+                        String[] varArr = resultStr.split("\\.");
+                        Object variable = context.getVariable(varArr[0]);
+                        if (variable == null) return;
+                        Class<?> varType = variable.getClass();
+                        int len = varArr.length;
+                        if (len == 1) {
+                            candidates.addAll(ReflectionUtils.getFieldsRecursion(varType).stream().map(field -> {
+                                String tip = baseStr + "." + field.getName() + suffix;
+                                return new Candidate(tip, tip, "variable", null, null, null, false, 0);
+                            }).collect(Collectors.toSet()));
+                            candidates.addAll(ReflectionUtils.getMethodsRecursion(varType).stream().map(method -> {
+                                int count = method.getParameterCount();
+                                String tip = baseStr + "." + method.getName() + "(" + ",".repeat(count <= 1 ? 0 : count - 1) + ")" + suffix;
+                                return new Candidate(tip, tip, "function", null, null, null, true, 1);
+                            }).collect(Collectors.toSet()));
+                            return;
+                        }
+                        for (int i = 1; i < len; i++) {
+                            Field field = ReflectionUtils.getFieldRecursion(varType, varArr[i]);
+                            if (field == null) return;
+                            varType = field.getType();
+                        }
+                        candidates.addAll(ReflectionUtils.getFieldsRecursion(varType).stream().map(field -> {
+                            String tip = baseStr + "." + field.getName() + suffix;
+                            return new Candidate(tip, tip, "variable", null, null, null, false, 0);
+                        }).collect(Collectors.toSet()));
+                        candidates.addAll(ReflectionUtils.getMethodsRecursion(varType).stream().map(method -> {
+                            int count = method.getParameterCount();
+                            String tip = baseStr + "." + method.getName() + "(" + ",".repeat(count <= 1 ? 0 : count - 1) + ")" + suffix;
+                            return new Candidate(tip, tip, "function", null, null, null, true, 1);
+                        }).collect(Collectors.toSet()));
+                    }
+                }
+            }).highlighter(new DefaultHighlighter()).parser(new DefaultParser().escapeChars(new char[]{})).build();
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+
+    public static Set<Candidate> getDefaultTipCandidate(String base, String suffix) {
+        Set<Candidate> set = context.getVariableMap().keySet().stream().map(var -> new Candidate(base + var + suffix, base + var + suffix, "_variable", null, null, null, false, 0)).collect(Collectors.toSet());
+        context.getFunMap().forEach((k, v) -> {
+            int params = v.getClass().getDeclaredMethods()[0].getParameterCount();
+            String funStr = base + k + "(" + ",".repeat(params <= 1 ? 0 : params - 1) + ")" + suffix;
+            set.add(new Candidate(funStr, funStr, "function", null, null, null, true, 1));
+        });
+        for (Field field : ReflectionUtils.getFieldsRecursion(context.getRoot().getClass())) {
+            set.add(new Candidate(field.getName(), field.getName(), "root", null, null, null, false, 0));
+        }
+        set.addAll(List.of(
+                new Candidate("for()", "for", "keyword", null, null, null, false, 0),
+                new Candidate("if()", "if", "keyword", null, null, null, false, 0),
+                new Candidate("def", "def", "keyword", null, null, null, false, 0),
+                new Candidate("T()", "T()", "keyword", null, null, null, false, 0),
+                new Candidate("[]", "[]", "keyword", null, null, null, false, 0),
+                new Candidate("{}", "{}", "keyword", null, null, null, false, 0),
+                new Candidate("@block{", "@block{", "keyword", null, null, null, false, 0),
+                new Candidate("continue;", "continue", "keyword", null, null, null, false, 0),
+                new Candidate("break;", "break", "keyword", null, null, null, false, 0),
+                new Candidate("return;", "return", "keyword", null, null, null, false, 0)
+        ));
+        return set;
+    }
+
+
+    public static int[] findEvaluateStr(String line) {
+        char[] chars = line.toCharArray();
+        int len = chars.length;
+        int lastDot = -1;
+        int i = len - 1;
+        for (; i >= 0; i--) {
+            if (chars[i] == ')' || chars[i] == ',') {
+                return null;
+            }
+            if (chars[i] == '(' || chars[i] == '=') {
+                break;
+            }
+            if (chars[i] == '.' && lastDot == -1) {
+                lastDot = i;
+            }
+        }
+        return lastDot == -1 ? new int[]{i + 1} : new int[]{i + 1, lastDot};
+    }
+
 
     @SneakyThrows
     @SuppressWarnings("InfiniteLoopStatement")
@@ -68,12 +188,16 @@ public class CommanderLine {
                 System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
             }
             if (stream != null) {
-                evaluate(new String(stream.readAllBytes(),charset), "");
+                evaluate(new String(stream.readAllBytes(), CHARSET), "");
             }
         }
         while (true) {
-            cmdInvoke(str -> evaluate(str, "\033[95mempty\033[0;39m"), str -> {
+            cmdInvoke(str -> evaluate(str, "\033[95munknown\033[0;39m"), str -> {
                 try {
+                    if (str.equals("cls") && JAR_ENV) {
+                        TERMINAL.puts(InfoCmp.Capability.clear_screen);
+                        return false;
+                    }
                     if (str.endsWith(".fun")) {
                         main(new String[]{str});
                         return false;
@@ -101,28 +225,47 @@ public class CommanderLine {
                 return true;
             });
         }
+
     }
 
 
     private static void cmdInvoke(Consumer<String> consumer, Function<String, Boolean> cmd) {
         StringBuilder builder = new StringBuilder();
         int blockMode = 0;
+        int bracketMode = 0;
         while (true) {
-            System.out.print(blockMode != 0 ? "......................> " : "EL-commander-line@FNU # ");
-            String line = scanner.nextLine();
+            String line;
+            if (JAR_ENV) {
+                line = READER.readLine(blockMode != 0 || bracketMode != 0 ? "...... " : "fun> ");
+            } else {
+                System.out.print(blockMode != 0 || bracketMode != 0 ? "...... " : "fun> ");
+                line = SCANNER.nextLine();
+            }
             if (!cmd.apply(line)) {
                 return;
             }
             builder.append(line).append("\n");
-            blockMode += leftBracket(line);
+            int i = leftBracket(line, '{', '}');
+            int j = leftBracket(line, '(', ')');
+            if (i < 0) {
+                System.out.println("\033[91millegal bracket '}' close!\033[0;30m");
+                builder = new StringBuilder();
+                continue;
+            }
+            if (j < 0) {
+                System.out.println("\033[91millegal bracket ')' close!\033[0;30m");
+                builder = new StringBuilder();
+                continue;
+            }
+            blockMode += i;
+            bracketMode += j;
 
-            if (blockMode == 0) {
+            if (blockMode == 0 && bracketMode == 0) {
                 try {
                     consumer.accept(builder.toString());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                System.out.println("\n");
                 builder = new StringBuilder();
             }
         }
@@ -130,7 +273,7 @@ public class CommanderLine {
 
     private static void evaluate(String stream, String x) {
         try {
-            Object value = passer.parseExpression(stream).getValue(context);
+            Object value = PARSER.parseExpression(stream).getValue(context);
             if (value == null) {
                 System.out.println(x);
                 return;
@@ -143,34 +286,56 @@ public class CommanderLine {
             } else if (value instanceof Map<?, ?> map) {
                 System.out.println("\033[95mMap:\033[0;39m");
                 map.forEach((k, v) -> System.out.println("\t" + k + " --- " + v));
-            } else if (value.getClass().getName().startsWith("[")){
+            } else if (value.getClass().getName().startsWith("[")) {
                 int length = Array.getLength(value);
                 StringJoiner joiner = new StringJoiner(",", "[", "]");
                 for (int i = 0; i < length; i++) {
-                    joiner.add(String.valueOf(Array.get(value,i)));
+                    joiner.add(String.valueOf(Array.get(value, i)));
                 }
                 System.out.println(joiner);
-            }else {
+            } else {
                 System.out.println(value);
             }
-        } catch (Exception e) {
-            if (Objects.requireNonNull(CommanderLine.class.getResource("")).getProtocol().equals("jar")) {
-                System.out.println(e.getMessage());
+        } catch (Throwable e) {
+            if (JAR_ENV) {
+                System.out.println(e.getMessage().strip());
+                List<String> msg = new ArrayList<>();
+                Throwable cause = e.getCause();
+                while (cause != null) {
+                    msg.add("\t\033[31m" + cause.getClass().getSimpleName() + "\033[0;39m -> " + cause.getMessage());
+                    cause = cause.getCause();
+                }
+                if (!msg.isEmpty()) {
+                    System.out.println("\033[31m----------------------------------------------------------------------------------------------");
+                    System.out.println("cause:\033[0;39m");
+                    msg.forEach(System.out::println);
+                }
             } else {
                 e.printStackTrace();
             }
         }
     }
 
-    private static int leftBracket(String expr) {
+    private static int leftBracket(String expr, char c1, char c2) {
         char[] chars = expr.toCharArray();
         int l = 0;
+        boolean quote = false;
+        boolean bigQuote = false;
         for (char aChar : chars) {
-            if (aChar == '{') {
+            if (!quote && aChar == '"') {
+                bigQuote = !bigQuote;
+            }
+            if (bigQuote) continue;
+            if (aChar == '\'') {
+                quote = !quote;
+            }
+            if (quote) continue;
+
+            if (aChar == c1) {
                 l++;
                 continue;
             }
-            if (aChar == '}') {
+            if (aChar == c2) {
                 l--;
             }
         }
@@ -207,9 +372,9 @@ public class CommanderLine {
                                             return;
                                         }
                                         //清空日志缓存
-                                        logRecorder.getLog();
+                                        LOG_RECORDER.getLog();
                                         evaluate(s, "\033[95mempty\033[0;39m");
-                                        ctx.channel().writeAndFlush(logRecorder.getLog());
+                                        ctx.channel().writeAndFlush(LOG_RECORDER.getLog());
                                     }
 
                                     @Override
@@ -226,12 +391,12 @@ public class CommanderLine {
 
     private static void startRemote() throws InterruptedException {
         System.out.print("port:");
-        String line = scanner.nextLine();
+        String line = SCANNER.nextLine();
         int port = Integer.parseInt(line);
         System.out.print("aes-key:");
         String aesKey;
         while (true) {
-            aesKey = scanner.nextLine();
+            aesKey = SCANNER.nextLine();
             if (aesKey.length() != 16) {
                 System.out.println("\033[95maes-key'length must 16\033[0;39m");
                 System.out.print("aes-key:");
@@ -240,7 +405,7 @@ public class CommanderLine {
             }
         }
         System.out.print("auth-key:");
-        String authKey = scanner.nextLine();
+        String authKey = SCANNER.nextLine();
         byte[] bytes = EncryptUtil.stringToMD5(authKey).getBytes(StandardCharsets.UTF_8);
         startRemote(port, aesKey, bytes);
     }
@@ -248,13 +413,13 @@ public class CommanderLine {
 
     private static void startClient() throws InterruptedException {
         System.out.print("address(ip:port):");
-        String line = scanner.nextLine();
+        String line = SCANNER.nextLine();
         String ip = line.split(":")[0];
         int port = Integer.parseInt(line.split(":")[1]);
         System.out.print("aes-key:");
         String aesKey;
         while (true) {
-            aesKey = scanner.nextLine();
+            aesKey = SCANNER.nextLine();
             if (aesKey.length() != 16) {
                 System.out.println("\033[95maes-key'length must 16\033[0;39m");
                 System.out.print("aes-key:");
@@ -263,7 +428,7 @@ public class CommanderLine {
             }
         }
         System.out.print("auth-key:");
-        String authKey = scanner.nextLine();
+        String authKey = SCANNER.nextLine();
         byte[] bytes = EncryptUtil.stringToMD5(authKey).getBytes(StandardCharsets.UTF_8);
         boolean[] shutDown = new boolean[]{false};
         String finalAesKey = aesKey;
@@ -320,7 +485,7 @@ public class CommanderLine {
                     if (cmd.endsWith(".fun")) {
                         try {
                             FileInputStream stream = new FileInputStream(cmd);
-                            channel.writeAndFlush(new String(stream.readAllBytes(),charset));
+                            channel.writeAndFlush(new String(stream.readAllBytes(), CHARSET));
                             channel.wait();
                         } catch (Exception e) {
                             System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");

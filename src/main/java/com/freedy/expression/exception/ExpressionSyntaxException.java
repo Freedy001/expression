@@ -16,6 +16,17 @@ import java.util.*;
  */
 public class ExpressionSyntaxException extends RuntimeException {
 
+    public static void buildThr(Class<?> builderClass, String msg, String expression, StackTraceElement[] ele, Token... tokens) {
+        new ExpressionSyntaxException(expression)
+                .buildMsg(msg)
+                .buildToken(tokens)
+                .buildCause(new BuildFailException(ele, builderClass == null ? "no builder detected" : builderClass.getSimpleName() + ":build failed!"))
+                .buildConsoleErrorMsg()
+                .buildStackTrace()
+                .thr();
+    }
+
+
     public static void tokenThr(String msg, String expression, Token... tokens) {
         new ExpressionSyntaxException(expression)
                 .buildMsg(msg)
@@ -91,6 +102,7 @@ public class ExpressionSyntaxException extends RuntimeException {
     @Getter
     private final List<String> syntaxErrStr = new ArrayList<>();
     private PlaceholderParser placeholder;
+    //每一层相应token对应的坐标
     private Map<Token, int[]> currentTokenIndex = new TreeMap<>(Comparator.comparing(Token::getOffset));
 
     public ExpressionSyntaxException(String expression) {
@@ -287,12 +299,17 @@ public class ExpressionSyntaxException extends RuntimeException {
         for (SyntaxErr err : errList) {
             //找到token的坐标   返回的结果数组的数量大于2表示匹配到多个值
             int[] subStrIndex = findSubStrIndex(str, err.info, err.startIndex);
-            if (err.isTokenType()) {
+            if (subStrIndex==null){
+                result.add(null);
+                continue;
+            }
 
+            if (err.isTokenType()) {
                 List<String> subStrList = err.getRelevantToken().getErrStr();
                 if (subStrList != null && !subStrList.isEmpty()) {
                     for (String sub : subStrList) {
-                        subStrIndex = findSubStrIndex(str, sub, err.startIndex);
+                        assert subStrIndex != null;
+                        subStrIndex = findSubStrIndex(err.info, sub, subStrIndex[0]);
                         result.add(subStrIndex);
                     }
                 } else {
@@ -333,10 +350,16 @@ public class ExpressionSyntaxException extends RuntimeException {
                 if (subChars[j] == '@') {
                     start = i;
                     j++;
+                    if (j == subLen) {
+                        return null;
+                    }
                 }
                 if (subChars[j] == '$') {
                     behindIndex = i;
                     j++;
+                    if (j == subLen) {
+                        return new int[]{start, i};
+                    }
                 }
                 if (chars[i] != subChars[j]) {
                     break;

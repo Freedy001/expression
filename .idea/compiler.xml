@@ -14,7 +14,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="expression" options="&quot;--add-exports java.base/jdk.internal.misc=ALL-UNNAMED&quot;" />
+      <module name="expression" options="--add-exports java.base/jdk.internal.misc=ALL-UNNAMED" />
     </option>
   </component>
 </project>

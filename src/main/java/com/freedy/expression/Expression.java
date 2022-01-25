@@ -1,8 +1,8 @@
 package com.freedy.expression;
 
-import com.freedy.expression.token.*;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
+import com.freedy.expression.token.*;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -214,8 +214,8 @@ public class Expression {
 
     private Token numOps(Token t1, Token t2, Token ops) {
         String selfOps = t1.numSelfOps(t2, ops);
-        if (selfOps.startsWith("string@")) {
-            return new BasicVarToken("str", selfOps.replaceFirst("string@", "")).setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
+        if (selfOps.matches("^'.*'$")) {
+            return new BasicVarToken("str", selfOps).setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
         } else {
             return new BasicVarToken("numeric", selfOps).setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
         }

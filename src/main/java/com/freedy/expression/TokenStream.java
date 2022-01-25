@@ -1,12 +1,13 @@
 package com.freedy.expression;
 
+import com.freedy.expression.exception.EvaluateException;
+import com.freedy.expression.exception.ExpressionSyntaxException;
 import com.freedy.expression.stander.StanderTokenBlockSorter;
 import com.freedy.expression.token.Assignable;
 import com.freedy.expression.token.ObjectToken;
 import com.freedy.expression.token.OpsToken;
 import com.freedy.expression.token.Token;
-import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.exception.ExpressionSyntaxException;
+import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -66,7 +67,9 @@ public class TokenStream implements Executable {
         if (this.context != context) {
             this.context = context;
             //注册销毁
-            context.registerClean(this, defTokenList);
+            if (StringUtils.hasText(System.getProperty("cleanMode"))) {
+                context.registerClean(this, defTokenList);
+            }
         }
         int size = blockStream.size();
         if (!hasSort) {

@@ -11,5 +11,4 @@ import lombok.Getter;
 @Getter
 public final class WrapperToken extends Token{
     Token token;
-
 }

@@ -26,6 +26,12 @@ public class loopBuilder extends Builder {
         if (node==null) return false;
         Matcher matcher = loopPattern.matcher(node.result);
         if (!matcher.find()) return false;
+        if (!token.endsWith("}")){
+            int i = token.lastIndexOf("}");
+            holder.setMsg("illegal loop statement,loop token must end with '};'")
+                    .setErrorPart(i == -1 ? token : token.substring(i));
+            return false;
+        }
         LoopToken loopToken = new LoopToken(token);
         String variableName = matcher.group(1);
         if (StringUtils.isEmpty(variableName)) {

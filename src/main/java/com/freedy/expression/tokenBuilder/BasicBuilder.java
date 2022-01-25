@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 public class BasicBuilder extends Builder{
 
 
-    private static final Pattern strPattern = Pattern.compile("^'([^']*?)'$");
+    private static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
 
     private static final Pattern numericPattern = Pattern.compile("\\d+|\\d+[lL]|\\d+?\\.\\d+");
 

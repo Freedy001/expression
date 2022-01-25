@@ -136,6 +136,13 @@ public class ReflectionUtils {
         }
     }
 
+    public static Set<Method> getMethodsRecursion(Class<?> clazz){
+        Set<Method> list = new HashSet<>();
+        for (Class<?> aClass : getClassRecursion(clazz)) {
+            list.addAll(List.of(aClass.getDeclaredMethods()));
+        }
+        return list;
+    }
 
     /**
      * 获取包括父类在内的所有Field对象

@@ -47,9 +47,8 @@ public sealed abstract class Token implements Comparable, Executable
     protected List<Token> originToken;
     //获取子token ,其子token是有该token与其他token计算而来
     protected Token sonToken;
-    protected int offset=9900_43;
+    protected int offset;
     protected List<String> errStr;
-    protected Token nextToken;
     protected EvaluationContext context;
     //非门标记       ! a
     protected boolean notFlag = false;
@@ -213,7 +212,7 @@ public sealed abstract class Token implements Comparable, Executable
         }
         if (type.isValue("+")) {
             if (o1 instanceof String || o2 instanceof String) {
-                return "string@" + o1 + o2;
+                return "'" + o1 + o2 + "'";
             }
         }
         BigDecimal a = new BigDecimal(o1 + "");

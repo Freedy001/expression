@@ -49,7 +49,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
         ExecuteStep step = getLastPropertyStep();
         if (step == null) {
             if (StringUtils.isEmpty(varName)) {
-                throw new EvaluateException("can not assign! because no varName").errToken(this.getNextToken());
+                throw new EvaluateException("can not assign! because no varName").errToken(this.errStr(varName));
             }
             relevantAssign(
                     relevantOps,
@@ -59,8 +59,10 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                         Object result = assignment.calculateResult(Token.ANY_TYPE);
                         if (ReflectionUtils.hasField(context.getRoot(), varName)) {
                             ReflectionUtils.setter(context.getRoot(), varName, result);
-                        } else {
+                        } else if (context.containsVariable(varName)){
                             context.setVariable(varName, result);
+                        }else {
+                            throw new EvaluateException("you must def ? first",varName).errToken(this.errStr(varName));
                         }
                     }
             );
@@ -77,11 +79,11 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
     private void doChainAssign(Token assignment, ExecuteStep step) {
         Object last = executeSelf(executableCount - 1, false);
         if (last == null) {
-            throw new EvaluateException("can not assign! because the execute chain return a null value").errToken(this.getNextToken());
+            throw new EvaluateException("can not assign! because the execute chain return a null value").errToken(this);
         }
         Type desiredType = Objects.requireNonNull(ReflectionUtils.getFieldRecursion(last.getClass(), step.getPropertyName())).getGenericType();
         Object result = assignment.calculateResult(desiredType);
-        ReflectionUtils.setter(context.getRoot(), varName, result);
+        ReflectionUtils.setter(last, step.getPropertyName(), result);
     }
 
 
@@ -144,8 +146,8 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                 invoke = method.invoke(function, args);
             }catch (Exception e) {
                 Throwable cause = e.getCause();
-                if (cause.getClass()==ClassCastException.class){
-                    throw new EvaluateException("class cast failed,please check you delivery param. cause: ?",e.getCause());
+                if (cause != null && cause.getClass() == ClassCastException.class) {
+                    throw new EvaluateException("class cast failed,please check you delivery param. cause: ?", e.getCause());
                 }
                 throw new EvaluateException("invoke target function ? failed!->?", getFullMethodName(methodName, methodArgsName), (e instanceof InvocationTargetException ex) ? ex.getCause() : e).errToken(this.errStr(methodArgsName));
             }
@@ -160,6 +162,9 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
     private Class<?> checkArrType(Object[] arr, int start, int end) {
         if (start > end) {
             throw new IllegalArgumentException("start index ? gt end index ?", start, end);
+        }
+        if (start >= arr.length) {
+            return null;
         }
         Class<?> cl = arr[start].getClass();
         for (int i = start + 1; i < end; i++) {
