@@ -3,9 +3,6 @@ package com.freedy.expression.tokenBuilder;
 import com.freedy.expression.TokenStream;
 import com.freedy.expression.token.LoopToken;
 import com.freedy.expression.utils.StringUtils;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
-import org.w3c.dom.Node;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
  */
 public class CommanderLine {
 
-    public final static boolean JAR_ENV = Objects.requireNonNull(CommanderLine.class.getResource("")).getProtocol().equals("jar");
+    public final static boolean JAR_ENV = System.getProperty("disableJline") == null && Objects.requireNonNull(CommanderLine.class.getResource("")).getProtocol().equals("jar");
     public final static LogRecorder LOG_RECORDER = new LogRecorder(System.out);
     private final static ExpressionPasser PARSER = new ExpressionPasser();
     public final static Scanner SCANNER = new Scanner(System.in);
@@ -245,20 +245,18 @@ public class CommanderLine {
                 return;
             }
             builder.append(line).append("\n");
-            int i = leftBracket(line, '{', '}');
-            int j = leftBracket(line, '(', ')');
-            if (i < 0) {
-                System.out.println("\033[91millegal bracket '}' close!\033[0;30m");
+            blockMode += leftBracket(line, '{', '}');
+            bracketMode += leftBracket(line, '(', ')');
+            if (blockMode < 0) {
+                System.out.println("\033[91mnot pared bracket '}' close!\033[0;30m");
                 builder = new StringBuilder();
                 continue;
             }
-            if (j < 0) {
-                System.out.println("\033[91millegal bracket ')' close!\033[0;30m");
+            if (bracketMode < 0) {
+                System.out.println("\033[91mnot pared ')' close!\033[0;30m");
                 builder = new StringBuilder();
                 continue;
             }
-            blockMode += i;
-            bracketMode += j;
 
             if (blockMode == 0 && bracketMode == 0) {
                 try {

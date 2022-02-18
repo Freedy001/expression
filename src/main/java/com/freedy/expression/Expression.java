@@ -15,6 +15,7 @@ import java.util.Stack;
 import static com.freedy.expression.token.Token.ANY_TYPE;
 
 /**
+ * 执行器,在{@link Expression#context}环境中调用{@link Expression#getValue()}执行{@link TokenStream}
  * @author Freedy
  * @date 2021/12/14 11:18
  */

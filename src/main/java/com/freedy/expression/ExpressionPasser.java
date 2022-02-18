@@ -8,15 +8,8 @@ import com.freedy.expression.tokenBuilder.Tokenizer;
  */
 public class ExpressionPasser {
 
-
     public Expression parseExpression(String expression) {
         return new Expression(Tokenizer.getTokenStream(expression));
     }
-
-
-    public Expression parseExpression(String expression, ParserContext context) {
-        return null;
-    }
-
 
 }

@@ -23,6 +23,7 @@ import java.util.jar.JarFile;
 import static com.freedy.expression.utils.StringUtils.splitWithoutBracket;
 
 /**
+ * 序列化器,调用{@link Tokenizer#getTokenStream(String)}方法将字符串代码序列化为一连串Token
  * @author Freedy
  * @date 2021/12/14 15:28
  */
@@ -35,6 +36,7 @@ public class Tokenizer {
     private static final List<Builder> builderSet = new ArrayList<>();
 
     static {
+        //扫描所有的token builder
         scanBuilder();
     }
 
@@ -73,6 +75,9 @@ public class Tokenizer {
         return list;
     }
 
+    /**
+     * 普通环境扫描
+     */
     private static void fileScan(String[] exclude, List<Class<?>> list, String PackageName, URL url) throws IOException, URISyntaxException {
         String[] packSplit = PackageName.split("\\.");
         String lastPackageName = packSplit[packSplit.length - 1];
@@ -117,6 +122,9 @@ public class Tokenizer {
         });
     }
 
+    /**
+     * jar环境扫描
+     */
     private static void jarScan(String[] exclude, List<Class<?>> list, String PackageName, ClassLoader loader) throws Exception {
         String pathName = PackageName.replace(".", "/");
         URL url = loader.getResource(pathName);

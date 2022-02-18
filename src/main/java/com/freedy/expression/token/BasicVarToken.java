@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 @JSONType(includes = {"type", "value"})
 public final class BasicVarToken extends Token {
 
+
     public BasicVarToken(String type, String value) {
         super(type, value);
     }

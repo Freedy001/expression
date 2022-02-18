@@ -39,16 +39,21 @@ import java.util.List;
 @JSONType(includes = {"type", "value"})
 public sealed abstract class Token implements Comparable, Executable
         permits BasicVarToken, ClassToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, ObjectToken, OpsToken, StopToken, TernaryToken, WrapperToken {
+    //Token的type 结合isType()方法省去使用使用instance of进行判断
     @ToString.Include
     protected String type;
+    //token原始的字符串值
     @ToString.Include
     protected String value;
     //获取原始token 表示此token是由原始token计算而来
     protected List<Token> originToken;
     //获取子token ,其子token是有该token与其他token计算而来
     protected Token sonToken;
+    //偏移量
     protected int offset;
+    //异常时需要标记的局部字符串
     protected List<String> errStr;
+    //执行环境
     protected EvaluationContext context;
     //非门标记       ! a
     protected boolean notFlag = false;
@@ -60,7 +65,7 @@ public sealed abstract class Token implements Comparable, Executable
     protected boolean postSelfAddFlag = false;
     //后自减        a --
     protected boolean postSelfSubFlag = false;
-
+    //执行calculateResult()期望的返回类型
     protected Class<?> desiredType;
 
     public final static Class<Object> ANY_TYPE = Object.class;
@@ -140,7 +145,9 @@ public sealed abstract class Token implements Comparable, Executable
         return value;
     }
 
-
+    /**
+     * 两个token进行比较运算
+     */
     public double compareTo(Token o) {
         BigDecimal a;
         BigDecimal b;
@@ -161,6 +168,11 @@ public sealed abstract class Token implements Comparable, Executable
         return a.subtract(b).doubleValue();
     }
 
+    /**
+     * 两个token进行逻辑运输
+     * @param o      需要与该token进行逻辑运算的token
+     * @param type   逻辑运算的类型
+     */
     @SuppressWarnings("ConstantConditions")
     public boolean logicOps(Token o, Token type) {
         boolean a;
@@ -186,7 +198,11 @@ public sealed abstract class Token implements Comparable, Executable
         }
     }
 
-
+    /**
+     * 两个token进行+,-,*,/,+=,-=,/=,*=运算
+     * @param o       需要与该token进行运算的token
+     * @param type    运算的类型
+     */
     public String numSelfOps(Token o, Token type) {
         Object o1;
         Object o2;
@@ -379,6 +395,9 @@ public sealed abstract class Token implements Comparable, Executable
         return result;
     }
 
+    /**
+     * 执行自增,自减等操作
+     */
     protected Object selfOps(Object result) {
         if (notFlag) {
             if (result instanceof Boolean r) {

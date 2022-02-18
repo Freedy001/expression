@@ -16,6 +16,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
+ * TokenStream是字符串代码的抽象,也就是TokenStream配合Context就可以让代码执行起来 <br/>
+ *
+ * <h2>构建</h2>
+ * <p>TokenStream是由Tokenizer的getTokenStream()方法所构建.其利用分号进行分割,每个分割的单元为一个TokenList</p>
+ * 即下面的{@link TokenStream#infixExpression}全局变量,每构建好一个TokenList就会调用{@link TokenStream#splitStream()}方法进行切换(将{@link TokenStream#infixExpression}放入到{@link TokenStream#blockStream}中)
+ * <h3>执行</h3>
+ * 执行的时候又会将{@link TokenStream#blockStream}里面的内容一个一个的切换回{@link TokenStream#infixExpression}中,然后对对每个token设置context并将TokenList转化为后缀表达式然后交给{@link Expression}执行
  * @author Freedy
  * @date 2021/12/14 19:46
  */
@@ -48,7 +55,9 @@ public class TokenStream implements Executable {
         this.expression = expression;
     }
 
-
+    /**
+     * 执行时遍历该list
+     */
     private List<List<Token>> blockStream = new ArrayList<>();
     @Getter
     private final List<String> defTokenList = new ArrayList<>();
@@ -62,7 +71,9 @@ public class TokenStream implements Executable {
         }
     }
 
-
+    /**
+     * 遍历所有token并交由indexSuffixList执行
+     */
     public void forEachStream(EvaluationContext context, BiConsumer<Integer, List<Token>> indexSuffixList) {
         if (this.context != context) {
             this.context = context;
@@ -172,7 +183,9 @@ public class TokenStream implements Executable {
         infixExpression.add(token);
     }
 
-
+    /**
+     * 对所有的Token设置context
+     */
     private void setTokenContext(EvaluationContext context, List<Token> tokenList) {
         for (Token token : tokenList) {
             List<Token> originToken = token.getOriginToken();
@@ -189,9 +202,10 @@ public class TokenStream implements Executable {
 
     private final Map<List<Token>, List<Token>> suffixCache = new HashMap<>();
 
-    // b<a=2+3+(5*4/2)
-    // ba2=
-    // <=+
+
+    /**
+     * 计算后缀表达式
+     */
     private List<Token> calculateSuffix() {
         List<Token> suffix = suffixCache.get(infixExpression);
         if (suffix != null) return suffix;
@@ -236,7 +250,9 @@ public class TokenStream implements Executable {
         return suffixExpression;
     }
 
-
+    /**
+     * 合并单操作符,将 !var,var++等合并为一个token
+     */
     private void mergeSingleTokenOps() {
         for (int i = 0; i < infixExpression.size(); i++) {
             Token token = infixExpression.get(i);
@@ -294,7 +310,9 @@ public class TokenStream implements Executable {
 
     }
 
-
+    /**
+     * 计算每个token在expression中的偏移量,方便异常时进行彩色标记
+     */
     private void calculateOffset(int cursor, List<Token> tokenList) {
         for (Token token : tokenList) {
             List<Token> originToken = token.getOriginToken();
@@ -308,7 +326,9 @@ public class TokenStream implements Executable {
         }
     }
 
-
+    /**
+     * 计算偏移
+     */
     @SuppressWarnings("StatementWithEmptyBody")
     private int[] findSubStrIndex(String str, String subStr, int startIndex) {
         char[] chars = str.toCharArray();
@@ -339,7 +359,9 @@ public class TokenStream implements Executable {
         return null;
     }
 
-
+    /**
+     * 变量清除,可以理解为回收该tokenStream中def定义的变量
+     */
     public void close() {
         if (context == null) return;
         for (String varName : defTokenList) {
