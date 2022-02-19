@@ -340,8 +340,25 @@ public class CommanderLine {
         return l;
     }
 
+    private static void startRemote() throws InterruptedException {
+        int port = Integer.parseInt(stdin("port:"));
+        String aesKey;
+        while (true) {
+            aesKey = stdin("aes-key:");
+            if (aesKey.length() != 16) {
+                System.out.println("\033[95maes-key'length must 16\033[0;39m");
+            } else {
+                break;
+            }
+        }
+        startRemote(port, aesKey, EncryptUtil.stringToMD5(stdin("auth-key:")).getBytes(StandardCharsets.UTF_8));
+    }
 
     public static void startRemote(int port, String aesKey, byte[] auth) throws InterruptedException {
+        startRemote(port,aesKey,auth,ctx-> System.out.println(new PlaceholderParser("one client? connect", ctx.channel().remoteAddress()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE)));
+    }
+
+    public static void startRemote(int port, String aesKey, byte[] auth,Consumer<ChannelHandlerContext> interceptor) throws InterruptedException {
         pc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
                 .group(new NioEventLoopGroup(1), new NioEventLoopGroup())
@@ -359,7 +376,7 @@ public class CommanderLine {
 
                                     @Override
                                     public void channelActive(ChannelHandlerContext ctx) {
-                                        System.out.println(new PlaceholderParser("one client? connect", ctx.channel().remoteAddress()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE));
+                                        interceptor.accept(ctx);
                                     }
 
                                     @Override
@@ -387,47 +404,20 @@ public class CommanderLine {
         System.out.println("\033[95mserver start success\033[0;39m");
     }
 
-    private static void startRemote() throws InterruptedException {
-        System.out.print("port:");
-        String line = SCANNER.nextLine();
-        int port = Integer.parseInt(line);
-        System.out.print("aes-key:");
-        String aesKey;
-        while (true) {
-            aesKey = SCANNER.nextLine();
-            if (aesKey.length() != 16) {
-                System.out.println("\033[95maes-key'length must 16\033[0;39m");
-                System.out.print("aes-key:");
-            } else {
-                break;
-            }
-        }
-        System.out.print("auth-key:");
-        String authKey = SCANNER.nextLine();
-        byte[] bytes = EncryptUtil.stringToMD5(authKey).getBytes(StandardCharsets.UTF_8);
-        startRemote(port, aesKey, bytes);
-    }
-
-
     private static void startClient() throws InterruptedException {
-        System.out.print("address(ip:port):");
-        String line = SCANNER.nextLine();
+        String line = stdin("address(ip:port):");
         String ip = line.split(":")[0];
         int port = Integer.parseInt(line.split(":")[1]);
-        System.out.print("aes-key:");
         String aesKey;
         while (true) {
-            aesKey = SCANNER.nextLine();
+            aesKey = stdin("aes-key:");
             if (aesKey.length() != 16) {
                 System.out.println("\033[95maes-key'length must 16\033[0;39m");
-                System.out.print("aes-key:");
             } else {
                 break;
             }
         }
-        System.out.print("auth-key:");
-        String authKey = SCANNER.nextLine();
-        byte[] bytes = EncryptUtil.stringToMD5(authKey).getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = EncryptUtil.stringToMD5(stdin("auth-key:")).getBytes(StandardCharsets.UTF_8);
         boolean[] shutDown = new boolean[]{false};
         String finalAesKey = aesKey;
         Channel channel = new Bootstrap()
@@ -496,5 +486,15 @@ public class CommanderLine {
         }
     }
 
+    private static String stdin(String placeholder){
+        String line;
+        if (JAR_ENV) {
+            line = READER.readLine(placeholder);
+        } else {
+            System.out.print(placeholder);
+            line = SCANNER.nextLine();
+        }
+        return line;
+    }
 
 }

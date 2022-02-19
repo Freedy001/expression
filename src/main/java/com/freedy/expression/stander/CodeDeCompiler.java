@@ -54,10 +54,6 @@ public class CodeDeCompiler {
     private static final Pattern annotationPattern = Pattern.compile("@ *?[a-zA-Z]\\w+");
     private static final Pattern numPattern = Pattern.compile("[*/+-]?\\d*_*\\d*\\.?\\d*_*\\d*");
 
-    {
-//        numPattern.matcher("").groupCount()
-    }
-
     @Data
     @AllArgsConstructor
     public static class ClassByteCode {

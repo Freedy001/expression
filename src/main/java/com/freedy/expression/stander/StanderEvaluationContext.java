@@ -191,7 +191,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                         print(o2);
                     });
                 a.test1('1','2');
-                a.test1('ni hao');
+                a.test2('ni hao');
                                 
                 it will print:
                 i am test112

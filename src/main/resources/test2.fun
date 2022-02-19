@@ -1,4 +1,4 @@
-//通关脚本定义java类
+//通过脚本定义java类
 defClass('com.freedy.expression.stander.TestDefClass',@block{
 
     def a=10;
