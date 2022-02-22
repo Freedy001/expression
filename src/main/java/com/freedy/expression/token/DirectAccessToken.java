@@ -143,7 +143,9 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                     nArgs[count - 1] = varArg;
                     args = nArgs;
                 }
+
                 invoke = method.invoke(function, args);
+
             }catch (Exception e) {
                 Throwable cause = e.getCause();
                 if (cause != null && cause.getClass() == ClassCastException.class) {

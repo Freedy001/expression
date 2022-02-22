@@ -527,15 +527,15 @@ public class ReflectionUtils {
 
     public static Object invokeMethod(Class<?> targetClass, Object target, String methodName, Object... args) throws Throwable {
         List<Method> list = new ArrayList<>();
-        List<Method> seminary = new ArrayList<>();
+        List<Method> similar = new ArrayList<>();
         int methodLen = methodName.length();
-        for (Method method : targetClass.getDeclaredMethods()) {
+        for (Method method : getMethodsRecursion(targetClass)) {
             String name = method.getName();
             if (name.equals(methodName)) {
                 list.add(method);
             }
             if (name.contains(methodName) || methodName.contains(name)) {
-                seminary.add(method);
+                similar.add(method);
             }
         }
         int length = args.length;
@@ -583,8 +583,8 @@ public class ReflectionUtils {
         for (Object arg : args) {
             argStr.add(arg == null ? "null" : arg.getClass().getName());
         }
-        seminary.sort(Comparator.comparing(o -> Math.abs(o.getName().length() - methodLen)));
-        throw new NoSuchMethodException("no such method \033[34m" + methodName + argStr + " in " + targetClass.getName() + "!\033[0;39myou can call these method:" + new PlaceholderParser("?*", seminary.stream().map(method -> {
+        similar.sort(Comparator.comparing(o -> Math.abs(o.getName().length() - methodLen)));
+        throw new NoSuchMethodException("no such method \033[34m" + methodName + argStr + " in " + targetClass.getName() + "!\033[0;39myou can call these method:" + new PlaceholderParser("?*", similar.stream().map(method -> {
             StringJoiner argString = new StringJoiner(",", "(", ")");
             for (Parameter arg : method.getParameters()) {
                 argString.add(arg.getType().getSimpleName() + " " + arg.getName());

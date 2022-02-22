@@ -51,6 +51,13 @@ arr
 
 > 关于三者的区别，会在下面的     函数中的变量访问     中说明
 
+静态变量与静态方法的访问可以使用`T(fullClassName).varOrMethod`种形式访问，例如:
+
+```shell
+def min=T(java.lang.Integer).MIN_VALUE;
+def int=T(java.lang.Integer).parseInt("12");
+```
+
 列表和Map的访问可以直接通过`[]`来访问，或者使用ArrayList或HashMap相应的方法(例如arr.get(1)或arr.set(2,3)):
 
 ```shell
@@ -340,6 +347,8 @@ import('java.util.*');
 def arr2=new('ArrayList');  //使用过import()后,每次new都只需要简化类名 
 ```
 
+> import()除了对new函数有效外还对T()访问静态变量/方法有效
+
 - **require()**执行另外一个FUN脚本文件，需要传入路径参数
 
 > 更多内部函数可以通过help指令查看
@@ -360,6 +369,49 @@ public class Test{
         express.getValue(context);											 //执行语句
     }
 }
+```
+
+### 四.其他特性
+
+该表达式语言的设计非常简单所以并没有设计某些特性（相比于java）。例如没有设计异常处理的特性，没有实现多线程的特性，没有实现访问权限的特性等等。但是该表达式语言向外提供了可以调用Java语言的`自定义内部函数API`，可以使用这个特性来用Java代码实现部分功能。
+
+例如我想实现异常处理可以添加如下函数:
+
+```java
+public class Test{
+    public static void main(String[] args){
+        //try_catch_finally同理
+context.registerFunction("try_catch", (Consumer._3ParameterConsumer<Runnable, Class<? extends Throwable >, Consumer._1ParameterConsumer<Throwable>>) (_try, _exception, _catch) -> {
+            try {
+                _try.run();
+            } catch (Throwable ex) {
+                if (_exception.isInstance(ex)) {
+                    _catch.accept(ex);
+                }
+            }
+        });
+}
+```
+
+然后就可以直接在表达式中使用
+
+```shell
+def exType=class("Exception");
+try_catch(newInterface('com.freedy.expression.function.Runnable','run',@block{
+    10/0;
+}),exType,newInterface('com.freedy.expression.function.Consumer$_1ParameterConsumer','accept','ex',@block{
+    print(ex);
+}));
+```
+
+输出
+
+```shell
+com.freedy.expression.exception.ExpressionSyntaxException: 
+
+:)BigInteger divide by zero at:
+    10/0;
+      ^
 ```
 
 ## 项目构建

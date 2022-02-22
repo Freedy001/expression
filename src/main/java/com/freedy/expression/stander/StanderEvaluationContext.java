@@ -585,7 +585,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     @SneakyThrows
     private Class<?> getClassByArg(Object arg) {
         if (arg instanceof String s) {
-            return CustomStringJavaCompiler.getSelfClassLoader().loadClass(s);
+            return findClas(s);
         } else {
             if (arg == null) return null;
             return arg.getClass();

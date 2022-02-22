@@ -119,6 +119,9 @@ public class StringUtils {
         return s;
     }
 
+    public static String getNotEmpty(String first, String second) {
+        return hasText(first) ? first : second;
+    }
 
     /**
      * 是否是大写字符
