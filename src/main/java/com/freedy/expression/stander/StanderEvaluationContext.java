@@ -69,6 +69,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         private final Properties env = System.getProperties();
         private Date time;
         private String help;
+        private Set<String> allVar;
 
         public ROOT(StanderEvaluationContext context) {
             this.context = context;
@@ -86,6 +87,10 @@ public class StanderEvaluationContext extends PureEvaluationContext {
             new TreeMap<>(context.selfFuncHelp).forEach((k, v) -> builder.append("\033[95m").append(k).append("\033[0;39m").append(50 - k.length() < 0 ? "\n\t---" : " ".repeat(50 - k.length())).append(v.contains("\n") ? v.substring(0, v.indexOf("\n")) : v).append("\n"));
             help = builder.toString();
             return help;
+        }
+
+        public Set<String> getAllVar(){
+            return context.allVariables();
         }
     }
 
@@ -478,8 +483,6 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                 variableMap.remove(filterName(s));
             }
         });
-
-        registerFunctionWithHelp("allVar", "get var map", (Suppler<Map<String, Object>>) () -> variableMap);
 
         registerFunctionWithHelp("readFile", "read all byte from giving file", (Function._1ParameterFunction<String, String>) path -> {
             @Cleanup FileInputStream inputStream = new FileInputStream(path);

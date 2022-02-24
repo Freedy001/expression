@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,11 @@ public class PureEvaluationContext implements EvaluationContext{
     @Override
     public boolean containsVariable(String name) {
         return variableMap.containsKey(filterName(name));
+    }
+
+    @Override
+    public Set<String> allVariables() {
+        return variableMap.keySet();
     }
 
     @Override

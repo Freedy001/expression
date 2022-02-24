@@ -27,6 +27,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -340,7 +341,7 @@ public class CommanderLine {
         return l;
     }
 
-    private static void startRemote() throws InterruptedException {
+    private static void startRemote() {
         int port = Integer.parseInt(stdin("port:"));
         String aesKey;
         while (true) {
@@ -351,14 +352,17 @@ public class CommanderLine {
                 break;
             }
         }
-        startRemote(port, aesKey, EncryptUtil.stringToMD5(stdin("auth-key:")).getBytes(StandardCharsets.UTF_8));
+        startRemote(port, aesKey, stdin("auth-key:"));
     }
 
-    public static void startRemote(int port, String aesKey, byte[] auth) throws InterruptedException {
-        startRemote(port,aesKey,auth,ctx-> System.out.println(new PlaceholderParser("one client? connect", ctx.channel().remoteAddress()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE)));
+
+    public static void startRemote(int port, String aesKey, String md5AuthStr) {
+        startRemote(port, aesKey, md5AuthStr, ctx -> System.out.println(new PlaceholderParser("one client? connect", ctx.channel().remoteAddress()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE)));
     }
 
-    public static void startRemote(int port, String aesKey, byte[] auth,Consumer<ChannelHandlerContext> interceptor) throws InterruptedException {
+    @SneakyThrows
+    public static void startRemote(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
+        byte[] auth=EncryptUtil.stringToMD5(md5AuthStr).getBytes(StandardCharsets.UTF_8);
         pc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
                 .group(new NioEventLoopGroup(1), new NioEventLoopGroup())
@@ -401,23 +405,47 @@ public class CommanderLine {
                         );
                     }
                 }).bind(port).sync().channel();
-        System.out.println("\033[95mserver start success\033[0;39m");
+        System.out.println("\033[95mserver start success on port"+port+"\033[0;39m");
     }
 
-    private static void startClient() throws InterruptedException {
-        String line = stdin("address(ip:port):");
-        String ip = line.split(":")[0];
-        int port = Integer.parseInt(line.split(":")[1]);
-        String aesKey;
-        while (true) {
-            aesKey = stdin("aes-key:");
-            if (aesKey.length() != 16) {
-                System.out.println("\033[95maes-key'length must 16\033[0;39m");
-            } else {
-                break;
+    //127.0.0.1:21;abcdsawerfsasxcs;asdasdas
+    @SneakyThrows
+    private static void startClient() {
+        File file = new File("./encrypt.txt");
+        String ip, aesKey;
+        int port;
+        byte[] bytes;
+
+        if (file.exists()) {
+            FileInputStream is = new FileInputStream(file);
+            String[] split = new String(is.readAllBytes()).trim().strip().split(";");
+            if (split.length != 3) {
+                System.out.println("\033[95mencrypt.txt not formated,please modify it or delete it!\033[0;39m");
+                return;
             }
+            String line = split[0];
+            ip = line.split(":")[0];
+            port = Integer.parseInt(line.split(":")[1]);
+            if (split[1].length() != 16) {
+                System.out.println("\033[95maes-key'length must 16\033[0;39m");
+                return;
+            }
+            aesKey = split[1];
+            bytes = EncryptUtil.stringToMD5(split[2]).getBytes(StandardCharsets.UTF_8);
+        } else {
+            String line = stdin("address(ip:port):");
+            ip = line.split(":")[0];
+            port = Integer.parseInt(line.split(":")[1]);
+            while (true) {
+                aesKey = stdin("aes-key:");
+                if (aesKey.length() != 16) {
+                    System.out.println("\033[95maes-key'length must 16\033[0;39m");
+                } else {
+                    break;
+                }
+            }
+            bytes = EncryptUtil.stringToMD5(stdin("auth-key:")).getBytes(StandardCharsets.UTF_8);
         }
-        byte[] bytes = EncryptUtil.stringToMD5(stdin("auth-key:")).getBytes(StandardCharsets.UTF_8);
         boolean[] shutDown = new boolean[]{false};
         String finalAesKey = aesKey;
         Channel channel = new Bootstrap()
@@ -444,9 +472,11 @@ public class CommanderLine {
 
                                     @Override
                                     public void channelInactive(ChannelHandlerContext ctx) {
-                                        System.out.println("\033[92mserver stopped!\033[0;39m");
-                                        shutDown[0] = true;
-                                        channel.notifyAll();
+                                        synchronized (channel) {
+                                            System.out.println("\033[92mserver stopped!\033[0;39m");
+                                            shutDown[0] = true;
+                                            channel.notifyAll();
+                                        }
                                     }
 
                                     @Override

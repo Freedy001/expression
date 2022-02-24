@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.freedy</groupId>
+    <groupId>io.github.freedy001</groupId>
     <artifactId>expression</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
@@ -16,6 +16,106 @@
         <kotlin.version>1.6.10</kotlin.version>
     </properties>
 
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git:https://github.com/Freedy001/expression.git</connection>
+        <developerConnection>scm:git:https://github.com/Freedy001/expression.git</developerConnection>
+        <url>git:https://github.com/Freedy001/expression.git</url>
+    </scm>
+    <developers>
+        <developer>
+            <name>Freedy</name>
+            <email>985948228@qq.com</email>
+            <organization>1</organization>
+        </developer>
+    </developers>
+
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <!--  提交到资料库的地址  -->
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>oss</id>
+                    <url>https://s01.oss.sonatype.org</url>
+                </snapshotRepository>
+                <repository>
+                    <id>oss</id>
+                    <url>https://s01.oss.sonatype.org</url>
+                </repository>
+            </distributionManagement>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/java</directory>
+                        <includes>
+                            <include>**/*.properties</include>
+                            <include>**/*.yml</include>
+                        </includes>
+                    </resource>
+                </resources>
+                <plugins>
+                    <!-- Source -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>2.2.1</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- GPG -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!--Compiler-->
+                    <plugin>
+                        <!-- 指定maven编译的jdk版本,如果不指定,maven3默认用jdk 1.5 maven2默认用jdk1.3 -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.8.1</version>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <compilerArgs>
+                                <arg>--add-exports</arg>
+                                <arg>java.base/jdk.internal.misc=ALL-UNNAMED</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </plugin>
+                    <!--Release-->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-release-plugin</artifactId>
+                        <version>2.5.1</version>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+    
+    
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -58,6 +158,7 @@
         </dependency>
     </dependencies>
 
+    
     <build>
         <plugins>
             <plugin>

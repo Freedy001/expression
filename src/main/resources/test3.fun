@@ -35,6 +35,6 @@ func('isSorted','arr',@block{
         }else{
             return false;
         }
-    }
+    };
     return true;
 });

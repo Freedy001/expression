@@ -23,6 +23,8 @@ public interface EvaluationContext {
 
     boolean containsVariable(String name);
 
+    Set<String> allVariables();
+
     Object removeVariable(String name);
 
     void clearVariable();
