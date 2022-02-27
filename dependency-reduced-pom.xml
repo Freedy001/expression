@@ -3,7 +3,10 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.freedy001</groupId>
   <artifactId>expression</artifactId>
-  <version>1.0.0</version>
+  <name>expression</name>
+  <version>1.0.1</version>
+  <description>An expression language based on Java</description>
+  <url>https://github.com/Freedy001/expression</url>
   <developers>
     <developer>
       <name>Freedy</name>
@@ -36,6 +39,25 @@
         </executions>
       </plugin>
       <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9.1</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <additionalJOptions>
+            <additionalJOption>--add-exports</additionalJOption>
+            <additionalJOption>java.base/jdk.internal.misc=ALL-UNNAMED</additionalJOption>
+          </additionalJOptions>
+          <additionalparam>-Xdoclint:none</additionalparam>
+        </configuration>
+      </plugin>
+      <plugin>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.1.0</version>
         <executions>
@@ -65,75 +87,32 @@
           </compilerArgs>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.12</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>release</id>
-      <build>
-        <resources>
-          <resource>
-            <directory>C:\Users\Freedy\Desktop\code\expression\src\main\java</directory>
-            <includes>
-              <include>**/*.properties</include>
-              <include>**/*.yml</include>
-            </includes>
-          </resource>
-        </resources>
-        <plugins>
-          <plugin>
-            <artifactId>maven-source-plugin</artifactId>
-            <version>2.2.1</version>
-            <executions>
-              <execution>
-                <phase>package</phase>
-                <goals>
-                  <goal>jar-no-fork</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.8.1</version>
-            <configuration>
-              <encoding>UTF-8</encoding>
-              <compilerArgs>
-                <arg>--add-exports</arg>
-                <arg>java.base/jdk.internal.misc=ALL-UNNAMED</arg>
-              </compilerArgs>
-            </configuration>
-          </plugin>
-          <plugin>
-            <artifactId>maven-release-plugin</artifactId>
-            <version>2.5.1</version>
-          </plugin>
-        </plugins>
-      </build>
-      <distributionManagement>
-        <repository>
-          <id>oss</id>
-          <url>https://s01.oss.sonatype.org</url>
-        </repository>
-        <snapshotRepository>
-          <id>oss</id>
-          <url>https://s01.oss.sonatype.org</url>
-        </snapshotRepository>
-      </distributionManagement>
-    </profile>
-  </profiles>
   <dependencies>
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -142,6 +121,16 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
+  <distributionManagement>
+    <repository>
+      <id>ossrh</id>
+      <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
   <properties>
     <maven.compiler.target>17</maven.compiler.target>
     <kotlin.version>1.6.10</kotlin.version>

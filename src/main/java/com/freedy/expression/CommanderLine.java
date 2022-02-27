@@ -27,10 +27,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -384,8 +381,9 @@ public class CommanderLine {
                                     }
 
                                     @Override
-                                    protected void channelRead0(ChannelHandlerContext ctx, String s) {
-                                        if (s.trim().toLowerCase(Locale.ROOT).equals("::shutdown")) {
+                                    protected void channelRead0(ChannelHandlerContext ctx, String s) throws FileNotFoundException {
+                                        String cmd = s.trim().toLowerCase(Locale.ROOT);
+                                        if (cmd.equals("::shutdown::")) {
                                             ctx.channel().close();
                                             pc.close();
                                             return;

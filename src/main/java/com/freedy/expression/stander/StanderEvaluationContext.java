@@ -19,6 +19,11 @@ import java.lang.reflect.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -41,6 +46,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     private EvaluationContext superContext;
     private final HashMap<String, String> importMap = new HashMap<>();
     private final Expression selfExp = new Expression();
+    private String currentPath = ".";
 
     {
         variableMap.put("context", this);
@@ -54,22 +60,24 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         importMap.put("package:java.util.stream", "*");
     }
 
-    public static final Map<String, TokenStream> CLASS_MAP = new HashMap<>();
     private final static Unsafe UNSAFE = (Unsafe) ReflectionUtils.getter(Unsafe.class, null, "theUnsafe");
     private final static ClassLoader APP_CLASSLOADER = StanderEvaluationContext.class.getClassLoader();
     private final static long CLASS_OFFSET = UNSAFE.objectFieldOffset(ClassLoader.class, "classes");
     public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
+    private final static SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+    private final static String SEPARATOR = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win") ? "\\\\" : "/";
 
     @Getter
     @Setter
     public static class ROOT {
-        private final static String pwd = new File("").getAbsolutePath();
-        private final String ls = String.join("\n", Objects.requireNonNull(new File(".").list()));
         private final StanderEvaluationContext context;
         private final Properties env = System.getProperties();
+        private String pwd;
+        private String ls;
         private Date time;
         private String help;
         private Set<String> allVar;
+
 
         public ROOT(StanderEvaluationContext context) {
             this.context = context;
@@ -89,8 +97,51 @@ public class StanderEvaluationContext extends PureEvaluationContext {
             return help;
         }
 
-        public Set<String> getAllVar(){
+        public Set<String> getAllVar() {
             return context.allVariables();
+        }
+
+        public String getLs() {
+            String[] fileArr = Arrays.stream(Objects.requireNonNull(new File(context.currentPath).listFiles())).map(f -> {
+                StringBuilder builder = new StringBuilder();
+                builder.append(f.isDirectory() ? "d" : "-");
+                builder.append(f.canRead() ? "r" : "-");
+                builder.append(f.canWrite() ? "w" : "-");
+                builder.append(f.canExecute() ? "x" : "-");
+                builder.append("\t");
+
+
+                BasicFileAttributeView basicview = Files.getFileAttributeView(f.toPath(), BasicFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+                BasicFileAttributes attr = null;
+                try {
+                    attr = basicview.readAttributes();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                builder.append(attr != null ? StanderEvaluationContext.SIMPLE_DATE_FORMAT.format(new Date(attr.creationTime().toMillis())) : "????-??-?? ??:??:??");
+                builder.append("\t\t");
+
+                StringBuilder b = new StringBuilder();
+                char[] chars = (f.length() + "").toCharArray();
+                for (int i = chars.length - 1, r = 1; i >= 0; i--, r++) {
+                    b.append(r % 3 == 0 && i != 0 ? chars[i] + "," : chars[i]);
+                }
+                b.reverse();
+                if (b.length() < 20) {
+                    b.append(" ".repeat(20 - b.length()));
+                }
+                builder.append(b);
+                builder.append("\t");
+                builder.append(f.isDirectory() ? "\033[91m" : f.canExecute() ? "\033[93m" : "").append(f.getName()).append("\033[0;39m");
+
+                return builder.toString();
+            }).toArray(String[]::new);
+            return String.join("\n", fileArr);
+        }
+
+        public String getPwd() {
+            return new File(context.currentPath).getAbsolutePath();
         }
     }
 
@@ -416,7 +467,6 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                 System.err.println("compile failed！");
                 System.err.println(compiler.getCompilerMessage());
             }
-            CLASS_MAP.put(cName, tokenStreams);
             return compiler.loadClass();
         });
 
@@ -484,9 +534,40 @@ public class StanderEvaluationContext extends PureEvaluationContext {
             }
         });
 
-        registerFunctionWithHelp("readFile", "read all byte from giving file", (Function._1ParameterFunction<String, String>) path -> {
-            @Cleanup FileInputStream inputStream = new FileInputStream(path);
+        registerFunctionWithHelp("cat", "read all byte from giving file", (Function._1ParameterFunction<String, String>) path -> {
+            File file;
+            if (path.startsWith("/")) {
+                file = new File(path);
+            } else {
+                file = new File(currentPath + "/" + path);
+            }
+            @Cleanup FileInputStream inputStream = new FileInputStream(file);
             return new String(inputStream.readAllBytes(), CHARSET);
+        });
+
+        registerFunctionWithHelp("file", "", (Function._1ParameterFunction<String, File>) path -> {
+            File file;
+            if (path.startsWith("/")) {
+                file = new File(path);
+            } else {
+                file = new File(currentPath + "/" + path);
+            }
+            return file;
+        });
+
+        registerFunctionWithHelp("cd", "", (Consumer._1ParameterConsumer<String>) (arg) -> {
+            File file;
+            if (arg.startsWith("/")) {
+                file = new File(arg);
+            } else {
+                file = new File(currentPath + "/" + arg);
+            }
+            if (file.exists()) {
+                currentPath = purePath(file.getAbsolutePath());
+                System.out.println("switch dir to " + currentPath);
+            } else {
+                System.out.println("No such file or directory");
+            }
         });
 
 
@@ -567,9 +648,26 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         registerFunctionWithHelp("require", "execute script", (Consumer._1ParameterConsumer<String>) path -> {
             @Cleanup FileInputStream stream = new FileInputStream(path);
             selfExp.setContext(this);
-            selfExp.setTokenStream(Tokenizer.getTokenStream(new String(stream.readAllBytes(),CHARSET)));
+            selfExp.setTokenStream(Tokenizer.getTokenStream(new String(stream.readAllBytes(), CHARSET)));
             selfExp.getValue();
         });
+    }
+
+    private String purePath(String path) {
+        ArrayList<String> pathList = new ArrayList<>();
+        for (String s : path.split(SEPARATOR)) {
+            if (s.equals(".")) {
+                continue;
+            }
+            if (s.equals("..")) {
+                pathList.remove(pathList.size() - 1);
+                continue;
+            }
+            pathList.add(s);
+        }
+        StringJoiner builder = new StringJoiner(SEPARATOR);
+        pathList.forEach(builder::add);
+        return pathList.size() == 1 ? builder + SEPARATOR : builder.toString();
     }
 
     private String getSimpleName(Set<String> importCode, Class<?> returnType) {
