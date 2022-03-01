@@ -469,6 +469,31 @@ JVM参数(在`启动按钮->修改运行配置->修改选项->添加VM选项`中
 在你的项目使用如下API
 
 ```java
+ConfigurableApplicationContext app = SpringApplication.run(APP.class, args);
+CommanderLine.setContext(new StanderEvaluationContext() {	//重写StanderEvaluationContext的部分方法可以在表达式中获取spring ioc中的对象
+            @Override
+            public Object getVariable(String name) {
+                Object variable = super.getVariable(name);
+                if (variable != null) {
+                    return variable;
+                } else {
+                    return app.getBean(filterName(name));
+                }
+            }
+
+            @Override
+            public boolean containsVariable(String name) {
+                return super.containsVariable(name) || app.containsBean(name);
+            }
+
+            @Override
+            public Set<String> allVariables() {
+                TreeSet<String> set = new TreeSet<>();
+                set.addAll(super.allVariables());
+                set.addAll(Arrays.asList(app.getBeanDefinitionNames()));
+                return set;
+            }
+        });
 CommanderLine.startRemote(12,"abcdefghijklmnop","asdasfasasfasfasfas",ctx->{});
 ```
 
