@@ -305,6 +305,10 @@ public class Tokenizer {
             //构建token
             buildToken(tokenStream, token);
 
+            if (StringUtils.isEmpty(token) && inspectChar == '-') {
+                continue;
+            }
+
             OpsToken opsToken = new OpsToken(inspectChar + "");
             tokenStream.addToken(opsToken);
             lastOps = i + 1;

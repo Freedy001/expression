@@ -19,11 +19,11 @@ import java.util.regex.Pattern;
 public abstract class Builder {
 
 
-    public final Pattern methodPattern = Pattern.compile("(.*?)\\((.*)\\)");
+    public static final Pattern methodPattern = Pattern.compile("(.*?)\\((.*)\\)");
 
-    public final Pattern varPattern = Pattern.compile("^[a-zA-Z_]\\w*");
+    public static final Pattern varPattern = Pattern.compile("^[a-zA-Z_]\\w*");
 
-    public final Pattern relevantAccess = Pattern.compile("(.*?)((?:\\?|\\[.*]|\\? *?\\[.*])+)");
+    public static final Pattern relevantAccess = Pattern.compile("(.*?)((?:\\?|\\[.*]|\\? *?\\[.*])+)");
 
     /**
      * 用于构建 token

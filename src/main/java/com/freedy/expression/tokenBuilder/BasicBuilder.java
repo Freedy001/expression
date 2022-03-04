@@ -15,7 +15,7 @@ public class BasicBuilder extends Builder{
 
     private static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
 
-    private static final Pattern numericPattern = Pattern.compile("\\d+|\\d+[lL]|\\d+?\\.\\d+");
+    private static final Pattern numericPattern = Pattern.compile("-?\\d+|-?\\d+[lL]|-?\\d+?\\.\\d+");
 
     private static final Pattern boolPattern = Pattern.compile("^true$|^false$");
 
@@ -31,15 +31,21 @@ public class BasicBuilder extends Builder{
         //构建string Token
         matcher = strPattern.matcher(token);
         if (matcher.find()) {
-            BasicVarToken numeric = new BasicVarToken("str", token);
-            tokenStream.addToken(numeric);
+            BasicVarToken str = new BasicVarToken("str", token);
+            tokenStream.addToken(str);
             return true;
         }
         //构建boolean Token
         matcher = boolPattern.matcher(token);
         if (matcher.matches()) {
-            BasicVarToken numeric = new BasicVarToken("bool", token);
-            tokenStream.addToken(numeric);
+            BasicVarToken bool = new BasicVarToken("bool", token);
+            tokenStream.addToken(bool);
+            return true;
+        }
+        //构建null token
+        if (token.equals("null")){
+            BasicVarToken _null = new BasicVarToken("null", token);
+            tokenStream.addToken(_null);
             return true;
         }
         return false;

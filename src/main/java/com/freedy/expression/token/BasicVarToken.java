@@ -49,13 +49,16 @@ public final class BasicVarToken extends Token {
         if (isType("bool")) {
             return checkAndSelfOps(notFlag != Boolean.parseBoolean(value));
         }
+        if (isType("null")){
+            return null;
+        }
         throw new EvaluateException("illegal type ?", type).errToken(this);
     }
 
 
     @Override
     public void setNotFlag(boolean notFlag) {
-        if (isAnyType("str", "numeric")) {
+        if (!isType("bool")) {
             throw new IllegalArgumentException("NOT OPS can not operate ? type", type);
         }
         super.setNotFlag(notFlag);
@@ -63,7 +66,7 @@ public final class BasicVarToken extends Token {
 
     @Override
     public void setPreSelfAddFlag(boolean preSelfAddFlag) {
-        if (isAnyType("str", "bool")) {
+        if (!isType("numeric")) {
             throw new IllegalArgumentException("PRE SELF ADD (++?) can not operate ? type", value, type);
         }
         super.setPreSelfAddFlag(preSelfAddFlag);
@@ -71,7 +74,7 @@ public final class BasicVarToken extends Token {
 
     @Override
     public void setPreSelfSubFlag(boolean preSelfSubFlag) {
-        if (isAnyType("str", "bool")) {
+        if (!isType("numeric")) {
             throw new IllegalArgumentException("Pre Self Sub (--?) can not operate ? type", value, type);
         }
         super.setPreSelfSubFlag(preSelfSubFlag);
@@ -79,7 +82,7 @@ public final class BasicVarToken extends Token {
 
     @Override
     public void setPostSelfAddFlag(boolean postSelfAddFlag) {
-        if (isAnyType("str", "bool")) {
+        if (!isType("numeric")) {
             throw new IllegalArgumentException("Post Self Add (?++) can not operate ? type", value, type);
         }
         super.setPostSelfAddFlag(postSelfAddFlag);
@@ -87,7 +90,7 @@ public final class BasicVarToken extends Token {
 
     @Override
     public void setPostSelfSubFlag(boolean postSelfSubFlag) {
-        if (isAnyType("str", "bool")) {
+        if (!isType("numeric")) {
             throw new IllegalArgumentException("Post Self Sub (?--) not operate ? type", value, type);
         }
         super.setPostSelfSubFlag(postSelfSubFlag);
