@@ -13,12 +13,6 @@ import java.util.regex.Pattern;
 public class BasicBuilder extends Builder{
 
 
-    private static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
-
-    private static final Pattern numericPattern = Pattern.compile("-?\\d+|-?\\d+[lL]|-?\\d+?\\.\\d+");
-
-    private static final Pattern boolPattern = Pattern.compile("^true$|^false$");
-
     @Override
     boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建 numeric Token

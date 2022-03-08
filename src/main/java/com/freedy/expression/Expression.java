@@ -136,7 +136,7 @@ public class Expression {
                 return compare(t1, t2, opsToken);
             }
             //数字原始
-            case "+", "/=", "*=", "-=", "+=", "/", "*", "-" -> {
+            case "+", "/=", "*=", "-=", "+=", "/", "*", "-", "<<", ">>", ">>>", "^" -> {
                 return numOps(t1, t2, opsToken);
             }
             default -> throw new EvaluateException("unrecognized ops ?", opsToken.getValue());
@@ -163,7 +163,11 @@ public class Expression {
 
     private Token assign(Token t1, Token t2, Token opsToken) {
         if (t1 instanceof Assignable token) {
-            token.assignFrom(t2);
+            try {
+                token.assignFrom(t2);
+            } catch (Exception e) {
+                throw new EvaluateException("assign failed!", e).errToken(opsToken);
+            }
             return t1;
         } else {
             throw new EvaluateException("illegal assign").errToken(t1, opsToken, t2);
@@ -189,7 +193,7 @@ public class Expression {
             case ">=" -> {
                 return new BasicVarToken("bool", (t1.compareTo(t2) >= 0) + "").setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
             }
-            case "==" -> {
+            case "==", "!=" -> {
                 boolean flag = false;
                 Object o1 = t1.calculateResult(ANY_TYPE);
                 Object o2 = t2.calculateResult(ANY_TYPE);
@@ -203,10 +207,7 @@ public class Expression {
                 } else if (o1 == null && o2 == null) {
                     flag = true;
                 }
-                return new BasicVarToken("bool", flag + "").setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
-            }
-            case "!=" -> {
-                return new BasicVarToken("bool", (t1.compareTo(t2) != 0) + "").setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
+                return new BasicVarToken("bool", (ops.getValue().equals("==") == flag) + "").setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
             }
             default -> throw new EvaluateException("unrecognized type ?", ops.getValue());
         }

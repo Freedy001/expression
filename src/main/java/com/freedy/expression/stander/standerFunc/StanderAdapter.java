@@ -1,0 +1,206 @@
+package com.freedy.expression.stander.standerFunc;
+
+import com.freedy.expression.EvaluationContext;
+import com.freedy.expression.TokenStream;
+import com.freedy.expression.exception.EvaluateException;
+import com.freedy.expression.exception.IllegalArgumentException;
+import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.stander.Func;
+import com.freedy.expression.stander.LambdaAdapter;
+import com.freedy.expression.utils.PlaceholderParser;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.Proxy;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.freedy.expression.utils.ReflectionUtils.convertToWrapper;
+import static com.freedy.expression.utils.ReflectionUtils.tryConvert;
+
+/**
+ * @author Freedy
+ * @date 2022/3/6 14:55
+ */
+public class StanderAdapter extends AbstractStanderFunc {
+
+
+    @SneakyThrows
+    @ExpressionFunc(value = "new a instance,param 1 is full class name,the rest param is constructor's param")
+    public Object _new(String className, Object... args) {
+        Class<?> aClass = context.findClass(className);
+        List<Constructor<?>> constructorList = new ArrayList<>();
+        List<Constructor<?>> seminary = new ArrayList<>();
+        int length = args.length;
+        for (Constructor<?> cst : aClass.getConstructors()) {
+            if (cst.getParameterCount() == length) {
+                constructorList.add(cst);
+            }
+            seminary.add(cst);
+        }
+        for (Constructor<?> constructor : constructorList) {
+            Class<?>[] types = constructor.getParameterTypes();
+            int i = 0;
+            for (; i < length; i++) {
+                Class<?> originMethodArgs = convertToWrapper(types[i]);
+                Class<?> supplyMethodArgs = convertToWrapper(args[i] == null ? types[i] : args[i].getClass());
+                if (!originMethodArgs.isAssignableFrom(supplyMethodArgs)) {
+                    Object o = tryConvert(originMethodArgs, args[i]);
+                    if (o != Boolean.FALSE) {
+                        args[i] = o;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            if (i == length) {
+                constructor.setAccessible(true);
+                return constructor.newInstance(args);
+            }
+        }
+        StringJoiner argStr = new StringJoiner(",", "(", ")");
+        for (Object arg : args) {
+            argStr.add(arg.getClass().getName());
+        }
+        throw new NoSuchMethodException("no constructor" + argStr + "!you can call these constructors:" + new PlaceholderParser("?*", seminary.stream().map(method -> {
+            StringJoiner argString = new StringJoiner(",", "(", ")");
+            for (Parameter arg : method.getParameters()) {
+                argString.add(arg.getType().getSimpleName() + " " + arg.getName());
+            }
+            return method.getName() + argString;
+        }).toList()).serialParamsSplit(" , ").ifEmptyFillWith("not find matched method"));
+    }
+
+
+    @SneakyThrows
+    @ExpressionFunc("""
+            it will generate a object which implement the interface you delivered.
+            params are like:
+                (interface-name,
+                func1-name,func1-param1,func1-param2,func1-body,
+                func2-name,func2-param1,func2-body,
+                func3-name,func3-body,
+                ...................................)
+            form.
+            example:
+            you hava a java interface like this
+            public interface com.freedy.expression.com.freedy.expression.Test{
+                void test1(int o1,int o2);
+                void test1(Object o1);
+            }
+            then code below:
+            def a=newInterface('package.com.freedy.expression.com.freedy.expression.Test',
+                'test1','o1','o2',@block{
+                    //your code
+                    print('i am test1'+o1+o2);
+                },'test2','o2',@block{
+                    //your code
+                    print(o2);
+                });
+            a.test1('1','2');
+            a.test2('ni hao');
+                            
+            it will print:
+            i am test112
+            ni hao
+            """)
+    public Object newInterface(String name, Object... funcPara) {
+        Class<?> clazz = Class.forName(name);
+        if (!clazz.isInterface()) {
+            throw new IllegalArgumentException("? is not interface", name);
+        }
+        int len = funcPara.length;
+        List<Object[]> rowFuncList = new ArrayList<>();
+        int lastSplit = 0;
+        for (int i = 0; i < len; i++) {
+            if (funcPara[i] instanceof TokenStream) {
+                rowFuncList.add(Arrays.copyOfRange(funcPara, lastSplit, lastSplit = i + 1));
+            }
+        }
+        Method[] declaredMethods = clazz.getDeclaredMethods();
+        int methodCount = declaredMethods.length;
+        int rawMethodCount = rowFuncList.size();
+        if (methodCount != rawMethodCount) {
+            throw new IllegalArgumentException("the method count[?] which you declare is not match the interface[?]'s method count[?]", rawMethodCount, name, methodCount);
+        }
+        Map<String, Func> nameFuncMapping = rowFuncList.stream().map(this::getFunc).collect(Collectors.toMap(Func::getFuncName, o -> o));
+        for (Method method : declaredMethods) {
+            Func func = nameFuncMapping.get(method.getName());
+            if (func == null) {
+                throw new IllegalArgumentException("you don't declare the method ?", method.getName());
+            } else {
+                if (method.getParameterCount() != func.getArgName().length) {
+                    throw new IllegalArgumentException("your method[?] parameter count[?] is not match to the interface's[?]", method.getName(), func.getArgName().length, method.getParameterCount());
+                }
+            }
+        }
+        return Proxy.newProxyInstance(EvaluationContext.class.getClassLoader(), new Class[]{clazz}, (proxy, method, args) -> nameFuncMapping.get(method.getName()).apply(args));
+    }
+
+    @ExpressionFunc("""
+            simple use for newInterface() function,you just need interface full class name param and func-body.
+            node: interface must have only one non-default-method;
+            example:
+            def list=[43,15,76,2,6];
+            list.sort(lambda('java.util.Comparator','o1','o2',@block{return {o1-o2};}));
+            print(list);
+                            
+            it will print:
+            [2,6,15,43,76]
+            """)
+    public Object lambda(Object... par) {
+        Object[] newParam = new Object[par.length + 1];
+        System.arraycopy(par, 0, newParam, 1, par.length);
+        newParam[0] = "lambda";
+        return new LambdaAdapter(getFunc(newParam));
+    }
+
+    @ExpressionFunc("""
+            use for def a function;
+            the fist param is function name;
+            the rest is function param and body;
+            node:the function body use @block surround.
+            example:
+            func('add','a','b',@block{return {a+b};});
+            print(add(54+46));
+                            
+            it will print:100
+            """)
+    public void func(Object... funcPar) {
+        Func func = getFunc(funcPar);
+        if (context.containsFunction(func.getFuncName())) {
+            throw new EvaluateException("same method name ?!", func.getFuncName());
+        }
+        context.registerFunction(func.getFuncName(), func);
+    }
+
+    @SneakyThrows
+    @ExpressionFunc(value = "get class .If the param is a string, it is taken as the full class name otherwise as Object")
+    public Class<?> _class(Object arg) {
+        return getClassByArg(arg);
+    }
+
+
+    @NonNull
+    private Func getFunc(Object[] funcPar) {
+        int length = funcPar.length;
+        if (length <= 1) throw new IllegalArgumentException("func() must specify function body");
+        if (!(funcPar[0] instanceof String)) throw new IllegalArgumentException("func()'s fist arg must be string");
+        Func func = new Func(context);
+        func.setFuncName((String) funcPar[0]);
+        func.setArgName(Arrays.stream(Arrays.copyOfRange(funcPar, 1, length - 1)).map(arg -> {
+            if (arg instanceof String str) {
+                return str;
+            } else {
+                throw new IllegalArgumentException("func()'s fist arg must be string");
+            }
+        }).toArray(String[]::new));
+        func.setFuncBody((TokenStream) funcPar[length - 1]);
+        return func;
+    }
+
+
+}

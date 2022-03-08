@@ -59,3 +59,7 @@ print(max(a,b));
 print(max(12,20));
 print(maxPlus1(a,b));
 print(maxPlus1(12,20));
+
+
+
+if(a>b){return {a+1};}else{	return {b+1};};

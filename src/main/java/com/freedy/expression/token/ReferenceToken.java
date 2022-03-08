@@ -82,6 +82,9 @@ public final class ReferenceToken extends ClassToken {
         }
         checkContext();
         if (!context.containsVariable(reference)) {
+            if (reference.startsWith("%")) {
+                return reference.substring(1);
+            }
             throw new EvaluateException("? is not defined", reference).errToken(this.errStr(reference));
         }
         return context.getVariable(reference);

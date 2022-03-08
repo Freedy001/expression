@@ -41,18 +41,18 @@ public class DirectAccessBuilder extends Builder {
             //method
             directAccessToken.setMethodName(methodMatcher.group(1));
             String argStr = methodMatcher.group(2);
-            directAccessToken.setMethodArgsName(StringUtils.hasText(argStr)?StringUtils.splitWithoutBracket(argStr, new char[]{'{', '('}, new char[]{'}', ')'}, ','):new String[0]);
+            directAccessToken.setMethodArgsName(StringUtils.hasText(argStr) ? StringUtils.splitWithoutBracket(argStr, new char[]{'{', '('}, new char[]{'}', ')'}, ',') : new String[0]);
             String suffix = methodMatcher.group(3);
-            if (StringUtils.hasText(suffix = suffix.trim())) {
-                directAccessToken.setRelevantOps(suffix);
+            if (StringUtils.hasText(suffix = suffix.trim()) && !directAccessToken.setRelevantOpsSafely(suffix)) {
+                return false;
             }
         } else {
             matcher = prefix.matcher(splitWithoutBracket[0]);
             if (matcher.find()) {
                 directAccessToken.setVarName(matcher.group(1));
                 String suffix = matcher.group(2);
-                if (StringUtils.hasText(suffix = suffix.trim())) {
-                    directAccessToken.setRelevantOps(suffix);
+                if (StringUtils.hasText(suffix = suffix.trim()) && !directAccessToken.setRelevantOpsSafely(suffix)) {
+                    return false;
                 }
             }else {
                 holder.setMsg("illegal token");

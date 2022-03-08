@@ -2,8 +2,7 @@ package com.freedy.expression.token;
 
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.function.Functional;
-import com.freedy.expression.function.VarargsFunction;
+import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -35,7 +34,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
 
     public void setMethodArgsName(String[] methodArgsName) {
         this.methodArgsName = methodArgsName;
-        this.unsteadyArgList=preprocessingArgs(methodArgsName);
+        this.unsteadyArgList = preprocessingArgs(methodArgsName);
     }
 
     @Override
@@ -87,7 +86,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
     }
 
 
-    private Object executeSelf(int executeCount, boolean executeLastRelevantOps) {
+    private Object executeSelf(int executeCount, boolean executeChainTailOps) {
         checkContext();
         if (StringUtils.hasText(varName)) {
             Object root = context.getRoot();
@@ -97,17 +96,17 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                 if (!context.containsVariable(varName)) {
                     throw new EvaluateException("? is not defined", varName);
                 }
-                result = doRelevantOps(context.getVariable(varName), varName);
+                result = executeCount > 0 || executeChainTailOps ? doRelevantOps(context.getVariable(varName), varName) : context.getVariable(varName);
             } else {
-                result = doRelevantOps(ReflectionUtils.getter(root, varName), varName);
+                result = executeCount > 0 || executeChainTailOps ? doRelevantOps(ReflectionUtils.getter(root, varName), varName) : ReflectionUtils.getter(root, varName);
             }
             if (result == null) {
                 return checkAndSelfOps(null);
             }
-            return executeChain(result.getClass(), result, executeCount, executeLastRelevantOps);
+            return executeChain(result.getClass(), result, executeCount, executeChainTailOps);
         } else {
-            Functional function = context.getFunction(methodName);
-            if (function == null) {
+            Object funcObj = context.getFunction(methodName);
+            if (funcObj == null) {
                 StringJoiner joiner = new StringJoiner(",");
                 for (String s : context.getFunctionNameSet()) {
                     String methodName = this.methodName.toLowerCase(Locale.ROOT);
@@ -121,11 +120,16 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
             Object[] args = getMethodArgs(unsteadyArgList);
             Object invoke;
             try {
-                Class<? extends Functional> functionClass = function.getClass();
-                Method method = functionClass.getInterfaces()[0].getDeclaredMethods()[0];
+                Method method;
+                if (funcObj instanceof StanderEvaluationContext.FunctionalMethod func) {
+                    funcObj = func.funcObj();
+                    method = func.func();
+                } else {
+                    Class<?> functionClass = funcObj.getClass();
+                    method = functionClass.getInterfaces()[0].getDeclaredMethods()[0];
+                }
                 method.setAccessible(true);
-                VarargsFunction var = method.getAnnotation(VarargsFunction.class);
-                if (var != null && args != null) {
+                if (method.isVarArgs() && args != null) {
                     int count = method.getParameterCount();
                     Object[] nArgs = new Object[count];
                     //拷贝非可变参数参数
@@ -144,7 +148,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                     args = nArgs;
                 }
 
-                invoke = method.invoke(function, args);
+                invoke = method.invoke(funcObj, args);
 
             }catch (Exception e) {
                 Throwable cause = e.getCause();
@@ -153,11 +157,11 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                 }
                 throw new EvaluateException("invoke target function ? failed!->?", getFullMethodName(methodName, methodArgsName), (e instanceof InvocationTargetException ex) ? ex.getCause() : e).errToken(this.errStr(methodArgsName));
             }
-            Object result = doRelevantOps(invoke, getFullMethodName(methodName, methodArgsName));
+            Object result = executeCount > 0 || executeChainTailOps ? doRelevantOps(invoke, getFullMethodName(methodName, methodArgsName)) : invoke;
             if (result == null) {
                 return checkAndSelfOps(null);
             }
-            return executeChain(result.getClass(), result, executeCount, executeLastRelevantOps);
+            return executeChain(result.getClass(), result, executeCount, executeChainTailOps);
         }
     }
 

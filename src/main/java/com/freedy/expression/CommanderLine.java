@@ -248,11 +248,13 @@ public class CommanderLine {
             if (blockMode < 0) {
                 System.out.println("\033[91mnot pared bracket '}' close!\033[0;30m");
                 builder = new StringBuilder();
+                blockMode = 0;
                 continue;
             }
             if (bracketMode < 0) {
                 System.out.println("\033[91mnot pared ')' close!\033[0;30m");
                 builder = new StringBuilder();
+                bracketMode = 0;
                 continue;
             }
 

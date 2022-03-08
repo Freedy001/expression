@@ -1,10 +1,7 @@
 package com.freedy.expression.stander;
 
 import com.freedy.expression.utils.StringUtils;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Setter;
-import lombok.SneakyThrows;
+import lombok.*;
 import org.benf.cfr.reader.api.CfrDriver;
 import org.benf.cfr.reader.api.ClassFileSource;
 import org.benf.cfr.reader.api.OutputSinkFactory;
@@ -42,7 +39,7 @@ public class CodeDeCompiler {
     @Setter
     public static String END = "\033[0;39m";
     public static final Set<Character> splitSet = Set.of(' ', '\n', '.', '<', '>', ';', '=', '(', ')', '{', '}');
-
+    @Getter
     private static final Set<String> keywords = Set.of("abstract", "assert", "boolean", "break", "byte", "case", "catch",
             "char", "class", "const", "continue", "default", "do", "double",
             "else", "enum", "extends", "false", "final", "finally", "float",

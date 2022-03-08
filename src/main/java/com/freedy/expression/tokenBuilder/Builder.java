@@ -18,12 +18,17 @@ import java.util.regex.Pattern;
  */
 public abstract class Builder {
 
-
     public static final Pattern methodPattern = Pattern.compile("(.*?)\\((.*)\\)");
 
     public static final Pattern varPattern = Pattern.compile("^[a-zA-Z_]\\w*");
 
     public static final Pattern relevantAccess = Pattern.compile("(.*?)((?:\\?|\\[.*]|\\? *?\\[.*])+)");
+
+    public static final Pattern numericPattern = Pattern.compile("-?\\d+|-?\\d+[lL]|-?\\d+?\\.\\d+");
+
+    public static final Pattern boolPattern = Pattern.compile("^true$|^false$");
+
+    public static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
 
     /**
      * 用于构建 token

@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  */
 public class DefBuilder extends Builder {
 
-    private static final Pattern defPattern = Pattern.compile("^def +?(.*)");
+    private static final Pattern defPattern = Pattern.compile("^def +(.*)");
 
 
     @Override

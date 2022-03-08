@@ -32,6 +32,6 @@ public class DotSplitBuilder extends Builder {
 
     @Override
     int priority() {
-        return 10;
+        return 9;
     }
 }

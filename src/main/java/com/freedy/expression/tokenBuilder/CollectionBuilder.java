@@ -14,9 +14,9 @@ import java.util.regex.Pattern;
 public class CollectionBuilder extends Builder {
 
     //[1,2,3,4,['test','banana'],'apple','haha'];
-    private final Pattern withOps = Pattern.compile("^(?!\\{.*?}) *?\\[(.*)] *?\\[(.*)]");
-    private final Pattern noneOps = Pattern.compile("^(?!\\{.*?}) *?\\[(.*)]()");
+    public static final Pattern withOps = Pattern.compile("^(?!\\{.*?}) *?\\[(.*)] *?\\[(.*)]");
 
+    public static final Pattern noneOps = Pattern.compile("^(?!\\{.*?}) *?\\[(.*)]()");
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {

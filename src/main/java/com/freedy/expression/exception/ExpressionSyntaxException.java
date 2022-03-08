@@ -193,7 +193,7 @@ public class ExpressionSyntaxException extends RuntimeException {
                             
                 \033[93m:)?\033[93m at:\033[0;39m
                     ?
-                    \033[91m?\033[0;39m""", msg == null ? cause == null ? "syntax error" : cause.getMessage() : msg, highlightExpression, underLine
+                    \033[91m?\033[0;39m""", msg == null ? cause == null ? "syntax error" : cause.getMessage() == null ? cause.getClass().getName() : cause.getMessage() : msg, highlightExpression, underLine
         );
         return this;
     }

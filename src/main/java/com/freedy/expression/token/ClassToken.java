@@ -11,6 +11,7 @@ import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.*;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Supplier;
@@ -62,6 +63,14 @@ public abstract sealed class ClassToken extends Token implements Assignable
         }
         executeChain.add(new ExecuteStep(checkMode, methodName, args));
         executableCount++;
+    }
+
+    public boolean setRelevantOpsSafely(String relevantOps) {
+        if (relevantOps != null && !relevantOpsPattern.matcher(relevantOps).matches()) {
+            return false;
+        }
+        this.relevantOps = relevantOps;
+        return true;
     }
 
     public void setRelevantOps(String relevantOps) {
@@ -166,8 +175,13 @@ public abstract sealed class ClassToken extends Token implements Assignable
         return args.toArray();
     }
 
+
+
+
     /**
      * 对方法的参数进行预处理
+     * @param argsStr     方法参数字符串数组
+     * @return            处理结果
      */
     protected List<UnsteadyArg> preprocessingArgs(String[] argsStr) {
         List<UnsteadyArg> args = new ArrayList<>();
@@ -269,6 +283,8 @@ public abstract sealed class ClassToken extends Token implements Assignable
                 } catch (Throwable e) {
                     throw new EvaluateException("?", e).errorPart(ops);
                 }
+            } else if (type.isArray()) {
+                baseObj = Array.get(baseObj, expression.getValue(Integer.class));
             } else {
                 throw new EvaluateException("ops[?] can only be used on Collection or Map", ops).errorPart(ops);
             }
@@ -316,6 +332,8 @@ public abstract sealed class ClassToken extends Token implements Assignable
                 list.set(expression.getValue(Integer.class), resultProvider.get());
             } else if (lastObj instanceof Map map) {
                 map.put(expression.getValue(), resultProvider.get());
+            } else if (lastObj.getClass().isArray()) {
+                Array.set(lastObj, expression.getValue(Integer.class), resultProvider.get());
             } else {
                 throw new EvaluateException("assign ops[?] can only be used on List or Map");
             }

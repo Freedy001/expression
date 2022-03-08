@@ -208,9 +208,6 @@ public sealed abstract class Token implements Comparable, Executable
         Object o2;
         try {
             o1 = calculateResult(Object.class);
-            if (o1 == null) {
-                throw new EvaluateException("can not operation on null").errToken(this);
-            }
         } catch (StopSignal e) {
             throw e;
         } catch (Exception e) {
@@ -218,9 +215,6 @@ public sealed abstract class Token implements Comparable, Executable
         }
         try {
             o2 = o.calculateResult(Object.class);
-            if (o2 == null) {
-                throw new EvaluateException("can not operation on null").errToken(o);
-            }
         } catch (StopSignal e) {
             throw e;
         } catch (Exception e) {
@@ -230,6 +224,12 @@ public sealed abstract class Token implements Comparable, Executable
             if (o1 instanceof String || o2 instanceof String) {
                 return "'" + o1 + o2 + "'";
             }
+        }
+        if (o1 == null) {
+            throw new EvaluateException("can not operation on null").errToken(this);
+        }
+        if (o2 == null) {
+            throw new EvaluateException("can not operation on null").errToken(o);
         }
         BigDecimal a = new BigDecimal(o1 + "");
         BigDecimal b = new BigDecimal(o2 + "");
@@ -246,6 +246,42 @@ public sealed abstract class Token implements Comparable, Executable
             case "/" -> {
                 //scale 必须超出double的范畴
                 return a.divide(b, 20, RoundingMode.DOWN).toString();
+            }
+            case "^" -> {
+                if (a.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(this);
+                }
+                if (b.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(o);
+                }
+                return (a.intValue() ^ b.intValue()) + "";
+            }
+            case ">>" -> {
+                if (a.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(this);
+                }
+                if (b.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(o);
+                }
+                return (a.intValue() >> b.intValue()) + "";
+            }
+            case ">>>" -> {
+                if (a.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(this);
+                }
+                if (b.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(o);
+                }
+                return (a.intValue() >>> b.intValue()) + "";
+            }
+            case "<<" -> {
+                if (a.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(this);
+                }
+                if (b.toString().contains(".")) {
+                    throw new EvaluateException("Bit operation only support integer").errToken(o);
+                }
+                return (a.intValue() << b.intValue()) + "";
             }
             case "+=" -> {
                 if (this instanceof Assignable assignable) {

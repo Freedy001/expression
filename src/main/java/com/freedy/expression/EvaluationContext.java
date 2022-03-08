@@ -1,11 +1,9 @@
 package com.freedy.expression;
 
 import com.freedy.expression.function.Functional;
-import lombok.SneakyThrows;
 
 import java.lang.ref.Cleaner;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,12 +44,12 @@ public interface EvaluationContext {
     void clearFunction();
 
 
-    default Class<?> findClas(String className) throws ClassNotFoundException {
+    default Class<?> findClass(String className) throws ClassNotFoundException {
         return Class.forName(className);
     }
 
     default String filterName(String name){
-        if (name.matches("^[@#].*")){
+        if (name.matches("^[@#%].*")){
             name=name.substring(1);
         }
         return name;
