@@ -136,7 +136,7 @@ public class Expression {
                 return compare(t1, t2, opsToken);
             }
             //数字原始
-            case "+", "/=", "*=", "-=", "+=", "/", "*", "-", "<<", ">>", ">>>", "^" -> {
+            case "+", "/=", "*=", "-=", "+=", "/", "*", "-", "<<", ">>", ">>>", "^", "|", "&", "|=", "&=", "^=" -> {
                 return numOps(t1, t2, opsToken);
             }
             default -> throw new EvaluateException("unrecognized ops ?", opsToken.getValue());

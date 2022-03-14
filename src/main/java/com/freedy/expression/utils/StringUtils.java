@@ -197,4 +197,32 @@ public class StringUtils {
 
         return result.toArray(String[]::new);
     }
+
+    public static int nextNonempty(char[] charArray, int cursor) {
+        cursor++;
+        for (; cursor < charArray.length; cursor++) {
+            if (charArray[cursor] != ' ') return cursor;
+        }
+        return -1;
+    }
+
+    public static int preNonempty(char[] charArray, int cursor) {
+        cursor--;
+        for (; cursor >= 0; cursor--) {
+            if (charArray[cursor] != ' ') return cursor;
+        }
+        return -1;
+    }
+
+    public static int nextCharSkipQuote(char[] charArray, int cursor, char nextChar) {
+        for (boolean quote = false, singleQuote = false; cursor < charArray.length; cursor++) {
+            if (!singleQuote && charArray[cursor] == '"') quote = !quote;
+            if (quote) continue;
+            if (charArray[cursor] == '\'') singleQuote = !singleQuote;
+            if (singleQuote) continue;
+            if (charArray[cursor] == nextChar) return cursor;
+        }
+        return cursor;
+    }
+
 }

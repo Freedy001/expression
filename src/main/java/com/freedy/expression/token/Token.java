@@ -203,6 +203,7 @@ public sealed abstract class Token implements Comparable, Executable
      * @param o       需要与该token进行运算的token
      * @param type    运算的类型
      */
+    @SuppressWarnings("DuplicateExpressions")
     public String numSelfOps(Token o, Token type) {
         Object o1;
         Object o2;
@@ -247,75 +248,73 @@ public sealed abstract class Token implements Comparable, Executable
                 //scale 必须超出double的范畴
                 return a.divide(b, 20, RoundingMode.DOWN).toString();
             }
+            case "|" -> {
+                intTypeCheck(o, a, b);
+                return (a.intValue() | b.intValue()) + "";
+            }
+            case "&" -> {
+                intTypeCheck(o, a, b);
+                return (a.intValue() & b.intValue()) + "";
+            }
             case "^" -> {
-                if (a.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(this);
-                }
-                if (b.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(o);
-                }
+                intTypeCheck(o, a, b);
                 return (a.intValue() ^ b.intValue()) + "";
             }
             case ">>" -> {
-                if (a.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(this);
-                }
-                if (b.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(o);
-                }
+                intTypeCheck(o, a, b);
                 return (a.intValue() >> b.intValue()) + "";
             }
             case ">>>" -> {
-                if (a.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(this);
-                }
-                if (b.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(o);
-                }
+                intTypeCheck(o, a, b);
                 return (a.intValue() >>> b.intValue()) + "";
             }
             case "<<" -> {
-                if (a.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(this);
-                }
-                if (b.toString().contains(".")) {
-                    throw new EvaluateException("Bit operation only support integer").errToken(o);
-                }
+                intTypeCheck(o, a, b);
                 return (a.intValue() << b.intValue()) + "";
             }
             case "+=" -> {
-                if (this instanceof Assignable assignable) {
-                    assignable.assignFrom(new BasicVarToken("numeric", a.add(b) + ""));
-                    return calculateResult(ANY_TYPE) + "";
-                } else {
-                    throw new EvaluateException("nonassignable token").errToken(this).errToken(type);
-                }
+                return opsAndAssign(a.add(b).toString(), type);
             }
             case "-=" -> {
-                if (this instanceof Assignable assignable) {
-                    assignable.assignFrom(new BasicVarToken("numeric", a.subtract(b) + ""));
-                    return calculateResult(ANY_TYPE) + "";
-                } else {
-                    throw new EvaluateException("nonassignable token").errToken(this).errToken(type);
-                }
+                return opsAndAssign(a.subtract(b).toString(), type);
             }
             case "/=" -> {
-                if (this instanceof Assignable assignable) {
-                    assignable.assignFrom(new BasicVarToken("numeric", a.divide(b, 20, RoundingMode.DOWN) + ""));
-                    return calculateResult(ANY_TYPE) + "";
-                } else {
-                    throw new EvaluateException("nonassignable token").errToken(this).errToken(type);
-                }
+                return opsAndAssign(a.divide(b, 20, RoundingMode.DOWN).toString(), type);
             }
             case "*=" -> {
-                if (this instanceof Assignable assignable) {
-                    assignable.assignFrom(new BasicVarToken("numeric", a.multiply(b) + ""));
-                    return calculateResult(ANY_TYPE) + "";
-                } else {
-                    throw new EvaluateException("nonassignable token").errToken(this).errToken(type);
-                }
+                return opsAndAssign(a.multiply(b).toString(), type);
+            }
+            case "|="->{
+                intTypeCheck(o, a, b);
+                return opsAndAssign((a.intValue() | b.intValue()) + "", type);
+            }
+            case "&="->{
+                intTypeCheck(o, a, b);
+                return opsAndAssign((a.intValue() & b.intValue()) + "", type);
+            }
+            case "^="->{
+                intTypeCheck(o, a, b);
+                return opsAndAssign((a.intValue() ^ b.intValue()) + "", type);
             }
             default -> throw new EvaluateException("unrecognized type ?", type).errToken(type);
+        }
+    }
+
+    private String opsAndAssign(String result, Token type) {
+        if (this instanceof Assignable assignable) {
+            assignable.assignFrom(new BasicVarToken("numeric", result));
+            return calculateResult(ANY_TYPE) + "";
+        } else {
+            throw new EvaluateException("nonassignable token").errToken(this).errToken(type);
+        }
+    }
+
+    private void intTypeCheck(Token o, BigDecimal a, BigDecimal b) {
+        if (a.toString().contains(".")) {
+            throw new EvaluateException("Bit operation only support integer").errToken(this);
+        }
+        if (b.toString().contains(".")) {
+            throw new EvaluateException("Bit operation only support integer").errToken(o);
         }
     }
 

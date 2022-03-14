@@ -16,7 +16,7 @@ public abstract class AbstractStanderFunc{
     protected StanderEvaluationContext context;
 
 
-    @SneakyThrows
+   @SneakyThrows
     protected Class<?> getClassByArg(Object arg) {
         if (arg instanceof String s) {
             return context.findClass(s);

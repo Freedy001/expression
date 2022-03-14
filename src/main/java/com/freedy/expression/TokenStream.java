@@ -29,7 +29,7 @@ import java.util.function.Function;
 public class TokenStream implements Executable {
     @Getter
     protected List<Token> infixExpression = new ArrayList<>();
-    private static final Set<String> doubleOps = Set.of("||", "&&", "!=", "==", ">=", "<=", "++", "--", "+=", "-=", "/=", "*=", "<<", ">>", ">>>");
+    private static final Set<String> doubleOps = Set.of("||", "&&", "!=", "==", ">=", "<=", "++", "--", "+=", "-=", "/=", "*=", "^=", "&=", "|=", "<<", ">>", ">>>");
     private static final Set<String> permitOps = Set.of("=!", "||!", "&&!", "==!", ">++", "<++", "++<", "++>", "=++", "++=", ">--", "<--", "-->", "--<", "=--", "--=", "+-", "-+", "++-", "--+");
     private static final Set<String> single2TokenOps = Set.of("+++", "---");
     private static final Set<String> singleOps = Set.of("++", "--", "!");
@@ -37,7 +37,7 @@ public class TokenStream implements Executable {
             Set.of("=", "||", "&&"),
             Set.of("?"),
             Set.of(">", "<", ">=", "<=", "==", "!="),
-            Set.of("+", "-", "+=", "-=", "^", ">>", ">>>", "<<"),
+            Set.of("+", "-", "+=", "-=", ">>", ">>>", "<<", "|", "&", "^", "|=", "^=", "&="),
             Set.of("*", "/"),
             Set.of(".")
     );//从上往下 优先级逐渐变大

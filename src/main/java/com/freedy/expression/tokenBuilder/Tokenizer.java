@@ -142,7 +142,7 @@ public class Tokenizer {
             String token = expression.substring(lastOps, i).trim();
 
             if (inspectChar == '?') {
-                int index = nextNonempty(chars, i);
+                int index = StringUtils.nextNonempty(chars, i);
                 if (index == -1) continue;
                 if (chars[index] == '.') continue;
                 if (chars[index] == '?') continue;
@@ -166,7 +166,7 @@ public class Tokenizer {
             if (bracket.contains(inspectChar)) {
                 //构建token
                 if (inspectChar == '(') {
-                    int index = preNonempty(chars, i);
+                    int index = StringUtils.preNonempty(chars, i);
                     if (index == -1 || (operationWithOutBracketSet.contains(chars[index]))) {
                         if (StringUtils.hasText(token)) {
                             ExpressionSyntaxException.thr(expression, token + "@(");
@@ -332,21 +332,6 @@ public class Tokenizer {
         }
     }
 
-    private static int nextNonempty(char[] charArray, int cursor) {
-        cursor++;
-        for (; cursor < charArray.length; cursor++) {
-            if (charArray[cursor] != ' ') return cursor;
-        }
-        return -1;
-    }
-
-    private static int preNonempty(char[] charArray, int cursor) {
-        cursor--;
-        for (; cursor >= 0; cursor--) {
-            if (charArray[cursor] != ' ') return cursor;
-        }
-        return -1;
-    }
 
 
 }
