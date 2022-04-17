@@ -11,15 +11,9 @@ import lombok.SneakyThrows;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -105,6 +99,20 @@ public class StanderUtils extends AbstractStanderFunc {
         for (String s : varName) {
             context.getVariableMap().remove(context.filterName(s));
         }
+    }
+
+    @ExpressionFunc("get length")
+    public int len(Object o){
+        if (o instanceof Collection<?> c){
+            return c.size();
+        }
+        if (o instanceof String s){
+            return s.length();
+        }
+        if (o.getClass().isArray()){
+            return Array.getLength(o);
+        }
+        throw new EvaluateException("can not calculate length,please check the type");
     }
 
 

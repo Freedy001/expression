@@ -142,10 +142,10 @@ public class StanderAdapter extends AbstractStanderFunc {
 
     @ExpressionFunc("""
             simple use for newInterface() function,you just need interface full class name param and func-body.
-            node: interface must have only one non-default-method;
+            replacedStr: interface must have only one non-default-method;
             example:
             def list=[43,15,76,2,6];
-            list.sort(lambda('java.util.Comparator','o1','o2',@block{return {o1-o2};}));
+            list.sort(lambda('o1','o2',@block{return {o1-o2};}));
             print(list);
                             
             it will print:
@@ -162,7 +162,7 @@ public class StanderAdapter extends AbstractStanderFunc {
             use for def a function;
             the fist param is function name;
             the rest is function param and body;
-            node:the function body use @block surround.
+            replacedStr:the function body use @block surround.
             example:
             func('add','a','b',@block{return {a+b};});
             print(add(54+46));
@@ -183,6 +183,10 @@ public class StanderAdapter extends AbstractStanderFunc {
         return getClassByArg(arg);
     }
 
+    @ExpressionFunc(value = "create a java array")
+    public Object[] arr(Object... arr){
+        return arr;
+    }
 
     @NonNull
     private Func getFunc(Object[] funcPar) {

@@ -37,7 +37,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JSONType(includes = {"type", "value"})
-public sealed abstract class Token implements Comparable, Executable
+public abstract sealed class Token implements Comparable, Executable
         permits BasicVarToken, ClassToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, ObjectToken, OpsToken, StopToken, TernaryToken, WrapperToken {
     //Token的type 结合isType()方法省去使用使用instance of进行判断
     @ToString.Include

@@ -49,6 +49,9 @@ public abstract sealed class ClassToken extends Token implements Assignable
         super(type, value);
     }
 
+    /**
+     * 添加链式属性
+     */
     public void addProperties(String checkMode, String propertyName) {
         if (executeChain == null) {
             executeChain = new ArrayList<>();
@@ -56,7 +59,9 @@ public abstract sealed class ClassToken extends Token implements Assignable
         executeChain.add(new ExecuteStep(checkMode, propertyName));
         executableCount++;
     }
-
+    /**
+     * 添加链式方法
+     */
     public void addMethod(String checkMode, String methodName, String... args) {
         if (executeChain == null) {
             executeChain = new ArrayList<>();
@@ -409,6 +414,9 @@ public abstract sealed class ClassToken extends Token implements Assignable
         return this;
     }
 
+    /**
+     * 以点为分割，表示执行步骤
+     */
     @Getter
     protected class ExecuteStep {
         private String propertyName;
@@ -442,6 +450,9 @@ public abstract sealed class ClassToken extends Token implements Assignable
         }
     }
 
+    /**
+     * 预处理方法参数
+     */
     @Getter
     @AllArgsConstructor
     protected static class UnsteadyArg {

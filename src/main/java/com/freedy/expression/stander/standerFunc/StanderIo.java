@@ -7,6 +7,8 @@ import lombok.SneakyThrows;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Objects;
@@ -16,7 +18,7 @@ import java.util.StringJoiner;
  * @author Freedy
  * @date 2022/3/6 0:10
  */
-public class StanderIo extends AbstractStanderFunc{
+public class StanderIo extends AbstractStanderFunc {
     private final static String SEPARATOR = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win") ? "\\\\" : "/";
 
 
@@ -41,19 +43,13 @@ public class StanderIo extends AbstractStanderFunc{
 
     @SneakyThrows
     @ExpressionFunc("read all byte from giving file")
-    public String cat(String path){
-        File file;
-        if (path.startsWith("/")) {
-            file = new File(path);
-        } else {
-            file = new File(context.getCurrentPath() + "/" + path);
-        }
-        @Cleanup FileInputStream inputStream = new FileInputStream(file);
+    public String cat(String path) {
+        @Cleanup FileInputStream inputStream = new FileInputStream(file(path));
         return new String(inputStream.readAllBytes(), CHARSET);
     }
 
     @ExpressionFunc("get file obj from your give path")
-    public File file(String path){
+    public File file(String path) {
         File file;
         if (path.startsWith("/")) {
             file = new File(path);
@@ -64,13 +60,8 @@ public class StanderIo extends AbstractStanderFunc{
     }
 
     @ExpressionFunc("change dir")
-    public void cd(String arg){
-        File file;
-        if (arg.startsWith("/")) {
-            file = new File(arg);
-        } else {
-            file = new File(context.getCurrentPath() + "/" + arg);
-        }
+    public void cd(String arg) {
+        File file = file(arg);
         if (file.exists()) {
             String path = purePath(file.getAbsolutePath());
             context.setCurrentPath(path);
@@ -81,8 +72,21 @@ public class StanderIo extends AbstractStanderFunc{
     }
 
     @ExpressionFunc("list all files under relative path")
-    public String ls(String path){
+    public String ls(String path) {
         return String.join("\n", Objects.requireNonNull(new File(path).list()));
+    }
+
+    @SneakyThrows
+    @ExpressionFunc("write string to dest file")
+    public void write(String content, String path) {
+        writeByte(content.getBytes(StandardCharsets.UTF_8), path);
+    }
+
+    @SneakyThrows
+    @ExpressionFunc("write bytes to dest file")
+    public void writeByte(byte[] bytes, String path) {
+        @Cleanup FileOutputStream outputStream = new FileOutputStream(file(path));
+        outputStream.write(bytes);
     }
 
     private String purePath(String path) {

@@ -123,6 +123,7 @@ public class StringUtils {
         return hasText(first) ? first : second;
     }
 
+
     /**
      * 是否是大写字符
      */
@@ -156,12 +157,21 @@ public class StringUtils {
         }
         if (limit == 1) return new String[]{toBeSplit};
         char[] chars = toBeSplit.toCharArray();
+
         ArrayList<String> result = new ArrayList<>();
-        int[] leftQuote = new int[leftBracket.length];
+        int[] left = new int[leftBracket.length];
         int lastSplit = 0;
+
         boolean quote = false;
+        boolean bigQuote = false;
+
         outer:
         for (int i = 0; i < chars.length; i++) {
+            if (!quote && chars[i] == '"') {
+                bigQuote = !bigQuote;
+                continue;
+            }
+            if (bigQuote) continue;
             if (chars[i] == '\'') {
                 quote = !quote;
             }
@@ -169,19 +179,19 @@ public class StringUtils {
 
             for (int j = 0; j < leftBracket.length; j++) {
                 if (chars[i] == leftBracket[j]) {
-                    leftQuote[j]++;
+                    left[j]++;
                     continue outer;
                 }
             }
 
             for (int j = 0; j < rightBracket.length; j++) {
                 if (chars[i] == rightBracket[j]) {
-                    leftQuote[j]--;
+                    left[j]--;
                     continue outer;
                 }
             }
 
-            for (int j : leftQuote) {
+            for (int j : left) {
                 if (j>0) continue outer;
             }
 

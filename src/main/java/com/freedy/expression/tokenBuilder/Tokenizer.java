@@ -46,11 +46,10 @@ public class Tokenizer {
     }
 
 
-
     public static TokenStream getTokenStream(String expression) {
         //处理注释
         StringJoiner joiner = new StringJoiner(" ");
-        for (String sub : expression.split("\n")) {
+        for (String sub : StringUtils.splitWithoutBracket(expression, new char[0], new char[0], '\n')) {
             int i1 = sub.indexOf("//");
             sub = sub.substring(0, i1 == -1 ? sub.length() : i1).trim();
             joiner.add(sub);
@@ -91,9 +90,8 @@ public class Tokenizer {
         int lastOps = 0;
         int expressionLeftBracket = 0;
 
-        boolean quoteInside = false;
-        int leftBracesCount = 0;
-        int leftBracketCount = 0;
+        int leftBracesCount = 0;    // { }
+        int leftBracketCount = 0;   // [ ]
 
         boolean quote = false;
         boolean bigQuote = false;
@@ -328,10 +326,9 @@ public class Tokenizer {
                     .thr();
         }
         if (holder.isErr) {
-            ExpressionSyntaxException.buildThr(errBuilder, holder.msg, tokenStream.getExpression(), holder.getElements(),new ErrMsgToken(token).errStr(holder.getErrPart()));
+            ExpressionSyntaxException.buildThr(errBuilder, holder.msg, tokenStream.getExpression(), holder.getElements(), new ErrMsgToken(token).errStr(holder.getErrPart()));
         }
     }
-
 
 
 }

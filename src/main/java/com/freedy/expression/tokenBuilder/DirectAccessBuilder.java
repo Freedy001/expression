@@ -1,9 +1,11 @@
 package com.freedy.expression.tokenBuilder;
 
 import com.freedy.expression.TokenStream;
+import com.freedy.expression.exception.MethodOrPropBuildFailedException;
 import com.freedy.expression.token.DirectAccessToken;
 import com.freedy.expression.utils.StringUtils;
 
+import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,53 +16,39 @@ import java.util.regex.Pattern;
 public class DirectAccessBuilder extends Builder {
 
 
-    private final Pattern prefix = Pattern.compile("^([a-zA-Z_]\\w*) *(.*)");
-    private final Pattern methodPattern = Pattern.compile("^([a-zA-Z_]\\w*) *?\\((.*)\\) *(.*)");
+    private final Pattern prefix = Pattern.compile("^([a-zA-Z_]\\w*)(?: *\\(.*?\\))?(?: *([?\\[.].*))?");
 
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建变量 Token
-        Matcher matcher = prefix.matcher(token);
-
+        Matcher matcher = prefix.matcher(removeLF(token));
+        if (!matcher.matches()) return false;
+        matcher = prefix.matcher(removeLF(token));
         if (!matcher.find()) return false;
         String propOrMethod = matcher.group(1);
-        if (StringUtils.isEmpty(propOrMethod)) {
+        if (StringUtils.isEmpty(propOrMethod) || propOrMethod.equals("T")) {
             return false;
         }
-        if (propOrMethod.equals("T")) {
-            return false;
-        }
-
-
-        String[] splitWithoutBracket = StringUtils.splitWithoutBracket(token, '(', ')', '.', 2);
 
         DirectAccessToken directAccessToken = new DirectAccessToken(token);
-        Matcher methodMatcher = methodPattern.matcher(splitWithoutBracket[0]);
-        if (methodMatcher.find()) {
-            //method
-            directAccessToken.setMethodName(methodMatcher.group(1));
-            String argStr = methodMatcher.group(2);
-            directAccessToken.setMethodArgsName(StringUtils.hasText(argStr) ? StringUtils.splitWithoutBracket(argStr, new char[]{'{', '('}, new char[]{'}', ')'}, ',') : new String[0]);
-            String suffix = methodMatcher.group(3);
-            if (StringUtils.hasText(suffix = suffix.trim()) && !directAccessToken.setRelevantOpsSafely(suffix)) {
-                return false;
-            }
-        } else {
-            matcher = prefix.matcher(splitWithoutBracket[0]);
-            if (matcher.find()) {
-                directAccessToken.setVarName(matcher.group(1));
-                String suffix = matcher.group(2);
-                if (StringUtils.hasText(suffix = suffix.trim()) && !directAccessToken.setRelevantOpsSafely(suffix)) {
-                    return false;
+
+        String[] splitWithoutBracket = StringUtils.splitWithoutBracket(token, '(', ')', '.', 2);
+        try {
+            buildMethodOrProp((s1, s2, s3) -> {
+                if (s3 != null) {
+                    directAccessToken.setRelevantOps(s1);
+                    directAccessToken.setMethodName(s2);
+                    directAccessToken.setMethodArgsName(s3);
+                } else {
+                    directAccessToken.setRelevantOps(s1);
+                    directAccessToken.setVarName(s2);
                 }
-            }else {
-                holder.setMsg("illegal token");
-                return false;
-            }
+            }, splitWithoutBracket[0]);
+        } catch (MethodOrPropBuildFailedException e) {
+            holder.setMsg(e.getMessage());
+            return false;
         }
-
-
         if (splitWithoutBracket.length == 2) {
             buildExecuteChain(directAccessToken, splitWithoutBracket[1], holder);
             if (holder.isErr()) {

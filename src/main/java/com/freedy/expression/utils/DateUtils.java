@@ -68,14 +68,6 @@ public class DateUtils {
         return str;
     }
 
-    /**
-     * 重复指定的字符串指定的次数
-     */
-    private static String repeat(String str, int times) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < times; i++) builder.append(str);
-        return builder.toString();
-    }
 
     /**
      * 转换时间字符串为你所指定的pattern
@@ -97,7 +89,7 @@ public class DateUtils {
                 }
                 for (int i = dCount + 1; i <= cCount; i++) {
                     String group = convertMatcher.group(i);
-                    yourPattern = yourPattern.replaceFirst(group, repeat("0", group.length()));
+                    yourPattern = yourPattern.replaceFirst(group, "0".repeat(group.length()));
                 }
             }
         } else {

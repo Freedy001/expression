@@ -15,9 +15,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
+import lombok.*;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -31,6 +29,7 @@ import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -361,7 +360,7 @@ public class CommanderLine {
 
     @SneakyThrows
     public static void startRemote(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
-        byte[] auth=EncryptUtil.stringToMD5(md5AuthStr).getBytes(StandardCharsets.UTF_8);
+        byte[] auth = EncryptUtil.stringToMD5(md5AuthStr).getBytes(StandardCharsets.UTF_8);
         pc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
                 .group(new NioEventLoopGroup(1), new NioEventLoopGroup())
@@ -405,7 +404,7 @@ public class CommanderLine {
                         );
                     }
                 }).bind(port).sync().channel();
-        System.out.println("\033[95mserver start success on port"+port+"\033[0;39m");
+        System.out.println("\033[95mserver start success on port" + port + "\033[0;39m");
     }
 
     //127.0.0.1:21;abcdsawerfsasxcs;asdasdas
@@ -417,21 +416,27 @@ public class CommanderLine {
         byte[] bytes;
 
         if (file.exists()) {
-            FileInputStream is = new FileInputStream(file);
-            String[] split = new String(is.readAllBytes()).trim().strip().split(";");
-            if (split.length != 3) {
-                System.out.println("\033[95mencrypt.txt not formated,please modify it or delete it!\033[0;39m");
-                return;
+            @Cleanup FileInputStream is = new FileInputStream(file);
+            String strip = new String(is.readAllBytes()).trim().strip();
+            List<ConnectConfig> list = Arrays.stream(strip.split("\n")).map(ConnectConfig::new).toList();
+            ConnectConfig connectConfig;
+            if (list.size() == 1) {
+                connectConfig=list.get(0);
+            } else {
+                for (ConnectConfig config : list) {
+                    System.out.println(config);
+                }
+                String configNum=null;
+                do {
+                    if (configNum!=null) System.out.println("\033[95millegal input!\033[0;39m");
+                    configNum = stdin("\033[95mplease select one config!\033[0;39m");
+                } while (!configNum.matches("\\d+"));
+                connectConfig=list.get(Integer.parseInt(configNum));
             }
-            String line = split[0];
-            ip = line.split(":")[0];
-            port = Integer.parseInt(line.split(":")[1]);
-            if (split[1].length() != 16) {
-                System.out.println("\033[95maes-key'length must 16\033[0;39m");
-                return;
-            }
-            aesKey = split[1];
-            bytes = EncryptUtil.stringToMD5(split[2]).getBytes(StandardCharsets.UTF_8);
+            ip=connectConfig.ip;
+            port=connectConfig.port;
+            aesKey=connectConfig.aesKey;
+            bytes=EncryptUtil.stringToMD5(connectConfig.md5Key).getBytes(StandardCharsets.UTF_8);
         } else {
             String line = stdin("address(ip:port):");
             ip = line.split(":")[0];
@@ -516,7 +521,39 @@ public class CommanderLine {
         }
     }
 
-    private static String stdin(String placeholder){
+    @Data
+    private static class ConnectConfig {
+        String tagName;
+        String ip;
+        int port;
+        String aesKey;
+        String md5Key;
+
+        public ConnectConfig(String str) {
+            String[] item = str.split(";");
+            if (item.length != 4) throw new java.lang.IllegalArgumentException("illegal pattern str");
+            this.tagName = item[0];
+            String[] ipInfo = item[1].split(":");
+            if (ipInfo.length != 2) throw new java.lang.IllegalArgumentException("illegal pattern str");
+            this.ip = ipInfo[0];
+            this.port = Integer.parseInt(ipInfo[1]);
+            this.aesKey = item[2];
+            this.md5Key = item[3];
+        }
+
+        @Override
+        public String toString() {
+            return "tagName='" + tagName + '\'' +
+                    ", ip='" + ip + '\'' +
+                    ", port=" + port +
+                    ", aesKey='" + aesKey + '\'' +
+                    ", md5Key='" + md5Key + '\'';
+        }
+    }
+
+
+
+    private static String stdin(String placeholder) {
         String line;
         if (JAR_ENV) {
             line = READER.readLine(placeholder);

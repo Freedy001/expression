@@ -19,9 +19,9 @@ public class loopBuilder extends Builder {
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
-        Node node = convertStr(token);
-        if (node==null) return false;
-        Matcher matcher = loopPattern.matcher(node.result);
+        ReplacedStr replacedStr = convertStr(token);
+        if (replacedStr ==null) return false;
+        Matcher matcher = loopPattern.matcher(replacedStr.result);
         if (!matcher.find()) return false;
         if (!token.endsWith("}")){
             int i = token.lastIndexOf("}");
@@ -40,12 +40,12 @@ public class loopBuilder extends Builder {
         loopToken.setDesc(matcher.group(2).equals("@"));
         String executeEl = matcher.group(3);
         if ("REPLACE".equals(executeEl)) {
-            if (StringUtils.isEmpty(node.aimedStr)) {
+            if (StringUtils.isEmpty(replacedStr.aimedStr)) {
                 holder.setMsg("executable part can not be empty")
                         .setErrorPart("in :");
                 return false;
             }
-            loopToken.setExecuteTokenStream(Tokenizer.doGetTokenStream(node.aimedStr));
+            loopToken.setExecuteTokenStream(Tokenizer.doGetTokenStream(replacedStr.aimedStr));
         }
 
         loopToken.setLoopTokenStream(Tokenizer.doGetTokenStream(matcher.group(4)));
@@ -55,7 +55,7 @@ public class loopBuilder extends Builder {
     }
 
     @Override
-    protected Node convertStr(String token) {
+    protected ReplacedStr convertStr(String token) {
         int length = token.length();
         char[] chars = token.toCharArray();
         int bracket = 0;
@@ -80,7 +80,7 @@ public class loopBuilder extends Builder {
         if (startIndex==-1||bracket != -1){
             return null;
         }
-        return new Node(token.substring(0, startIndex) + "REPLACE" + token.substring(endIndex),
+        return new ReplacedStr(token.substring(0, startIndex) + "REPLACE" + token.substring(endIndex),
                 token.substring(startIndex, endIndex).trim(), startIndex);
     }
 

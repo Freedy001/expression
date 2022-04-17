@@ -1,6 +1,7 @@
 package com.freedy.expression.tokenBuilder;
 
 import com.freedy.expression.TokenStream;
+import com.freedy.expression.exception.MethodOrPropBuildFailedException;
 import com.freedy.expression.token.ClassToken;
 import com.freedy.expression.utils.StringUtils;
 import lombok.AllArgsConstructor;
@@ -50,58 +51,83 @@ public abstract class Builder {
      * 构建执行链
      */
     protected void buildExecuteChain(ClassToken token, String suffixStr, ExceptionMsgHolder holder) {
-
         //构建执行链
         String[] step = StringUtils.splitWithoutBracket(suffixStr, '(', ')', '.');
         for (int i = 0; i < step.length; i++) {
-            Node node = convertStr(step[i].trim());
-            String propOrMethodName = node == null ? step[i].trim() : node.result;
-
-            //检测是否包含list access
-            Matcher listMatcher = relevantAccess.matcher(propOrMethodName);
-            String relevantOps = null;
-            if (listMatcher.find()) {
-                propOrMethodName = listMatcher.group(1).trim();
-                relevantOps = listMatcher.group(2).trim();
-            }
-
-            Matcher matcher = methodPattern.matcher(propOrMethodName);
-            if (matcher.find()) {
-                //node 不可能为空
-                assert node != null;
-                String methodName = matcher.group(1).trim();
-                if (!varPattern.matcher(methodName).matches()) {
-                    StringJoiner joiner = new StringJoiner(".");
-                    for (int j = 0; j < i; j++) {
-                        joiner.add(step[j]);
+            try {
+                buildMethodOrProp((s1, s2, s3) -> {
+                    if (s3 != null) {
+                        token.addMethod(s1, s2, s3);
+                    } else {
+                        token.addProperties(s1, s2);
                     }
-                    holder.setMsg("illegal method name")
-                            .setErrorPart(StringUtils.hasText(joiner.toString()) ? (joiner + ".@" + methodName) : methodName);
-                    return;
+                }, step[i]);
+            } catch (MethodOrPropBuildFailedException e) {
+                StringJoiner joiner = new StringJoiner(".");
+                for (int j = 0; j < i; j++) {
+                    joiner.add(step[j]);
                 }
-                String group = matcher.group(2);
-                if (group.equals("REPLACE")) {
-                    String aimedStr = node.aimedStr;
-                    token.addMethod(relevantOps, methodName, StringUtils.hasText(aimedStr) ? StringUtils.splitWithoutBracket(aimedStr, new char[]{'{', '('}, new char[]{'}', ')'}, ',') : new String[0]);
-                } else {
-                    throw new IllegalArgumentException("unreachable exception");
-                }
+                holder.setMsg(e.getMessage())
+                        .setErrorPart(StringUtils.hasText(joiner + "") ? (joiner + ".@" + e.getMethodOrPropName()) : e.getMethodOrPropName());
+                return;
+            }
+        }
+    }
+
+    /**
+     * 构建方法或者属性
+     * @param handle    构建完毕后需要执行的操作
+     * @param stepStr   需要被构建的字符串
+     * @throws MethodOrPropBuildFailedException  构建失败异常
+     */
+    protected void buildMethodOrProp(ResultHandle handle, String stepStr) throws MethodOrPropBuildFailedException {
+
+        ReplacedStr replacedStr = convertStr(stepStr.trim());
+        String propOrMethodName = replacedStr == null ? stepStr.trim() : replacedStr.result;
+
+        //检测是否包含list access
+        Matcher listMatcher = relevantAccess.matcher(propOrMethodName);
+        String relevantOps = null;
+        if (listMatcher.find()) {
+            propOrMethodName = listMatcher.group(1).trim();
+            relevantOps = listMatcher.group(2).trim();
+        }
+
+        Matcher matcher = methodPattern.matcher(propOrMethodName);
+        if (matcher.find()) {
+            //replacedStr 不可能为空
+            assert replacedStr != null;
+            String methodName = matcher.group(1).trim();
+            if (!varPattern.matcher(methodName).matches()) {
+                throw new MethodOrPropBuildFailedException("illegal method name", methodName);
+            }
+            String group = matcher.group(2);
+            if (group.equals("REPLACE")) {
+                String aimedStr = replacedStr.aimedStr;
+                handle.handle(relevantOps, methodName, StringUtils.hasText(aimedStr) ? StringUtils.splitWithoutBracket(aimedStr, new char[]{'{', '('}, new char[]{'}', ')'}, ',') : new String[0]);
             } else {
-                if (!varPattern.matcher(propOrMethodName).matches()) {
-                    StringJoiner joiner = new StringJoiner(".");
-                    for (int j = 0; j < i; j++) {
-                        joiner.add(step[j]);
-                    }
-                    holder.setMsg("illegal prop name")
-                            .setErrorPart(joiner + ".@" + propOrMethodName);
-                }
-                token.addProperties(relevantOps, propOrMethodName);
+                throw new IllegalArgumentException("unreachable exception");
             }
+        } else {
+            if (!varPattern.matcher(propOrMethodName).matches()) {
+                throw new MethodOrPropBuildFailedException("illegal prop name", propOrMethodName);
+            }
+            handle.handle(relevantOps, propOrMethodName, (String[]) null);
         }
 
     }
 
-    protected Node convertStr(String token) {
+    protected String removeLF(String str){
+        return str.replace("\r\n", " ").replace("\r", " ");
+    }
+
+    /**
+     * 将方法参数用REPLACE字符串代替，利于正则表达式的解析
+     *
+     * @param token 需要转化字符串
+     * @return 被替换后的结果，如果传入的字符串不是方法样式则返回null
+     */
+    protected ReplacedStr convertStr(String token) {
         int length = token.length();
         char[] chars = token.toCharArray();
         int bracket = 0;
@@ -123,17 +149,38 @@ public abstract class Builder {
         if (startIndex == -1 || bracket != 0) {
             return null;
         }
-        return new Node(token.substring(0, startIndex) + "REPLACE" + token.substring(endIndex),
+        return new ReplacedStr(token.substring(0, startIndex) + "REPLACE" + token.substring(endIndex),
                 token.substring(startIndex, endIndex).trim(), startIndex);
     }
 
 
     @ToString
     @AllArgsConstructor
-    protected static class Node {
+    protected static class ReplacedStr {
+        /**
+         * 被替换后的结果字符串
+         */
         String result;
+        /**
+         * 被替换字符串的原本值
+         */
         String aimedStr;
+        /**
+         * 被替换字符串的初始下班
+         */
         int aimedIndex;
+    }
+
+    @FunctionalInterface
+    protected interface ResultHandle {
+        /**
+         * 方法或属性构建完毕后要执行的操作
+         *
+         * @param relevantOps      相关后缀操作
+         * @param methodOrPropName 方法或属性名称
+         * @param args             方法参数/null表示是属性操作非null表示是方法操作
+         */
+        void handle(String relevantOps, String methodOrPropName, String... args);
     }
 
     @Getter
@@ -158,7 +205,7 @@ public abstract class Builder {
         void err() {
             isErr = true;
             StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-            elements = Arrays.copyOfRange(trace,3,trace.length);
+            elements = Arrays.copyOfRange(trace, 3, trace.length);
         }
     }
 
