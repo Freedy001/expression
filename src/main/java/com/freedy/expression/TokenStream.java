@@ -3,10 +3,7 @@ package com.freedy.expression;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
 import com.freedy.expression.stander.StanderTokenBlockSorter;
-import com.freedy.expression.token.Assignable;
-import com.freedy.expression.token.ObjectToken;
-import com.freedy.expression.token.OpsToken;
-import com.freedy.expression.token.Token;
+import com.freedy.expression.token.*;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,13 +13,15 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
- * TokenStream是字符串代码的抽象,也就是TokenStream配合Context就可以让代码执行起来 <br/>
+ * TokenStream是字符串代码的抽象,也就是TokenStream需要配合Context才可以让代码执行起来。 <br/>
  *
  * <h2>构建</h2>
  * <p>TokenStream是由Tokenizer的getTokenStream()方法所构建.其利用分号进行分割,每个分割的单元为一个TokenList</p>
- * 即下面的{@link TokenStream#infixExpression}全局变量,每构建好一个TokenList就会调用{@link TokenStream#splitStream()}方法进行切换(将{@link TokenStream#infixExpression}放入到{@link TokenStream#blockStream}中)
- * <h3>执行</h3>
- * 执行的时候又会将{@link TokenStream#blockStream}里面的内容一个一个的切换回{@link TokenStream#infixExpression}中,然后对对每个token设置context并将TokenList转化为后缀表达式然后交给{@link Expression}执行
+ * 即下面的{@link TokenStream#infixExpression}全局变量,每构建好一个TokenList就会调用{@link TokenStream#splitStream()}方法进行切换(将{@link TokenStream#infixExpression}放入到{@link TokenStream#blockStream}中),
+ * {@link TokenStream#blockStream}代表一个完整的代码段。
+ * <h2>执行</h2>
+ * 执行的时候又会将{@link TokenStream#blockStream}里面的内容一个一个的切换回{@link TokenStream#infixExpression}中,然后对对每个token设置context并将TokenList转化为后缀表达式然后交给{@link Expression}来执行。
+ *
  * @author Freedy
  * @date 2021/12/14 19:46
  */
@@ -63,10 +62,42 @@ public class TokenStream implements Executable {
     private final List<String> defTokenList = new ArrayList<>();
     private boolean hasSort = false;
 
+
+    private int bracketsPares = 0;
+
+    public void addBracket(boolean isLeft) {
+        if (hasSort) {
+            throw new IllegalArgumentException("token stream has fixed,could not add element");
+        }
+        if (isLeft) {
+            infixExpression.add(new OpsToken("("));
+            bracketsPares++;
+        } else {
+            if (bracketsPares == 0) {
+                ExpressionSyntaxException.thrWithMsg("() are not paired!", expression, (infixExpression.size() == 0 ? "" : infixExpression.get(infixExpression.size() - 1).getValue()) + "@)");
+            }
+            infixExpression.add(new OpsToken(")"));
+            bracketsPares--;
+        }
+    }
+
+    public void addToken(Token token) {
+        if (token.isType("obj")) {
+            defTokenList.add(((ObjectToken) token).getVariableName());
+        }
+        if (hasSort) {
+            throw new IllegalArgumentException("token stream has fixed,could not add element");
+        }
+        infixExpression.add(token);
+    }
+
+    /**
+     * 切割,每当一个中缀表达式构建完毕后调用此方法来构建下一条中缀表达式
+     */
     public void splitStream() {
         blockStream.add(infixExpression);
         infixExpression = new ArrayList<>();
-        if (hasSort){
+        if (hasSort) {
             throw new IllegalArgumentException("token stream has fixed,could not split stream");
         }
     }
@@ -96,16 +127,21 @@ public class TokenStream implements Executable {
         }
     }
 
-
+    /**
+     * 获取该tokenStream中有多少个infixExpression
+     */
     public int blockSize() {
         return blockStream.size();
     }
 
+    /**
+     * 获取所有token，会将blockStream扁平化输出
+     */
     public List<Token> getAllTokens() {
         return blockStream.stream().flatMap(Collection::stream).toList();
     }
 
-    public static int opsPriority(String ops) {
+    private static int opsPriority(String ops) {
         for (int i = 0; i < priorityOps.size(); i++) {
             if (priorityOps.get(i).contains(ops)) {
                 return i;
@@ -113,7 +149,6 @@ public class TokenStream implements Executable {
         }
         return -1;
     }
-
 
 
     /**
@@ -157,32 +192,6 @@ public class TokenStream implements Executable {
         return false;
     }
 
-
-    int bracketsPares = 0;
-
-    public void addBracket(boolean isLeft) {
-        if (isLeft) {
-            infixExpression.add(new OpsToken("("));
-            bracketsPares++;
-        } else {
-            if (bracketsPares == 0) {
-                ExpressionSyntaxException.thrWithMsg("() are not paired!", expression, (infixExpression.size() == 0 ? "" : infixExpression.get(infixExpression.size() - 1).getValue()) + "@)");
-            }
-            infixExpression.add(new OpsToken(")"));
-            bracketsPares--;
-        }
-    }
-
-    public void addToken(Token token) {
-        if (token.isType("obj")) {
-            defTokenList.add(((ObjectToken) token).getVariableName());
-        }
-        if (hasSort){
-            throw new IllegalArgumentException("token stream has fixed,could not add element");
-        }
-        infixExpression.add(token);
-    }
-
     /**
      * 对所有的Token设置context
      */
@@ -212,7 +221,7 @@ public class TokenStream implements Executable {
         //合并单值操作
         mergeSingleTokenOps();
         //计算偏移量
-        calculateOffset(0, infixExpression);
+        calculateOffset(infixExpression);
         List<Token> suffixExpression = new ArrayList<>();
         Stack<Token> opsStack = new Stack<>();
         //扫描中缀
@@ -265,7 +274,32 @@ public class TokenStream implements Executable {
                         }
                         Token nextToken = infixExpression.get(i + 1);
                         if (nextToken.isType("operation")) {
-                            ExpressionSyntaxException.tokenThr(expression, token, nextToken);
+                            if (nextToken.isValue("(")) { // 非操作被括号包围
+                                int leftBreaker = 1;
+                                int j = i + 2;
+                                StringBuilder subExp = new StringBuilder("(");
+                                for (; j < infixExpression.size() && leftBreaker != 0; j++) {
+                                    Token inner = infixExpression.get(j);
+                                    if (inner.isValue("(")) leftBreaker++;
+                                    if (inner.isValue(")")) leftBreaker--;
+                                    subExp.append(inner.getValue());
+                                }
+                                if (leftBreaker != 0) {
+                                    ExpressionSyntaxException.tokenThr("brackets are not paired!", expression, nextToken);
+                                }
+                                TokenStream stream = new TokenStream(subExp.toString());
+                                StreamWrapperToken wrapperToken = new StreamWrapperToken(stream);
+                                for (int k = i + 1; k < j; k++) {
+                                    stream.infixExpression.add(infixExpression.remove(i + 1));
+                                    stream.blockStream.add(stream.infixExpression);
+                                }
+                                wrapperToken.setContext(context);
+                                wrapperToken.setNotFlag(true);
+                                infixExpression.set(i, wrapperToken);
+                                continue;
+                            } else {  //其他操作 直接报错
+                                ExpressionSyntaxException.tokenThr(expression, token, nextToken);
+                            }
                         }
                         nextToken.setNotFlag(true);
                         infixExpression.remove(i);
@@ -297,6 +331,7 @@ public class TokenStream implements Executable {
                                 preToken.setPostSelfAddFlag(true);
                             else
                                 preToken.setPostSelfSubFlag(true);
+                            //// TODO: 2022/6/7
                             infixExpression.remove(i);
                         }
                     }
@@ -310,19 +345,21 @@ public class TokenStream implements Executable {
 
     }
 
+    private int currentCursor;
+
     /**
      * 计算每个token在expression中的偏移量,方便异常时进行彩色标记
      */
-    private void calculateOffset(int cursor, List<Token> tokenList) {
+    private void calculateOffset(List<Token> tokenList) {
         for (Token token : tokenList) {
             List<Token> originToken = token.getOriginToken();
             if (originToken != null) {
-                calculateOffset(cursor, originToken);
+                calculateOffset(originToken);
             }
-            int[] index = findSubStrIndex(expression, token.getValue(), cursor);
+            int[] index = findSubStrIndex(expression, token.getValue(), currentCursor);
             assert index != null;
             token.setOffset(index[0]);
-            cursor = index[1];
+            currentCursor = index[1];
         }
     }
 

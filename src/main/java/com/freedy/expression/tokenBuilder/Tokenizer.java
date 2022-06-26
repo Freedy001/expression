@@ -139,7 +139,7 @@ public class Tokenizer {
 
             String token = expression.substring(lastOps, i).trim();
 
-            if (inspectChar == '?') {
+            if (inspectChar == '?' && expressionLeftBracket == 0) { // 表示?操作符不在方法参数中
                 int index = StringUtils.nextNonempty(chars, i);
                 if (index == -1) continue;
                 if (chars[index] == '.') continue;
@@ -167,7 +167,7 @@ public class Tokenizer {
                     int index = StringUtils.preNonempty(chars, i);
                     if (index == -1 || (operationWithOutBracketSet.contains(chars[index]))) {
                         if (StringUtils.hasText(token)) {
-                            ExpressionSyntaxException.thr(expression, token + "@(");
+                            ExpressionSyntaxException.thr(expression, token + "$(");
                         }
                         tokenStream.addBracket(true);
                     } else {

@@ -47,7 +47,7 @@ public final class BasicVarToken extends Token {
             }
         }
         if (isType("bool")) {
-            return checkAndSelfOps(notFlag != Boolean.parseBoolean(value));
+            return checkAndSelfOps(Boolean.parseBoolean(value));
         }
         if (isType("null")){
             return null;

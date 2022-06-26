@@ -16,6 +16,7 @@ public class LogRecorder extends OutputStream {
 
     public LogRecorder(PrintStream systemPrinter) {
         this.systemPrinter = systemPrinter;
+        System.setOut(new PrintStream(this));
     }
 
 

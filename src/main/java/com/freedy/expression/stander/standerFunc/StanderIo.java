@@ -1,6 +1,6 @@
 package com.freedy.expression.stander.standerFunc;
 
-import com.freedy.expression.CommanderLine;
+import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.stander.ExpressionFunc;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
@@ -9,18 +9,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.StringJoiner;
+import java.util.*;
 
 /**
  * @author Freedy
  * @date 2022/3/6 0:10
  */
 public class StanderIo extends AbstractStanderFunc {
-    private final static String SEPARATOR = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win") ? "\\\\" : "/";
-
 
     @ExpressionFunc("same as System.out.println()")
     public void print(Object o) {
@@ -34,10 +29,10 @@ public class StanderIo extends AbstractStanderFunc {
 
     @ExpressionFunc("stander input same as new Scanner(System.in).nextLine()")
     public String stdin() {
-        if (CommanderLine.JAR_ENV) {
-            return CommanderLine.READER.readLine();
+        if (ScriptStarter.JAR_ENV && ScriptStarter.READER != null) {
+            return ScriptStarter.READER.readLine();
         } else {
-            return CommanderLine.SCANNER.nextLine();
+            return ScriptStarter.SCANNER.nextLine();
         }
     }
 
@@ -72,8 +67,8 @@ public class StanderIo extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("list all files under relative path")
-    public String ls(String path) {
-        return String.join("\n", Objects.requireNonNull(new File(path).list()));
+    public File[] ls(String path) {
+        return new File(path).listFiles();
     }
 
     @SneakyThrows

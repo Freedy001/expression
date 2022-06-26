@@ -33,8 +33,15 @@ public abstract sealed class ClassToken extends Token implements Assignable
     private static final Pattern relevantOpsPattern = Pattern.compile("(?:\\?|\\[.*]|\\? *?\\[.*])+");
     private static final Pattern varPattern = Pattern.compile("^[a-zA-Z_]\\w*");
 
+
     protected String reference;
+    /**
+     * 除去执行本身后，需要链式(调用/执行)的次数
+     */
     protected int executableCount = 0;
+    /**
+     * 执行器，用于解释参数中的tokenStream
+     */
     protected Expression expression;
     protected String relevantOps;
     private List<ExecuteStep> executeChain;
@@ -317,6 +324,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
         } else {
             List<String> opsList = parseOps(relevantOps);
             int usefulIndex = -1;
+            //region 从右向左找到第一个非?的操作符
             for (int i = opsList.size() - 1; i >= 0; i--) {
                 if (!opsList.get(i).equals("?")) {
                     usefulIndex = i;
@@ -327,6 +335,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
                 normalAssignTask.run();
                 return;
             }
+            //endregion
             Object lastObj = doRelevantOps(baseObjProvider.get(), opsList, 0, usefulIndex, reference);
             if (lastObj == null) {
                 throw new EvaluateException("? is a null value", getOpsStr(opsList, usefulIndex));
@@ -362,7 +371,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
     }
 
     /**
-     * 构建相关操作的list
+     * 构建相关操作的list。即将相关操作字符串解构成list，方便其他方法对相关操作进行逐一解析。
      */
     protected List<String> parseOps(String relevantOps) {
         if (relevantOps == null) return null;
@@ -456,9 +465,21 @@ public abstract sealed class ClassToken extends Token implements Assignable
     @Getter
     @AllArgsConstructor
     protected static class UnsteadyArg {
+        /**
+         * 字符串类型
+         */
         public static final int STRING = 1 << 1;
+        /**
+         * 数字类型
+         */
         public static final int NUMERIC = 1 << 2;
+        /**
+         * tokenSteam类型会在调用{@link ClassToken#getMethodArgs(List)}是计算出结果
+         */
         public static final int TOKEN_STREAM = 1 << 3;
+        /**
+         * tokenSteam类型并始终保持，会将tokenSteam传入方法参数内
+         */
         public static final int DELAY_TOKEN_STREAM = 1 << 4;
 
         private int type;

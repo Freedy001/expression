@@ -1,18 +1,21 @@
 package com.freedy.expression.stander.standerFunc;
 
+import com.freedy.expression.EncryptUtil;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.stander.CodeDeCompiler;
 import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,7 +53,7 @@ public class StanderUtils extends AbstractStanderFunc {
 
 
     @ExpressionFunc("decompile class to java source")
-    public String code(Object ...o) {
+    public String code(Object... o) {
         if (o.length != 1 && o.length != 2) {
             throw new EvaluateException("parameters count must be 1 or 2");
         }
@@ -62,7 +65,7 @@ public class StanderUtils extends AbstractStanderFunc {
 
 
     @ExpressionFunc("decompile class to java source and dump source file to specific location")
-    public void dumpCode(Object ...o) {
+    public void dumpCode(Object... o) {
         if (o.length != 2 && o.length != 3) {
             throw new EvaluateException("parameters count must be 2 or 3");
         }
@@ -94,7 +97,7 @@ public class StanderUtils extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("clear specific var")
-    public void clearVar(String ...varName){
+    public void clearVar(String... varName) {
         if (varName == null) return;
         for (String s : varName) {
             context.getVariableMap().remove(context.filterName(s));
@@ -102,20 +105,154 @@ public class StanderUtils extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("get length")
-    public int len(Object o){
-        if (o instanceof Collection<?> c){
+    public int len(Object o) {
+        if (o instanceof Collection<?> c) {
             return c.size();
         }
-        if (o instanceof String s){
+        if (o instanceof String s) {
             return s.length();
         }
-        if (o.getClass().isArray()){
+        if (o.getClass().isArray()) {
             return Array.getLength(o);
         }
         throw new EvaluateException("can not calculate length,please check the type");
     }
 
+    @ExpressionFunc("exit progress")
+    public void exit(int status) {
+        System.exit(status);
+    }
 
+    private static final int U = 1024 * 1024;
+
+    @SuppressWarnings("resource")
+    @ExpressionFunc("""
+            encrypt the giving path file,then output a encrypted file
+            the first param indicate a input path,it could be a file or a directory
+            the second param indicate a output path,it must be a directory
+            the third param is a aes key used for encryption
+            example enc('/path/need/to/be/encrypted','/output/path','--a 16 bit key--');
+            """)
+    public void enc(String in, String out, String aes) throws Throwable {
+        long startTime = System.currentTimeMillis();
+        Path inPath = Path.of(in);
+        Path outPath = Path.of(out);
+        if (!Files.exists(inPath)) throw new IllegalArgumentException("input path does not exist");
+        if (!Files.exists(outPath)) throw new IllegalArgumentException("output path does not exist");
+        if (Files.isRegularFile(outPath)) throw new IllegalArgumentException("output path must be a directory");
+        Path outFilePath = Path.of(out + "\\" + inPath.getFileName() + ".enc");
+        if (Files.exists(outFilePath)) Files.delete(outFilePath);
+        @Cleanup RandomAccessFile os = new RandomAccessFile(outFilePath.toFile(), "rw");
+        os.seek(U);
+        List<FileInfo> fileInfos = new ArrayList<>();
+        boolean isRegFile = Files.isRegularFile(inPath);
+
+        byte[] buffer = new byte[U];
+        Files.walk(inPath).forEach(path -> {
+            if (!Files.isRegularFile(path)) return;
+            String pName = isRegFile ? inPath.getFileName().toString() : path.subpath(inPath.getNameCount(), path.getNameCount()).toString();
+            FileInfo info = new FileInfo(pName);
+            long fLen = path.toFile().length() / (U);
+            try {
+                info.startPos = os.getFilePointer();
+                @Cleanup FileInputStream is = new FileInputStream(path.toFile());
+                int len;
+                for (int i = 0; (len = is.read(buffer)) != -1; i++) {
+                    byte[] enc = EncryptUtil.Encrypt(len == U ? buffer : Arrays.copyOfRange(buffer, 0, len), aes);
+                    os.writeInt(enc.length);
+                    os.write(enc);
+                    System.out.print("\rencrypt " + pName + ":" + Math.floor(((double) i / fLen) * 100) + "%");
+                }
+                System.out.print("\rencrypt " + pName + ":100%\n\r");
+                info.endPos = os.getFilePointer();
+                fileInfos.add(info);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        os.seek(0);
+        os.write(0xFE);
+        os.write(0xBA);
+        for (FileInfo info : fileInfos) {
+            os.writeLong(info.startPos);
+            os.writeLong(info.endPos);
+            byte[] pathBytes = info.relPath.getBytes(StandardCharsets.UTF_8);
+            os.writeInt(pathBytes.length);
+            os.write(pathBytes);
+            if (os.getFilePointer() >= U) {
+                os.close();
+                Files.delete(outFilePath);
+                throw new IllegalArgumentException("too many item!");
+            }
+        }
+        System.out.println(new PlaceholderParser("encrypt: ? files,total time: ? s", fileInfos.size(), (System.currentTimeMillis() - startTime) / 1000));
+    }
+
+    static class FileInfo {
+        String relPath;
+        long startPos;
+        long endPos;
+
+        public FileInfo(String relPath) {
+            this.relPath = relPath;
+        }
+    }
+
+    @ExpressionFunc("""
+            decrypt the giving path file,then output a encrypted file
+            the first param indicate a input path,it must be a enc file
+            the second param indicate a output path,it must be a directory
+            the third param is a aes key used for encryption
+            example dec('/path/need/to/be/decrypted','/output/path','--a 16 bit key--');
+            """)
+    public void dec(String in, String out, String aes) throws Throwable {
+        long startTime = System.currentTimeMillis();
+        Path inPath = Path.of(in);
+        Path outPath = Path.of(out);
+        if (!Files.exists(inPath)) throw new IllegalArgumentException("input path does not exist");
+        if (!Files.exists(outPath)) throw new IllegalArgumentException("output path does not exist");
+        if (Files.isRegularFile(outPath)) throw new IllegalArgumentException("output path must be a directory");
+        @Cleanup RandomAccessFile rc = new RandomAccessFile(inPath.toFile(), "r");
+        if (rc.readByte() != (byte) 0xFE || rc.readByte() != (byte) 0xBA)
+            throw new IllegalArgumentException("illegal enc file");
+        int desTotalFile = 0;
+        for (; ; desTotalFile++) {
+            long startPos = rc.readLong();
+            long endPos = rc.readLong();
+            int len = rc.readInt();
+            if (startPos == 0 || endPos == 0 || len == 0) break;
+            byte[] relPathByte = new byte[len];
+            if (rc.read(relPathByte) != len) throw new IllegalArgumentException();
+            Path filePath = Paths.get(out + "/" + new String(relPathByte));
+            String[] split = filePath.toString().split(SEPARATOR);
+            File subPath = new File(String.join(SEPARATOR, Arrays.copyOfRange(split, 0, split.length - 1)));
+            if (!subPath.exists() && !subPath.mkdirs()) {
+                throw new IllegalArgumentException("create directory failed!");
+            }
+            long lastPos = rc.getFilePointer();
+            rc.seek(startPos);
+            @Cleanup FileOutputStream os = new FileOutputStream(filePath.toFile());
+            if (startPos == endPos) {
+                if (!filePath.toFile().createNewFile())
+                    System.out.println("create empty file failed!");
+            } else {
+                for (double process = 0; ; ) {
+                    int segment = rc.readInt();
+                    byte[] buffer = new byte[segment];
+                    if (rc.read(buffer) != segment) throw new IllegalArgumentException("illegal enc file");
+                    os.write(EncryptUtil.Decrypt(buffer, aes));
+                    long segmentEnd = rc.getFilePointer();
+                    if (segmentEnd == endPos) break;
+                    if (segmentEnd > endPos) throw new IllegalArgumentException("illegal enc file");
+                    process += (segment + 4);
+                    System.out.print("\rdecrypt " + filePath + ":" + Math.floor((process / (endPos - startPos)) * 100) + "%");
+                }
+            }
+            System.out.print("\rdecrypt " + filePath + ":100%\n\r");
+            rc.seek(lastPos);
+        }
+        System.out.println(new PlaceholderParser("decrypt: ? files,total time: ? s", desTotalFile, (System.currentTimeMillis() - startTime) / 1000));
+    }
 
     private List<String> getMethod(Class<?> aClass) {
         if (aClass == null) return null;
@@ -163,4 +300,6 @@ public class StanderUtils extends AbstractStanderFunc {
         stream.write(CodeDeCompiler.getCode(clazz, true, method).getBytes(StandardCharsets.UTF_8));
         System.out.println("dump success to " + file.getAbsolutePath());
     }
+
+
 }

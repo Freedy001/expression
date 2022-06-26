@@ -25,37 +25,46 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
+ * 用于以命令行的方式启动,直接运行会启动用于运行脚本的命令行。 <br/>
+ * 可选参数:
+ * <li>1.server:可以在其他机器上使用connect参数来连接此机器，并在此机器上执行脚本代码</li>
+ * <li>2.connect:用于连接其他机器</li>
+ * <li>3.exec:可以立即执行脚本</li>
+ * <li>4.help:可以查看帮助选项</li>
+ * <li>5.脚本文件+参数:可以直接执行脚本文件</li>
+ *
  * @author Freedy
  * @date 2022/1/5 20:40
  */
-public class CommanderLine {
+public class ScriptStarter {
 
-    public final static boolean JAR_ENV = System.getProperty("disableJline") == null && Objects.requireNonNull(CommanderLine.class.getResource("")).getProtocol().equals("jar");
-    public final static LogRecorder LOG_RECORDER = new LogRecorder(System.out);
-    private final static ExpressionPasser PARSER = new ExpressionPasser();
+    public final static boolean JAR_ENV = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
     public final static Scanner SCANNER = new Scanner(System.in);
     public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
-    private final static Terminal TERMINAL;
-    public final static LineReader READER;
+
+    public static LineReader READER;
+    private static Terminal TERMINAL;
+    private static LogRecorder LOG_RECORDER;
     @Setter
     @Getter
     private static StanderEvaluationContext context = new StanderEvaluationContext();
     private static Channel pc;
 
-    static {
-        System.setOut(new PrintStream(LOG_RECORDER));
+    public static void initializeCMD() {
         try {
+            LOG_RECORDER = new LogRecorder(System.out);
             TERMINAL = TerminalBuilder.terminal();
             TERMINAL.puts(InfoCmp.Capability.clear_screen);
             READER = LineReaderBuilder.builder().terminal(TERMINAL).completer((reader1, line, candidates) -> {
@@ -115,7 +124,7 @@ public class CommanderLine {
     }
 
 
-    public static Set<Candidate> getDefaultTipCandidate(String base, String suffix) {
+    private static Set<Candidate> getDefaultTipCandidate(String base, String suffix) {
         Set<Candidate> set = context.getVariableMap().keySet().stream().map(var -> new Candidate(base + var + suffix, base + var + suffix, "_variable", null, null, null, false, 0)).collect(Collectors.toSet());
         context.getFunMap().forEach((k, v) -> {
             int params = v.getClass().getDeclaredMethods()[0].getParameterCount();
@@ -141,7 +150,7 @@ public class CommanderLine {
     }
 
 
-    public static int[] findEvaluateStr(String line) {
+    private static int[] findEvaluateStr(String line) {
         char[] chars = line.toCharArray();
         int len = chars.length;
         int lastDot = -1;
@@ -161,105 +170,127 @@ public class CommanderLine {
     }
 
 
-    @SneakyThrows
-    @SuppressWarnings("InfiniteLoopStatement")
-    public static void main(String[] args) {
-        cmd:
-        if (args.length == 1) {
-            if (args[0].equals("server")) {
-                startRemote();
-                break cmd;
-            }
-            if (args[0].equals("connect")) {
-                startClient();
-                break cmd;
-            }
-            if (!args[0].endsWith(".fun")) {
-                System.out.println("\033[91mscript file's name should end with .fun");
-                System.exit(0);
-            }
-            FileInputStream stream = null;
-            try {
-                stream = new FileInputStream(args[0]);
-            } catch (Exception e) {
-                System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
-            }
-            if (stream != null) {
-                evaluate(new String(stream.readAllBytes(), CHARSET), "");
-            }
-        }
-        while (true) {
-            cmdInvoke(str -> evaluate(str, "\033[95munknown\033[0;39m"), str -> {
-                try {
-                    if (str.equals("cls") && JAR_ENV) {
-                        TERMINAL.puts(InfoCmp.Capability.clear_screen);
-                        return false;
-                    }
-                    if (str.endsWith(".fun")) {
-                        main(new String[]{str});
-                        return false;
-                    } else if (str.equals("::shutdown")) {
-                        if (pc != null) {
-                            pc.close();
-                            System.out.println("ok!");
-                        }
-                        return false;
-                    } else if (str.equals("::server")) {
-                        if (pc != null && pc.isActive()) {
-                            System.out.println("server has start!");
-                        } else {
-                            startRemote();
-                        }
-                        return false;
-                    } else if (str.equals("::connect")) {
-                        startClient();
-                        return false;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return false;
-                }
-                return true;
-            });
-        }
+    public static void main(String[] args) throws Exception {
+        parseParameters(args);
+        initializeCMD();
+        collectScript(completeScript -> {
+            evaluate(completeScript);
+            return true;
+        }, ScriptStarter::resolveLocalCmd);
+    }
 
+    private static void parseParameters(String[] args) throws Exception {
+        if (args.length == 0) return;
+        if (args[0].equals("server")) {
+            startRemote();
+            return;
+        }
+        if (args[0].equals("connect")) {
+            startClient();
+            System.exit(0);
+        }
+        if (args[0].equals("exec")) {
+            evaluate(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+            System.exit(0);
+        }
+        if (args[0].equals("help")) {
+            System.out.println("""
+                    \033[95mUsage:fun <command/script-file> [<args>]\033[0;39m
+                    \033[93mThese are common fun commands:
+                        server     start a netty server and act as a remote script runner
+                        connect    connect to a remote server and run script on remote server
+                        exec       execute subsequent parameters as fun scripts
+                        help       get help information\033[0;39m
+                    \033[93mExample:
+                        fun exec ls
+                        fun script.fun\033[0;39m
+                    """);
+            System.exit(0);
+        }
+        if (!args[0].endsWith(".fun")) {
+            System.out.println("\033[91munknown cmd,you can type <fun help> for more infomation\033[0;39m");
+            System.exit(0);
+        }
+        @Cleanup FileInputStream scriptContent = null;
+        try {
+            scriptContent = new FileInputStream(args[0]);
+        } catch (Exception e) {
+            System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
+        }
+        if (scriptContent != null) {
+            for (int i = 1; i < args.length; i++) {
+                context.setVariable("arg" + i, args[i]);
+            }
+            evaluate(new String(scriptContent.readAllBytes(), CHARSET));
+        }
+        System.exit(0);
     }
 
 
-    private static void cmdInvoke(Consumer<String> consumer, Function<String, Boolean> cmd) {
+    private static boolean resolveLocalCmd(String line) {
+        try {
+            if (line.equals("cls") && JAR_ENV) {
+                TERMINAL.puts(InfoCmp.Capability.clear_screen);
+                return false;
+            }
+            if (line.endsWith(".fun")) {
+                main(new String[]{line});
+                return false;
+            } else if (line.equals("::shutdown")) {
+                if (pc != null) {
+                    pc.close();
+                    System.out.println("ok!");
+                }
+                return false;
+            } else if (line.equals("::server")) {
+                if (pc != null && pc.isActive()) {
+                    System.out.println("server has start!");
+                } else {
+                    startRemote();
+                }
+                return false;
+            } else if (line.equals("::connect")) {
+                startClient();
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+
+    /**
+     * 启动命令行，用于收集用户输入的脚本。
+     *
+     * @param completeScriptAct 当用户输入了一个完整的脚本后会回调该lambda。返回true表示继续收集，返回false表示结束收集并退出循环。
+     * @param lineInterceptor   每行输入的拦截器，返回true表示继续执行，返回false表示跳过该行输入。
+     */
+    private static void collectScript(Function<String, Boolean> completeScriptAct, Function<String, Boolean> lineInterceptor) {
         StringBuilder builder = new StringBuilder();
         int blockMode = 0;
         int bracketMode = 0;
         while (true) {
-            String line;
-            if (JAR_ENV) {
-                line = READER.readLine(blockMode != 0 || bracketMode != 0 ? "...... " : "fun> ");
-            } else {
-                System.out.print(blockMode != 0 || bracketMode != 0 ? "...... " : "fun> ");
-                line = SCANNER.nextLine();
-            }
-            if (!cmd.apply(line)) {
-                return;
+            String line = stdin(blockMode != 0 || bracketMode != 0 ? "...... " : "fun> ");
+            if (!lineInterceptor.apply(line)) {
+                continue;
             }
             builder.append(line).append("\n");
             blockMode += leftBracket(line, '{', '}');
             bracketMode += leftBracket(line, '(', ')');
-            if (blockMode < 0) {
-                System.out.println("\033[91mnot pared bracket '}' close!\033[0;30m");
+            if (blockMode < 0 || bracketMode < 0) {
+                System.out.println("\033[91mnot pared bracket " + (blockMode < 0 ? '}' : ')') + " close!\033[0;30m");
                 builder = new StringBuilder();
                 blockMode = 0;
-                continue;
-            }
-            if (bracketMode < 0) {
-                System.out.println("\033[91mnot pared ')' close!\033[0;30m");
-                builder = new StringBuilder();
                 bracketMode = 0;
                 continue;
             }
-
             if (blockMode == 0 && bracketMode == 0) {
                 try {
-                    consumer.accept(builder.toString());
+                    if (!completeScriptAct.apply(builder.toString())) {
+                        return;
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -268,11 +299,15 @@ public class CommanderLine {
         }
     }
 
-    private static void evaluate(String stream, String x) {
+    private static void evaluate(String completeScript) {
+        evaluate(completeScript, "\033[95munknown\033[0;39m");
+    }
+
+    private static void evaluate(String completeScript, String nullValTips) {
         try {
-            Object value = PARSER.parseExpression(stream).getValue(context);
+            Object value = new Expression(completeScript).getValue(context);
             if (value == null) {
-                System.out.println(x);
+                System.out.println(nullValTips);
                 return;
             }
             if (value instanceof Collection<?> collection) {
@@ -294,21 +329,17 @@ public class CommanderLine {
                 System.out.println(value);
             }
         } catch (Throwable e) {
-            if (JAR_ENV) {
-                System.out.println(e.getMessage().strip());
-                List<String> msg = new ArrayList<>();
-                Throwable cause = e.getCause();
-                while (cause != null) {
-                    msg.add("\t\033[31m" + cause.getClass().getSimpleName() + "\033[0;39m -> " + cause.getMessage());
-                    cause = cause.getCause();
-                }
-                if (!msg.isEmpty()) {
-                    System.out.println("\033[31m----------------------------------------------------------------------------------------------");
-                    System.out.println("cause:\033[0;39m");
-                    msg.forEach(System.out::println);
-                }
-            } else {
+            if (!JAR_ENV) {
                 e.printStackTrace();
+                return;
+            }
+            System.out.println(e.getMessage().strip());
+            Throwable cause = e.getCause();
+            System.out.println("\033[31m----------------------------------------------------------------------------------------------");
+            System.out.println("cause:\033[0;39m");
+            while (cause != null) {
+                System.out.println("\t\033[31m" + cause.getClass().getSimpleName() + "\033[0;39m -> " + cause.getMessage());
+                cause = cause.getCause();
             }
         }
     }
@@ -382,7 +413,7 @@ public class CommanderLine {
                                     }
 
                                     @Override
-                                    protected void channelRead0(ChannelHandlerContext ctx, String s) throws FileNotFoundException {
+                                    protected void channelRead0(ChannelHandlerContext ctx, String s) {
                                         String cmd = s.trim().toLowerCase(Locale.ROOT);
                                         if (cmd.equals("::shutdown::")) {
                                             ctx.channel().close();
@@ -421,22 +452,23 @@ public class CommanderLine {
             List<ConnectConfig> list = Arrays.stream(strip.split("\n")).map(ConnectConfig::new).toList();
             ConnectConfig connectConfig;
             if (list.size() == 1) {
-                connectConfig=list.get(0);
+                connectConfig = list.get(0);
             } else {
-                for (ConnectConfig config : list) {
-                    System.out.println(config);
+                for (int i = 0; i < list.size(); i++) {
+                    ConnectConfig config = list.get(i);
+                    System.out.println(i + ": " + config.getTagName() + "(" + config.getIp() + ":" + config.getPort() + ")");
                 }
-                String configNum=null;
+                String configNum = null;
                 do {
-                    if (configNum!=null) System.out.println("\033[95millegal input!\033[0;39m");
-                    configNum = stdin("\033[95mplease select one config!\033[0;39m");
+                    if (configNum != null) System.out.println("\033[95millegal input!\033[0;39m");
+                    configNum = stdin("\033[95mplease select one config:\033[0;39m");
                 } while (!configNum.matches("\\d+"));
-                connectConfig=list.get(Integer.parseInt(configNum));
+                connectConfig = list.get(Integer.parseInt(configNum));
             }
-            ip=connectConfig.ip;
-            port=connectConfig.port;
-            aesKey=connectConfig.aesKey;
-            bytes=EncryptUtil.stringToMD5(connectConfig.md5Key).getBytes(StandardCharsets.UTF_8);
+            ip = connectConfig.ip;
+            port = connectConfig.port;
+            aesKey = connectConfig.aesKey;
+            bytes = EncryptUtil.stringToMD5(connectConfig.md5Key).getBytes(StandardCharsets.UTF_8);
         } else {
             String line = stdin("address(ip:port):");
             ip = line.split(":")[0];
@@ -495,29 +527,28 @@ public class CommanderLine {
                         );
                     }
                 }).connect(ip, port).sync().channel();
-        while (!shutDown[0]) {
-            synchronized (channel) {
-                cmdInvoke(str -> {
-                    channel.writeAndFlush(str);
+        synchronized (channel) {
+            collectScript(completeScript -> {
+                channel.writeAndFlush(completeScript);
+                try {
+                    channel.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                return shutDown[0];
+            }, line -> {
+                if (line.endsWith(".fun")) {
                     try {
+                        @Cleanup FileInputStream stream = new FileInputStream(line);
+                        channel.writeAndFlush(new String(stream.readAllBytes(), CHARSET));
                         channel.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    } catch (Exception e) {
+                        System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
                     }
-                }, cmd -> {
-                    if (cmd.endsWith(".fun")) {
-                        try {
-                            FileInputStream stream = new FileInputStream(cmd);
-                            channel.writeAndFlush(new String(stream.readAllBytes(), CHARSET));
-                            channel.wait();
-                        } catch (Exception e) {
-                            System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
-                        }
-                        return false;
-                    }
-                    return true;
-                });
-            }
+                    return false;
+                }
+                return true;
+            });
         }
     }
 
@@ -540,17 +571,7 @@ public class CommanderLine {
             this.aesKey = item[2];
             this.md5Key = item[3];
         }
-
-        @Override
-        public String toString() {
-            return "tagName='" + tagName + '\'' +
-                    ", ip='" + ip + '\'' +
-                    ", port=" + port +
-                    ", aesKey='" + aesKey + '\'' +
-                    ", md5Key='" + md5Key + '\'';
-        }
     }
-
 
 
     private static String stdin(String placeholder) {

@@ -1,8 +1,4 @@
-import com.freedy.expression.token.Token;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import com.freedy.expression.stander.standerFunc.StanderUtils;
 
 /**
  * @author Freedy
@@ -10,13 +6,16 @@ import java.util.*;
  */
 public class Main {
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        String s = scanner.nextLine();
 
 
-
-
+    public static void main(String[] args) throws Throwable {
+        StanderUtils adapter = new StanderUtils();
+//        adapter.enc("C:\\Users\\Freedy\\Desktop\\复习资料","C:\\Users\\Freedy\\Desktop","freedyamazing123");
+        adapter.dec("C:\\Users\\Freedy\\Desktop\\复习资料.enc","C:\\Users\\Freedy\\Desktop\\code\\expression\\test1","freedyamazing123");
     }
+
+
+
+
 
 }

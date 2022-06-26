@@ -35,6 +35,10 @@ public class StringUtils {
         return s == null || s.equals("");
     }
 
+    public static boolean isSurroundByQuote(String str) {
+        str=str.trim().strip();
+        return (str.startsWith("'") && str.endsWith("'")) || (str.startsWith("\"") && str.endsWith("\""));
+    }
 
     public static boolean isAnyEmpty(String... s) {
         for (String s1 : s) {
@@ -43,7 +47,7 @@ public class StringUtils {
         return false;
     }
 
-    public static boolean isAllEmpty(String... s){
+    public static boolean isAllEmpty(String... s) {
         for (String s1 : s) {
             if (hasText(s1)) return false;
         }
@@ -144,7 +148,7 @@ public class StringUtils {
     }
 
     public static String[] splitWithoutBracket(String toBeSplit, char[] leftBracket, char[] rightBracket, char split) {
-        return splitWithoutBracket(toBeSplit,leftBracket,rightBracket,split,0);
+        return splitWithoutBracket(toBeSplit, leftBracket, rightBracket, split, 0);
     }
 
     public static String[] splitWithoutBracket(String toBeSplit, char leftBracket, char rightBracket, char split, int limit) {
@@ -192,7 +196,7 @@ public class StringUtils {
             }
 
             for (int j : left) {
-                if (j>0) continue outer;
+                if (j > 0) continue outer;
             }
 
             if (chars[i] == split) {

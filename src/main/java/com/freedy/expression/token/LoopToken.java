@@ -19,11 +19,11 @@ import java.util.*;
 @Setter
 @NoArgsConstructor
 public final class LoopToken extends Token {
-    //for i in 100:(// do some thing)
+    //for i in exp{// do some thing}
     private String variableName;
-    // 100
+    // exp
     private TokenStream executeTokenStream;
-    // (// do some thing)
+    // {// do some thing}
     private TokenStream loopTokenStream;
 
     private Expression subExpression;

@@ -84,7 +84,7 @@ public class ExpressionSyntaxException extends RuntimeException {
                 .thr();
     }
 
-    public static void thrThis(String expression,ExpressionSyntaxException thisException){
+    public static void thrThis(String expression, ExpressionSyntaxException thisException) {
         new ExpressionSyntaxException(expression)
                 .buildErrorStr(thisException.getSyntaxErrStr().toArray(String[]::new))
                 .buildToken(thisException.getLayer().toArray(Token[]::new))
@@ -210,7 +210,7 @@ public class ExpressionSyntaxException extends RuntimeException {
             int[] lastSplit = {0};
             layer.forEach((k, v) -> {
                 if (k.isType("operation")) return;
-                builder.append(" ".repeat(v[0] - lastSplit[0])).append(k.getValue(), 0, v[1]-v[0]);
+                builder.append(" ".repeat(v[0] - lastSplit[0])).append(k.getValue(), 0, v[1] - v[0]);
                 lastSplit[0] = v[1];
             });
             builder.append(" ".repeat(expression.length() - lastSplit[0]));
@@ -299,7 +299,7 @@ public class ExpressionSyntaxException extends RuntimeException {
         for (SyntaxErr err : errList) {
             //找到token的坐标   返回的结果数组的数量大于2表示匹配到多个值
             int[] subStrIndex = findSubStrIndex(str, err.info, err.startIndex);
-            if (subStrIndex==null){
+            if (subStrIndex == null) {
                 result.add(null);
                 continue;
             }
@@ -309,7 +309,9 @@ public class ExpressionSyntaxException extends RuntimeException {
                 if (subStrList != null && !subStrList.isEmpty()) {
                     for (String sub : subStrList) {
                         assert subStrIndex != null;
-                        subStrIndex = findSubStrIndex(err.info, sub, subStrIndex[0]);
+                        subStrIndex = findSubStrIndex(err.info,
+                                StringUtils.isSurroundByQuote(sub) ? sub.substring(1, sub.length() - 1) : sub,
+                                subStrIndex[0]);
                         result.add(subStrIndex);
                     }
                 } else {
@@ -362,6 +364,7 @@ public class ExpressionSyntaxException extends RuntimeException {
                     }
                 }
                 if (chars[i] != subChars[j]) {
+                    i=start;
                     break;
                 } else {
                     if (j == subLen - 1) {

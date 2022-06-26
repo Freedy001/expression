@@ -3,6 +3,7 @@ package com.freedy.expression;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
 import com.freedy.expression.token.*;
+import com.freedy.expression.tokenBuilder.Tokenizer;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,7 +16,8 @@ import java.util.Stack;
 import static com.freedy.expression.token.Token.ANY_TYPE;
 
 /**
- * 执行器,在{@link Expression#context}环境中调用{@link Expression#getValue()}执行{@link TokenStream}
+ * 执行器,在{@link Expression#defaultContext}环境中调用{@link Expression#getValue()}执行{@link TokenStream}
+ *
  * @author Freedy
  * @date 2021/12/14 11:18
  */
@@ -25,21 +27,32 @@ public class Expression {
     private TokenStream stream;
     @Getter
     @Setter
-    private EvaluationContext context;
+    private EvaluationContext defaultContext;
+
+    public Expression(String expression) {
+        this.stream= Tokenizer.getTokenStream(expression);
+        this.expression=expression;
+    }
+
+    public Expression(String expression, EvaluationContext defaultContext) {
+        this(expression);
+        this.defaultContext = defaultContext;
+    }
 
     public Expression(TokenStream stream) {
         this.stream = stream;
         this.expression = stream.getExpression();
     }
 
-    public Expression(EvaluationContext context) {
-        this.context = context;
-    }
 
-    public Expression(TokenStream stream, EvaluationContext context) {
+    public Expression(TokenStream stream, EvaluationContext defaultContext) {
         this.stream = stream;
         this.expression = stream.getExpression();
-        this.context = context;
+        this.defaultContext = defaultContext;
+    }
+
+    public Expression(EvaluationContext defaultContext) {
+        this.defaultContext = defaultContext;
     }
 
     public Expression setTokenStream(TokenStream stream) {
@@ -49,23 +62,25 @@ public class Expression {
     }
 
     public Object getValue() {
-        return evaluate(stream, ANY_TYPE, context);
+        return evaluate(ANY_TYPE, defaultContext);
     }
 
     public <T> T getValue(Class<T> desiredResultType) {
-        return desiredResultType.cast(evaluate(stream, desiredResultType, context));
+        return desiredResultType.cast(evaluate(desiredResultType, defaultContext));
     }
 
     public Object getValue(EvaluationContext context) {
-        return evaluate(stream, ANY_TYPE, context);
+        return evaluate(ANY_TYPE, context);
     }
 
     public <T> T getValue(EvaluationContext context, Class<T> desiredResultType) {
-        return desiredResultType.cast(evaluate(stream, desiredResultType, context));
+        return desiredResultType.cast(evaluate(desiredResultType, context));
     }
 
 
-    public Object evaluate(TokenStream stream, Class<?> desired, EvaluationContext context) {
+    private Object evaluate(Class<?> desired, EvaluationContext context) {
+        if (stream==null) throw new IllegalArgumentException("please set a tokenStream");
+        if (context==null) throw new IllegalArgumentException("please set a context or call getValue method with context param");
         int size = stream.blockSize();
         Object[] result = new Object[1];
         stream.forEachStream(context, (i, suffixList) -> {
@@ -87,7 +102,7 @@ public class Expression {
                     continue;
                 }
                 varStack.push(token);
-            }catch (ExpressionSyntaxException e) {
+            } catch (ExpressionSyntaxException e) {
                 e.clearErrorStr().buildToken(token);
                 ExpressionSyntaxException.thrThis(expression, e);
             } catch (EvaluateException e) {
@@ -101,7 +116,7 @@ public class Expression {
             Object result = null;
             try {
                 result = token.calculateResult(desired);
-            }catch (ExpressionSyntaxException e) {
+            } catch (ExpressionSyntaxException e) {
                 e.clearErrorStr().buildToken(token);
                 ExpressionSyntaxException.thrThis(expression, e);
             } catch (EvaluateException e) {
@@ -199,7 +214,7 @@ public class Expression {
                 Object o2 = t2.calculateResult(ANY_TYPE);
                 if (o1 != null && o2 != null) {
                     if (ReflectionUtils.isRegularType(o1.getClass()) && ReflectionUtils.isRegularType(o2.getClass())) {
-                        flag = o1.equals(o2);
+                        flag = String.valueOf(o1).equals(String.valueOf(o2));
                     } else {
                         //至少有一个不是常规类型
                         flag = o1 == o2;

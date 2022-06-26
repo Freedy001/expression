@@ -47,6 +47,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         importMap.put("package:java.lang", "*");
         importMap.put("package:java.util", "*");
         importMap.put("package:java.io", "*");
+        importMap.put("package:java.net", "*");
         importMap.put("package:java.time", "*");
         importMap.put("package:java.math", "*");
         importMap.put("package:java.util.function", "*");

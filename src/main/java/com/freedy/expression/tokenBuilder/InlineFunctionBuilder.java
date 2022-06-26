@@ -2,6 +2,7 @@ package com.freedy.expression.tokenBuilder;
 
 import com.freedy.expression.TokenStream;
 import com.freedy.expression.token.DirectAccessToken;
+import com.freedy.expression.utils.StringUtils;
 
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -23,15 +24,9 @@ public class InlineFunctionBuilder extends Builder {
         String funcName = matcher.group(1);
         DirectAccessToken directAccessToken = new DirectAccessToken(token);
         directAccessToken.setMethodName(funcName);
-        directAccessToken.setMethodArgsName(Arrays.stream(matcher.group(2).split(" ")).distinct().map(i -> {
-            if (i.contains(".")) {
-                return i.startsWith("'") && i.endsWith("'") ? i : "'" + i + "'";
-            } else if (i.startsWith("%") || i.startsWith("'") && i.endsWith("'") || i.startsWith("\"") && i.endsWith("\"")) {
-                return i;
-            } else {
-                return "%" + i;
-            }
-        }).toArray(String[]::new));
+        directAccessToken.setMethodArgsName(Arrays.stream(
+                StringUtils.splitWithoutBracket(matcher.group(2), '\'', '\'', ' ')
+        ).filter(StringUtils::hasText).map(s -> StringUtils.isSurroundByQuote(s) ? s : "'" + s + "'").toArray(String[]::new));
         tokenStream.addToken(directAccessToken);
         return true;
     }

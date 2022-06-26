@@ -31,7 +31,7 @@ public class StanderDefiner extends AbstractStanderFunc {
         String className = cName.substring(lastDot + 1);
         StanderEvaluationContext context = new StanderEvaluationContext();
         //计算表达式
-        selfExp.setContext(context);
+        selfExp.setDefaultContext(context);
         selfExp.setTokenStream(tokenStreams);
         selfExp.getValue();
         Map<String, Object> varMap = context.getVariableMap();
@@ -124,6 +124,16 @@ public class StanderDefiner extends AbstractStanderFunc {
         return compiler.loadClass();
     }
 
+    @ExpressionFunc("compile java code")
+    public Class<?> compileJava(String code){
+        CustomStringJavaCompiler compiler = new CustomStringJavaCompiler(code);
+        if (!compiler.compiler()) {
+            System.err.println("compile failed！");
+            System.err.println(compiler.getCompilerMessage());
+        }
+        return compiler.loadClass();
+    }
+
 
     @ExpressionFunc("find loadedClass")
     public Set<Class<?>> loadedClass(String ...tip){
@@ -158,6 +168,11 @@ public class StanderDefiner extends AbstractStanderFunc {
             }
         }
         return result;
+    }
+
+    @ExpressionFunc("find loadedClass")
+    public boolean isDef(String varName){
+        return context.containsVariable(varName);
     }
 
 

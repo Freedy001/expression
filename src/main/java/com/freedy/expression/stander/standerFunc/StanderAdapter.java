@@ -8,14 +8,19 @@ import com.freedy.expression.stander.ExpressionFunc;
 import com.freedy.expression.stander.Func;
 import com.freedy.expression.stander.LambdaAdapter;
 import com.freedy.expression.utils.PlaceholderParser;
+import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.freedy.expression.utils.ReflectionUtils.convertToWrapper;
@@ -184,8 +189,39 @@ public class StanderAdapter extends AbstractStanderFunc {
     }
 
     @ExpressionFunc(value = "create a java array")
-    public Object[] arr(Object... arr){
+    public Object[] arr(Object... arr) {
         return arr;
+    }
+
+    @ExpressionFunc(value = "run cmd")
+    public void cmd(String cmd) throws Exception {
+        Process exec = Runtime.getRuntime().exec(cmd);
+        InputStream es = exec.getErrorStream();
+        InputStream is = exec.getInputStream();
+        new Thread(() -> {
+            if (es != null) {
+                try {
+                    String s = new String(es.readAllBytes());
+                    if (StringUtils.hasText(s))
+                        System.err.println(s);
+                } catch (Exception ignored) {
+                }
+            }
+        }).start();
+        new Thread(() -> {
+            if (is != null) {
+                try {
+                    String s = new String(is.readAllBytes());
+                    if (StringUtils.hasText(s))
+                        System.out.println();
+                } catch (Exception ignored) {
+                }
+            }
+        }).start();
+        if (!exec.waitFor(3, TimeUnit.SECONDS)) {
+            exec.destroy();
+            throw new java.lang.IllegalArgumentException("Execution timeout(3S)");
+        }
     }
 
     @NonNull

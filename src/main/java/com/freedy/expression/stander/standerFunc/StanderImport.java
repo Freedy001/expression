@@ -61,7 +61,7 @@ public class StanderImport extends AbstractStanderFunc {
     @ExpressionFunc("execute script")
     public void require(String path){
         @Cleanup FileInputStream stream = new FileInputStream(path);
-        selfExp.setContext(context);
+        selfExp.setDefaultContext(context);
         selfExp.setTokenStream(Tokenizer.getTokenStream(new String(stream.readAllBytes(), CHARSET)));
         selfExp.getValue();
     }

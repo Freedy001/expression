@@ -69,7 +69,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.freedy.expression.CommanderLine</mainClass>
+                  <mainClass>com.freedy.expression.ScriptStarter</mainClass>
                 </transformer>
               </transformers>
             </configuration>
