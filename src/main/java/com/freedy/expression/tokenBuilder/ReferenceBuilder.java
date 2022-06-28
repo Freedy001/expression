@@ -1,6 +1,6 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.token.ReferenceToken;
 import com.freedy.expression.utils.StringUtils;
 
@@ -16,7 +16,7 @@ public class ReferenceBuilder extends Builder {
     private static final Pattern referencePattern = Pattern.compile("^([#@%]) *?(.*?) *?\\. *?(.*)");
 
     @Override
-    boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+    public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建reference Token
         Matcher matcher = referencePattern.matcher(token);
         if (matcher.find()) {
@@ -79,7 +79,7 @@ public class ReferenceBuilder extends Builder {
     }
 
     @Override
-    int priority() {
+    public int priority() {
         return 6;
     }
 }

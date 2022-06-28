@@ -1,10 +1,11 @@
 package com.freedy.expression;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.freedy.expression.core.Expression;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.StanderEvaluationContext;
-import com.freedy.expression.utils.PlaceholderParser;
-import com.freedy.expression.utils.ReflectionUtils;
-import com.freedy.expression.utils.StringUtils;
+import com.freedy.expression.utils.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -326,7 +327,11 @@ public class ScriptStarter {
                 }
                 System.out.println(joiner);
             } else {
-                System.out.println(value);
+                if (value.toString().equals(value.getClass().getName() + "@" + Integer.toHexString(value.hashCode()))) {
+                    System.out.println(JSON.toJSONString(value, SerializerFeature.PrettyFormat));
+                } else {
+                    System.out.println(value);
+                }
             }
         } catch (Throwable e) {
             if (!JAR_ENV) {

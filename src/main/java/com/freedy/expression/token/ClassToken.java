@@ -1,12 +1,12 @@
 package com.freedy.expression.token;
 
-import com.freedy.expression.EvaluationContext;
-import com.freedy.expression.Expression;
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.EvaluationContext;
+import com.freedy.expression.core.Expression;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.tokenBuilder.Tokenizer;
+import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.*;

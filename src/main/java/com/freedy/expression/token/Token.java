@@ -1,9 +1,7 @@
 package com.freedy.expression.token;
 
 import com.alibaba.fastjson.annotation.JSONType;
-import com.freedy.expression.Comparable;
-import com.freedy.expression.EvaluationContext;
-import com.freedy.expression.Executable;
+import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.StopSignal;
 import com.freedy.expression.exception.UnsupportedOperationException;
@@ -36,7 +34,7 @@ import java.util.List;
 @NoArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @JSONType(includes = {"type", "value"})
-public abstract sealed class Token implements Comparable, Executable
+public abstract sealed class Token implements Comparable
         permits BasicVarToken, ClassToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, ObjectToken, OpsToken, StopToken, TernaryToken, StreamWrapperToken {
     //Token的type 结合isType()方法省去使用使用instance of进行判断
     @ToString.Include

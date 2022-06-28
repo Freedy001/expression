@@ -1,9 +1,8 @@
-package com.freedy.expression;
+package com.freedy.expression.core;
 
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
 import com.freedy.expression.token.*;
-import com.freedy.expression.tokenBuilder.Tokenizer;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,8 +29,8 @@ public class Expression {
     private EvaluationContext defaultContext;
 
     public Expression(String expression) {
-        this.stream= Tokenizer.getTokenStream(expression);
-        this.expression=expression;
+        this.stream = Tokenizer.getTokenStream(expression);
+        this.expression = expression;
     }
 
     public Expression(String expression, EvaluationContext defaultContext) {
@@ -79,8 +78,9 @@ public class Expression {
 
 
     private Object evaluate(Class<?> desired, EvaluationContext context) {
-        if (stream==null) throw new IllegalArgumentException("please set a tokenStream");
-        if (context==null) throw new IllegalArgumentException("please set a context or call getValue method with context param");
+        if (stream == null) throw new IllegalArgumentException("please set a tokenStream");
+        if (context == null)
+            throw new IllegalArgumentException("please set a context or call getValue method with context param");
         int size = stream.blockSize();
         Object[] result = new Object[1];
         stream.forEachStream(context, (i, suffixList) -> {
@@ -153,6 +153,11 @@ public class Expression {
             //数字原始
             case "+", "/=", "*=", "-=", "+=", "/", "*", "-", "<<", ">>", ">>>", "^", "|", "&", "|=", "&=", "^=" -> {
                 return numOps(t1, t2, opsToken);
+            }
+            case "--" -> {
+                //弥补--token识别问题
+                t2.setValue("-" + t2.getValue());
+                return numOps(t1, t2, new OpsToken("-"));
             }
             default -> throw new EvaluateException("unrecognized ops ?", opsToken.getValue());
         }

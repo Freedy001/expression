@@ -1,11 +1,10 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.MethodOrPropBuildFailedException;
 import com.freedy.expression.token.DirectAccessToken;
 import com.freedy.expression.utils.StringUtils;
 
-import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

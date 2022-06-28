@@ -36,7 +36,7 @@ public class StringUtils {
     }
 
     public static boolean isSurroundByQuote(String str) {
-        str=str.trim().strip();
+        str = str.trim().strip();
         return (str.startsWith("'") && str.endsWith("'")) || (str.startsWith("\"") && str.endsWith("\""));
     }
 
@@ -142,6 +142,31 @@ public class StringUtils {
         return c >= 97 && c <= 122;
     }
 
+    public static int indexOfComment(String line) {
+        int length = line.length();
+        char[] chars = line.toCharArray();
+        boolean quote = false;
+        boolean bigQuote = false;
+        for (int i = 0; i < length; i++) {
+            if (!quote && chars[i] == '"') {
+                bigQuote = !bigQuote;
+                continue;
+            }
+            if (bigQuote) continue;
+            if (chars[i] == '\'') {
+                quote = !quote;
+            }
+            if (quote) continue;
+            if (chars[i] == '/' && i + 1 < length && chars[i + 1] == '/') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static String[] splitWithoutQuote(String toBeSplit, char split) {
+        return splitWithoutBracket(toBeSplit, new char[0], new char[0], split);
+    }
 
     public static String[] splitWithoutBracket(String toBeSplit, char leftBracket, char rightBracket, char split) {
         return splitWithoutBracket(toBeSplit, leftBracket, rightBracket, split, 0);

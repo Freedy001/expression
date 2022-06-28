@@ -14,6 +14,7 @@ import java.util.*;
 
 /**
  * 反射工具类.
+ *
  * @author Freedy
  * @date 2021/12/2 16:01
  */
@@ -108,7 +109,6 @@ public class ReflectionUtils {
     }
 
 
-
     public static <T extends Annotation> List<Field> getFieldsByAnnotationValue(Class<?> clazz, Class<T> annotationClazz, String regex) {
         try {
             List<Field> list = new ArrayList<>();
@@ -136,7 +136,7 @@ public class ReflectionUtils {
         }
     }
 
-    public static Set<Method> getMethodsRecursion(Class<?> clazz){
+    public static Set<Method> getMethodsRecursion(Class<?> clazz) {
         Set<Method> list = new HashSet<>();
         for (Class<?> aClass : getClassRecursion(clazz)) {
             list.addAll(List.of(aClass.getDeclaredMethods()));
@@ -178,6 +178,7 @@ public class ReflectionUtils {
     }
 
     public static boolean hasField(Object obj, String fieldName) {
+        if (obj == null) return false;
         return getFieldRecursion(obj.getClass(), fieldName) != null;
     }
 
@@ -266,9 +267,10 @@ public class ReflectionUtils {
 
     /**
      * 判断某个类是不是指定接口的实现类
-     * @param clazz                 需要被判断的类
-     * @param fatherInterfaceName   用于判断是否是类的实现接口
-     * @return                      是不是指定接口的实现类
+     *
+     * @param clazz               需要被判断的类
+     * @param fatherInterfaceName 用于判断是否是类的实现接口
+     * @return 是不是指定接口的实现类
      */
     public static boolean isSonInterface(Class<?> clazz, String... fatherInterfaceName) {
         Stack<Class<?>> stack = new Stack<>();
@@ -400,19 +402,21 @@ public class ReflectionUtils {
             case "java.util.Queue" -> {
                 return new ArrayDeque<>();
             }
-            default -> throw new FInitException("unsupported type for type ?,please change a supported(List,Set,Queue) type");
+            default ->
+                    throw new FInitException("unsupported type for type ?,please change a supported(List,Set,Queue) type");
         }
     }
 
 
     /**
      * 通过filed对象 与需要被设置的值进行 collection的构建
-     * @param field    通过field来获取满足其泛型的collection
-     * @param arg      用于对新collection进行赋值
-     * @return         新collection
+     *
+     * @param field 通过field来获取满足其泛型的collection
+     * @param arg   用于对新collection进行赋值
+     * @return 新collection
      */
     public static Collection<Object> buildCollectionByFiledAndValue(Field field, String[] arg) {
-        return buildCollectionByTypeAndValue(field.getGenericType(),arg);
+        return buildCollectionByTypeAndValue(field.getGenericType(), arg);
     }
 
     public static Collection<Object> buildCollectionByTypeAndValue(Type type, String[] arg) {
@@ -424,7 +428,7 @@ public class ReflectionUtils {
             Class<?> rawType = (Class<?>) parameterizedType.getRawType();
             //创建实例
             collection = ReflectionUtils.buildCollectionByType(rawType);
-            if (arg==null) return collection;
+            if (arg == null) return collection;
             for (String s : arg) {
                 collection.add(ReflectionUtils.convertType(s, listType));
             }
@@ -432,7 +436,7 @@ public class ReflectionUtils {
             //没有声明泛型 默认string
             //创建实例
             collection = ReflectionUtils.buildCollectionByType((Class<?>) type);
-            if (arg==null) return collection;
+            if (arg == null) return collection;
             collection.addAll(Arrays.asList(arg));
         }
         return collection;
@@ -441,10 +445,11 @@ public class ReflectionUtils {
     /**
      * 通过给定filed和给定map对来构建新的map。
      * 其构建过程为，对给定map的符合给点前缀的键进行对新map赋值
-     * @param field    通过field来获取满足其泛型的map
-     * @param prefix   前缀
-     * @param valMap   用于给新map赋值的mao
-     * @return         新构建的map
+     *
+     * @param field  通过field来获取满足其泛型的map
+     * @param prefix 前缀
+     * @param valMap 用于给新map赋值的mao
+     * @return 新构建的map
      */
     @SuppressWarnings("unchecked")
     public static Map<Object, Object> buildMapByFiledAndValue(Field field, String prefix, Map<String, String> valMap) throws Exception {
@@ -539,7 +544,7 @@ public class ReflectionUtils {
             }
         }
         int length = args.length;
-        Map<Integer,Class<?>> lambdaIndex = new HashMap<>();
+        Map<Integer, Class<?>> lambdaIndex = new HashMap<>();
         for (Method method : list) {
             lambdaIndex.clear();
             if (method.getParameterCount() == length) {
@@ -554,7 +559,7 @@ public class ReflectionUtils {
                             args[i] = o;
                         } else if (supplyMethodArgs == LambdaAdapter.class) {
                             //根据参数类型构建lambda
-                            lambdaIndex.put(i,originMethodArgs);
+                            lambdaIndex.put(i, originMethodArgs);
                         } else {
                             break;
                         }
@@ -564,7 +569,7 @@ public class ReflectionUtils {
                     method.setAccessible(true);
                     //参数lambda参数替换
                     if (lambdaIndex.size() > 0) {
-                        lambdaIndex.forEach((index,originMethodArgs)->{
+                        lambdaIndex.forEach((index, originMethodArgs) -> {
                             if (args[index] instanceof LambdaAdapter adapter) {
                                 args[index] = adapter.getInstance(originMethodArgs);
                             }
@@ -584,13 +589,22 @@ public class ReflectionUtils {
             argStr.add(arg == null ? "null" : arg.getClass().getName());
         }
         similar.sort(Comparator.comparing(o -> Math.abs(o.getName().length() - methodLen)));
-        throw new NoSuchMethodException("no such method \033[34m" + methodName + argStr + " in " + targetClass.getName() + "!\033[0;39myou can call these method:" + new PlaceholderParser("?*", similar.stream().map(method -> {
-            StringJoiner argString = new StringJoiner(",", "(", ")");
-            for (Parameter arg : method.getParameters()) {
-                argString.add(arg.getType().getSimpleName() + " " + arg.getName());
-            }
-            return method.getName() + argString;
-        }).toList()).serialParamsSplit(" , ").ifEmptyFillWith("not find matched method").configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE));
+        throw new NoSuchMethodException(new PlaceholderParser(
+                "no such method ? in\033[34m ? !\033[0;39myou can call these similar method: ?*",
+                methodName + argStr,
+                targetClass.getName(),
+                similar.stream().map(method -> {
+                    StringJoiner argString = new StringJoiner(",", "(", ")");
+                    for (Parameter arg : method.getParameters()) {
+                        argString.add(arg.getType().getSimpleName() + " " + arg.getName());
+                    }
+                    return method.getName() + argString;
+                }).toList()
+        ).serialParamsSplit(" , ")
+                .ifEmptyFillWith("not find matched method")
+                .configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE)
+                .toString()
+        );
     }
 
 

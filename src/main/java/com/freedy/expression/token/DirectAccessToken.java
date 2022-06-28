@@ -58,10 +58,10 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                         Object result = assignment.calculateResult(Token.ANY_TYPE);
                         if (ReflectionUtils.hasField(context.getRoot(), varName)) {
                             ReflectionUtils.setter(context.getRoot(), varName, result);
-                        } else if (context.containsVariable(varName)){
+                        } else if (context.containsVariable(varName)) {
                             context.setVariable(varName, result);
-                        }else {
-                            throw new EvaluateException("you must def ? first",varName).errToken(this.errStr(varName));
+                        } else {
+                            throw new EvaluateException("you must def ? first", varName).errToken(this.errStr(varName));
                         }
                     }
             );
@@ -106,17 +106,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
             return executeChain(result.getClass(), result, executeCount, executeChainTailOps);
         } else {
             Object funcObj = context.getFunction(methodName);
-            if (funcObj == null) {
-                StringJoiner joiner = new StringJoiner(",");
-                for (String s : context.getFunctionNameSet()) {
-                    String methodName = this.methodName.toLowerCase(Locale.ROOT);
-                    String lowerCase = s.toLowerCase(Locale.ROOT);
-                    if (lowerCase.contains(methodName) || methodName.contains(lowerCase)) {
-                        joiner.add(s + "(unknown args)");
-                    }
-                }
-                throw new EvaluateException("no such function ?,you can call these function: ?", getFullMethodName(methodName, methodArgsName), joiner).errToken(this.errStr(methodName));
-            }
+            if (funcObj == null) thrNoSuchFunctionException();
             Object[] args = getMethodArgs(unsteadyArgList);
             Object invoke;
             try {
@@ -125,6 +115,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                     funcObj = func.funcObj();
                     method = func.func();
                 } else {
+                    //noinspection ConstantConditions
                     Class<?> functionClass = funcObj.getClass();
                     method = functionClass.getInterfaces()[0].getDeclaredMethods()[0];
                 }
@@ -150,7 +141,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
 
                 invoke = method.invoke(funcObj, args);
 
-            }catch (Exception e) {
+            } catch (Exception e) {
                 Throwable cause = e.getCause();
                 if (cause != null && cause.getClass() == ClassCastException.class) {
                     throw new EvaluateException("class cast failed,please check you delivery param. cause: ?", e.getCause());
@@ -163,6 +154,18 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
             }
             return executeChain(result.getClass(), result, executeCount, executeChainTailOps);
         }
+    }
+
+    private void thrNoSuchFunctionException() {
+        StringJoiner joiner = new StringJoiner(",");
+        for (String s : context.getFunctionNameSet()) {
+            String methodName = this.methodName.toLowerCase(Locale.ROOT);
+            String lowerCase = s.toLowerCase(Locale.ROOT);
+            if (lowerCase.contains(methodName) || methodName.contains(lowerCase)) {
+                joiner.add(s + "(unknown args)");
+            }
+        }
+        throw new EvaluateException("no such function ?,you can call these function: ?", getFullMethodName(methodName, methodArgsName), joiner).errToken(this.errStr(methodName));
     }
 
     private Class<?> checkArrType(Object[] arr, int start, int end) {

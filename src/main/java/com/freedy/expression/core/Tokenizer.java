@@ -1,11 +1,11 @@
-package com.freedy.expression.tokenBuilder;
+package com.freedy.expression.core;
 
-import com.freedy.expression.TokenStream;
 import com.freedy.expression.exception.ExpressionSyntaxException;
 import com.freedy.expression.token.ErrMsgToken;
 import com.freedy.expression.token.OpsToken;
 import com.freedy.expression.token.TernaryToken;
 import com.freedy.expression.token.Token;
+import com.freedy.expression.tokenBuilder.Builder;
 import com.freedy.expression.utils.PackageScanner;
 import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
@@ -24,10 +24,10 @@ import static com.freedy.expression.utils.StringUtils.splitWithoutBracket;
 public class Tokenizer {
 
     //[<=>| static !+_*?()]
-    private static final Set<Character> operationSet = Set.of('=', '<', '>', '|', '&', '!', '+', '-', '*', '/', '(', ')', '?', '^');
-    private static final Set<Character> operationWithOutBracketSet = Set.of('=', '<', '>', '|', '&', '!', '+', '-', '*', '/', '?', '^');
-    private static final Set<Character> bracket = Set.of('(', ')');
-    private static final List<Builder> builderSet = new ArrayList<>();
+    static final Set<Character> operationSet = Set.of('=', '<', '>', '|', '&', '!', '+', '-', '*', '/', '(', ')', '?', '^');
+    static final Set<Character> operationWithOutBracketSet = Set.of('=', '<', '>', '|', '&', '!', '+', '-', '*', '/', '?', '^');
+    static final Set<Character> bracket = Set.of('(', ')');
+    static final List<Builder> builderSet = new ArrayList<>();
 
     static {
         //扫描所有的token builder
@@ -46,26 +46,36 @@ public class Tokenizer {
     }
 
 
+    /**
+     * 根据一个完整表达式来获取TokenStream
+     */
     public static TokenStream getTokenStream(String expression) {
         //处理注释
         StringJoiner joiner = new StringJoiner(" ");
-        for (String sub : StringUtils.splitWithoutBracket(expression, new char[0], new char[0], '\n')) {
-            int i1 = sub.indexOf("//");
+        for (String sub : StringUtils.splitWithoutQuote(expression, '\n')) {
+            int i1 = StringUtils.indexOfComment(sub);
             sub = sub.substring(0, i1 == -1 ? sub.length() : i1).trim();
+            int i2 = sub.indexOf("#");
+            if (i2 + 1 < sub.length() && sub.charAt(i2 + 1) == ' ') {
+                sub = sub.substring(0, i2) + "'" + sub.substring(i2 + 2) .replaceAll("'","\\'")+ "'";
+            }
             joiner.add(sub);
         }
         return doGetTokenStream(joiner.toString().trim());
     }
 
 
+    /**
+     * 如果想获取TokenStream应该调用{@link Tokenizer#getTokenStream(String)}方法，因为上述方法会将代码中的注释清除并清理掉一些符号来帮助构建tokenStream
+     */
     @NonNull
-    static TokenStream doGetTokenStream(String expression) {
+    public static TokenStream doGetTokenStream(String expression) {
         TokenStream stream = new TokenStream(expression);
         return doGetTokenStream(expression, stream);
     }
 
     private static TokenStream doGetTokenStream(String expression, TokenStream tokenStream) {
-        String[] bracket = splitWithoutBracket(expression, new char[]{'{', '('}, new char[]{'}', ')'}, ';');
+        String[] bracket = splitWithoutBracket(expression, new char[]{'{', '(', '['}, new char[]{'}', ')', ']'}, ';');
         for (String sub : bracket) {
             if (StringUtils.isEmpty(sub = sub.trim())) continue;
             if (sub.startsWith("{") && sub.endsWith("}")) {
@@ -80,6 +90,12 @@ public class Tokenizer {
     }
 
 
+    /**
+     * 解析一句表达式(表达式以分号';'结尾)并将解析的token放入TokenStream
+     *
+     * @param expression  某一句表达式
+     * @param tokenStream TokenStream容器
+     */
     private static void parseExpression(String expression, TokenStream tokenStream) {
 
         if (StringUtils.isEmpty(expression)) return;
@@ -87,6 +103,8 @@ public class Tokenizer {
         char[] chars = expression.toCharArray();
         final int length = chars.length;
 
+
+        //表示上次操作坐标的下一个坐标
         int lastOps = 0;
         int expressionLeftBracket = 0;
 
@@ -224,11 +242,13 @@ public class Tokenizer {
     }
 
 
-    //a==b? b==c?1:b==c?1:2 : b==c?1:2
+    //a==b ? b==c?1:b==c?1:2 : b==c?1:2
     private static TernaryToken buildTernary(String expression, int[] i) {
+        //问好数量
         int nestCount = 0;
-        int leftBracket = 0;
+        //冒号位置
         int divide = -1;
+        int leftBracket = 0;
         int end = -1;
         char[] chars = expression.toCharArray();
         for (int index = i[0] + 1; index < chars.length; index++) {
@@ -254,6 +274,7 @@ public class Tokenizer {
                 leftBracket--;
             }
             if (leftBracket < 0) {
+                //该三元表达式包含在括号里面
                 end = index;
                 break;
             }
@@ -298,7 +319,7 @@ public class Tokenizer {
                 if (success) {
                     break;
                 }
-                if (holder.isErr) {
+                if (holder.isErr()) {
                     errBuilder = builder.getClass();
                     break err;
                 }
@@ -325,8 +346,8 @@ public class Tokenizer {
                     .buildStackTrace()
                     .thr();
         }
-        if (holder.isErr) {
-            ExpressionSyntaxException.buildThr(errBuilder, holder.msg, tokenStream.getExpression(), holder.getElements(), new ErrMsgToken(token).errStr(holder.getErrPart()));
+        if (holder.isErr()) {
+            ExpressionSyntaxException.buildThr(errBuilder, holder.getMsg(), tokenStream.getExpression(), holder.getElements(), new ErrMsgToken(token).errStr(holder.getErrPart()));
         }
     }
 

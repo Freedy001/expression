@@ -1,4 +1,4 @@
-package com.freedy.expression;
+package com.freedy.expression.token;
 
 import com.freedy.expression.token.Token;
 

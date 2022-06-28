@@ -1,4 +1,4 @@
-package com.freedy.expression;
+package com.freedy.expression.utils;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;

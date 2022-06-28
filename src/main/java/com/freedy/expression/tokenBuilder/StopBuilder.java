@@ -1,6 +1,7 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.token.StopToken;
 import com.freedy.expression.utils.StringUtils;
 
@@ -17,7 +18,7 @@ public class StopBuilder extends Builder {
 
 
     @Override
-    boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+    public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建return
         Matcher matcher = returnPattern.matcher(token);
         if (matcher.find()) {
@@ -38,7 +39,7 @@ public class StopBuilder extends Builder {
     }
 
     @Override
-    int priority() {
+    public int priority() {
         return -1;
     }
 }

@@ -1,6 +1,7 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.token.CollectionToken;
 import com.freedy.expression.utils.StringUtils;
 

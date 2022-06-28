@@ -1,6 +1,6 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.token.StaticToken;
 import com.freedy.expression.utils.StringUtils;
 
@@ -16,7 +16,7 @@ public class StaticBuilder extends Builder {
     private static final Pattern staticPattern = Pattern.compile("^T *?\\((.*?)\\) *(\\?)? *(\\.)? *?(.*)");
 
     @Override
-    boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+    public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         Matcher matcher = staticPattern.matcher(token);
         if (!matcher.find()) return false;
 
@@ -38,7 +38,7 @@ public class StaticBuilder extends Builder {
     }
 
     @Override
-    int priority() {
+    public int priority() {
         return 5;
     }
 }

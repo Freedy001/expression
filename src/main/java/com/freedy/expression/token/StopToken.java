@@ -1,6 +1,6 @@
 package com.freedy.expression.token;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.StopSignal;
 import lombok.Getter;

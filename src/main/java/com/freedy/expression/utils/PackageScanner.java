@@ -1,6 +1,6 @@
 package com.freedy.expression.utils;
 
-import com.freedy.expression.tokenBuilder.Tokenizer;
+import com.freedy.expression.core.Tokenizer;
 import lombok.NonNull;
 
 import java.io.IOException;

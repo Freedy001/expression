@@ -1,6 +1,6 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.token.ObjectToken;
 
 import java.util.regex.Matcher;
@@ -12,11 +12,11 @@ import java.util.regex.Pattern;
  */
 public class DefBuilder extends Builder {
 
-    private static final Pattern defPattern = Pattern.compile("^def +(.*)");
+    private static final Pattern defPattern = Pattern.compile("^def +([a-zA-Z_]\\w*)");
 
 
     @Override
-    boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+    public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建def token
         Matcher matcher = defPattern.matcher(token);
         if (!matcher.find()) return false;
@@ -33,7 +33,7 @@ public class DefBuilder extends Builder {
     }
 
     @Override
-    int priority() {
+    public int priority() {
         return -1;
     }
 }

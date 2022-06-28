@@ -1,9 +1,7 @@
 package com.freedy.expression.token;
 
-import com.freedy.expression.Expression;
-import com.freedy.expression.TokenStream;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.freedy.expression.core.Expression;
+import com.freedy.expression.core.TokenStream;
 import lombok.Setter;
 
 /**

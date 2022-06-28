@@ -1,6 +1,6 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.token.MapToken;
 
 import java.util.regex.Matcher;

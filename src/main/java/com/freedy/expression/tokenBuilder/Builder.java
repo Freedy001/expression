@@ -1,6 +1,6 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.MethodOrPropBuildFailedException;
 import com.freedy.expression.token.ClassToken;
 import com.freedy.expression.utils.StringUtils;
@@ -40,12 +40,12 @@ public abstract class Builder {
      *                    否则该token字符串不会被后续的token构建器解析
      * @return 是否构建成功
      */
-    abstract boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder);
+    public abstract boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder);
 
     /**
      * @return 优先级 越小越高
      */
-    abstract int priority();
+    public abstract int priority();
 
     /**
      * 构建执行链

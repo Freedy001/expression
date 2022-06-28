@@ -1,17 +1,27 @@
 package com.freedy.expression.stander.standerFunc;
 
-import com.freedy.expression.EncryptUtil;
+import com.freedy.expression.utils.EncryptUtil;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.stander.CodeDeCompiler;
 import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.stander.RequestObject;
 import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.*;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -199,7 +209,7 @@ public class StanderUtils extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("""
-            decrypt the giving path file,then output a encrypted file
+            decrypt the giving path file,then output a serial of decrypted files
             the first param indicate a input path,it must be a enc file
             the second param indicate a output path,it must be a directory
             the third param is a aes key used for encryption
@@ -254,6 +264,7 @@ public class StanderUtils extends AbstractStanderFunc {
         System.out.println(new PlaceholderParser("decrypt: ? files,total time: ? s", desTotalFile, (System.currentTimeMillis() - startTime) / 1000));
     }
 
+
     private List<String> getMethod(Class<?> aClass) {
         if (aClass == null) return null;
         List<String> list = new ArrayList<>();
@@ -299,6 +310,61 @@ public class StanderUtils extends AbstractStanderFunc {
         @Cleanup FileOutputStream stream = new FileOutputStream(file);
         stream.write(CodeDeCompiler.getCode(clazz, true, method).getBytes(StandardCharsets.UTF_8));
         System.out.println("dump success to " + file.getAbsolutePath());
+    }
+
+    @ExpressionFunc("resolve the given parameters as concrete objects")
+    public static RequestObject parseRequest(String... args) throws Exception {
+        return parseArgs(RequestObject.class, args);
+    }
+
+    @ExpressionFunc("send a http request by RequestObject")
+    public static void http(RequestObject obj) throws InterruptedException {
+        Bootstrap bootstrap = new Bootstrap();
+        NioEventLoopGroup group = new NioEventLoopGroup(1);
+        Channel channel = bootstrap.group(group)
+                .channel(NioSocketChannel.class)
+                .handler(new ChannelInitializer<>() {
+                    @Override
+                    protected void initChannel(Channel ch) {
+                        ch.pipeline().addLast(
+                                new HttpRequestEncoder(),
+                                new HttpResponseDecoder(),
+                                new HttpObjectAggregator(Integer.MAX_VALUE),
+                                new SimpleChannelInboundHandler<FullHttpMessage>() {
+                                    @Override
+                                    public void channelActive(ChannelHandlerContext ctx) {
+                                        System.out.println("建立连接" + ctx);
+                                    }
+
+                                    @Override
+                                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpMessage msg) {
+                                        System.out.println(msg.headers());
+                                        System.out.println(msg.content().toString(Charset.defaultCharset()));
+                                        group.shutdownGracefully();
+                                    }
+
+                                    @Override
+                                    public void channelInactive(ChannelHandlerContext ctx) {
+                                        System.out.println("断开连接" + ctx);
+                                    }
+                                }
+                        );
+                    }
+                }).connect(obj.getIp(), obj.getPort()).sync().channel();
+        DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+                HttpVersion.HTTP_1_1,
+                obj.getMethod(),
+                obj.getUri());
+        HttpHeaders headers = request.headers();
+        headers.set(HttpHeaderNames.USER_AGENT, "FUN_HTTP_CLIENT(https://github.com/Freedy001/expression)");
+        headers.set(HttpHeaderNames.ACCEPT, "*/*");
+        headers.set(HttpHeaderNames.ACCEPT_ENCODING, "gzip, deflate, br");
+        headers.set(HttpHeaderNames.CONNECTION, "close");
+        headers.set(HttpHeaderNames.HOST, obj.getIp());
+        headers.set(HttpHeaderNames.CONTENT_LENGTH, obj.getLength());
+        headers.set(HttpHeaderNames.CONTENT_TYPE, obj.getContentType());
+        request.content().writeBytes(obj.getContent());
+        channel.writeAndFlush(request);
     }
 
 

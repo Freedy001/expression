@@ -1,12 +1,11 @@
-package com.freedy.expression;
+package com.freedy.expression.core;
 
+import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.function.Functional;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,7 +15,7 @@ import java.util.Set;
  */
 @Getter
 @Setter
-public class PureEvaluationContext implements EvaluationContext{
+public class PureEvaluationContext implements EvaluationContext {
     public final Map<String, Object> variableMap = new HashMap<>();
     public final Map<String, Functional> funMap = new HashMap<>();
 

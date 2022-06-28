@@ -1,10 +1,9 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.token.BasicVarToken;
 
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author Freedy
@@ -14,7 +13,7 @@ public class BasicBuilder extends Builder{
 
 
     @Override
-    boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+    public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建 numeric Token
         Matcher matcher = numericPattern.matcher(token);
         if (matcher.matches()) {
@@ -46,7 +45,7 @@ public class BasicBuilder extends Builder{
     }
 
     @Override
-    int priority() {
+    public int priority() {
         return -1;
     }
 }

@@ -354,6 +354,6 @@ public class PlaceholderParser {
         HIGH_LIGHT_BLUE,
         HIGH_LIGHT_CYAN,
         HIGH_LIGHT_GREEN,
-        HIGH_LIGHT_YELLOW,
+        HIGH_LIGHT_YELLOW
     }
 }

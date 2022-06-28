@@ -1,15 +1,14 @@
 package com.freedy.expression;
 
+import com.freedy.expression.utils.EncryptUtil;
 import com.freedy.expression.utils.PlaceholderParser;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * 报文样式: <br/>

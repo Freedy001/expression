@@ -1,6 +1,6 @@
 package com.freedy.expression.tokenBuilder;
 
-import com.freedy.expression.TokenStream;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.token.DotSplitToken;
 import com.freedy.expression.token.OpsToken;
 
@@ -10,7 +10,7 @@ import com.freedy.expression.token.OpsToken;
  */
 public class DotSplitBuilder extends Builder {
     @Override
-    boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
+    public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //点分token
         if (tokenStream.getLastToken() == null || !tokenStream.getLastToken().isValue(")")) return false;
         DotSplitToken dotToken = new DotSplitToken(token.substring(1));
@@ -31,7 +31,7 @@ public class DotSplitBuilder extends Builder {
     }
 
     @Override
-    int priority() {
+    public int priority() {
         return 9;
     }
 }

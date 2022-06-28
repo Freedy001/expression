@@ -1,4 +1,4 @@
-package com.freedy.expression;
+package com.freedy.expression.core;
 
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
@@ -25,7 +25,7 @@ import java.util.function.Function;
  * @author Freedy
  * @date 2021/12/14 19:46
  */
-public class TokenStream implements Executable {
+public class TokenStream {
     @Getter
     protected List<Token> infixExpression = new ArrayList<>();
     private static final Set<String> doubleOps = Set.of("||", "&&", "!=", "==", ">=", "<=", "++", "--", "+=", "-=", "/=", "*=", "^=", "&=", "|=", "<<", ">>", ">>>");
@@ -163,6 +163,9 @@ public class TokenStream implements Executable {
             if (doubleOps.contains(nOps)) {
                 token.setValue(nOps);
             } else {
+                if (nOps.length()==2&&Tokenizer.operationWithOutBracketSet.contains(nOps.charAt(0))&&nOps.charAt(1)=='-'){
+                    return false;
+                }
                 //区分a++ + 5
                 if (single2TokenOps.contains(nOps)) {
                     //+++    ---
@@ -354,7 +357,9 @@ public class TokenStream implements Executable {
         for (Token token : tokenList) {
             List<Token> originToken = token.getOriginToken();
             if (originToken != null) {
+                int lastCursor=currentCursor;
                 calculateOffset(originToken);
+                currentCursor=lastCursor;
             }
             int[] index = findSubStrIndex(expression, token.getValue(), currentCursor);
             assert index != null;
