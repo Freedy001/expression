@@ -82,8 +82,8 @@ public class TokenStream {
     }
 
     public void addToken(Token token) {
-        if (token.isType("obj")) {
-            defTokenList.add(((ObjectToken) token).getVariableName());
+        if (token.isType("def")) {
+            defTokenList.add(((DefToken) token).getVariableName());
         }
         if (hasSort) {
             throw new IllegalArgumentException("token stream has fixed,could not add element");

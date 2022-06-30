@@ -66,6 +66,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
         executeChain.add(new ExecuteStep(checkMode, propertyName));
         executableCount++;
     }
+
     /**
      * 添加链式方法
      */
@@ -176,7 +177,8 @@ public abstract sealed class ClassToken extends Token implements Assignable
         List<Object> args = new ArrayList<>();
         for (UnsteadyArg arg : unsteadyArgList) {
             switch (arg.getType()) {
-                case UnsteadyArg.STRING, UnsteadyArg.NUMERIC, UnsteadyArg.DELAY_TOKEN_STREAM -> args.add(arg.getValue());
+                case UnsteadyArg.NUMERIC, UnsteadyArg.DELAY_TOKEN_STREAM -> args.add(arg.getValue());
+                case UnsteadyArg.STRING -> args.add(checkAndConverseTemplateStr(arg.getValue().toString()));
                 case UnsteadyArg.TOKEN_STREAM -> {
                     TokenStream stream = (TokenStream) arg.getValue();
                     args.add(expression.setTokenStream(stream).getValue());
@@ -188,12 +190,11 @@ public abstract sealed class ClassToken extends Token implements Assignable
     }
 
 
-
-
     /**
      * 对方法的参数进行预处理
-     * @param argsStr     方法参数字符串数组
-     * @return            处理结果
+     *
+     * @param argsStr 方法参数字符串数组
+     * @return 处理结果
      */
     protected List<UnsteadyArg> preprocessingArgs(String[] argsStr) {
         List<UnsteadyArg> args = new ArrayList<>();

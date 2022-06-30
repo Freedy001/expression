@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiFunction;
 
 /**
  * @author Freedy
@@ -36,7 +37,7 @@ public class StringUtils {
     }
 
     public static boolean isSurroundByQuote(String str) {
-        str = str.trim().strip();
+        str = str.strip();
         return (str.startsWith("'") && str.endsWith("'")) || (str.startsWith("\"") && str.endsWith("\""));
     }
 
@@ -147,6 +148,7 @@ public class StringUtils {
         char[] chars = line.toCharArray();
         boolean quote = false;
         boolean bigQuote = false;
+        boolean sharp = false;
         for (int i = 0; i < length; i++) {
             if (!quote && chars[i] == '"') {
                 bigQuote = !bigQuote;
@@ -157,7 +159,13 @@ public class StringUtils {
                 quote = !quote;
             }
             if (quote) continue;
-            if (chars[i] == '/' && i + 1 < length && chars[i + 1] == '/') {
+            if (chars[i] == '#' && i + 1 < length && chars[i + 1] == ' ') {
+                sharp = true;
+                i++;
+                continue;
+            }
+            if (chars[i] == ';') sharp = false;
+            if (chars[i] == '/' && i + 1 < length && chars[i + 1] == '/' && !sharp) {
                 return i;
             }
         }

@@ -272,14 +272,40 @@ public class ScriptStarter {
         StringBuilder builder = new StringBuilder();
         int blockMode = 0;
         int bracketMode = 0;
+        boolean quote = false;
+        boolean bigQuote = false;
         while (true) {
-            String line = stdin(blockMode != 0 || bracketMode != 0 ? "...... " : "fun> ");
+            String line = stdin(blockMode != 0 || bracketMode != 0 || quote || bigQuote ? "...  " : "fun> ");
             if (!lineInterceptor.apply(line)) {
                 continue;
             }
             builder.append(line).append("\n");
-            blockMode += leftBracket(line, '{', '}');
-            bracketMode += leftBracket(line, '(', ')');
+            char[] chars = line.toCharArray();
+            for (char aChar : chars) {
+                if (!quote && aChar == '"') {
+                    bigQuote = !bigQuote;
+                }
+                if (bigQuote) continue;
+                if (aChar == '\'') {
+                    quote = !quote;
+                }
+                if (quote) continue;
+
+                if (aChar == '{') {
+                    blockMode++;
+                    continue;
+                }
+                if (aChar == '}') {
+                    blockMode--;
+                }
+                if (aChar == '(') {
+                    bracketMode++;
+                    continue;
+                }
+                if (aChar == ')') {
+                    bracketMode--;
+                }
+            }
             if (blockMode < 0 || bracketMode < 0) {
                 System.out.println("\033[91mnot pared bracket " + (blockMode < 0 ? '}' : ')') + " close!\033[0;30m");
                 builder = new StringBuilder();
@@ -287,7 +313,7 @@ public class ScriptStarter {
                 bracketMode = 0;
                 continue;
             }
-            if (blockMode == 0 && bracketMode == 0) {
+            if (blockMode == 0 && bracketMode == 0 && !quote && !bigQuote) {
                 try {
                     if (!completeScriptAct.apply(builder.toString())) {
                         return;
@@ -307,6 +333,7 @@ public class ScriptStarter {
     private static void evaluate(String completeScript, String nullValTips) {
         try {
             Object value = new Expression(completeScript).getValue(context);
+            context.setVariable("_lastReturn", value);
             if (value == null) {
                 System.out.println(nullValTips);
                 return;
@@ -314,24 +341,20 @@ public class ScriptStarter {
             if (value instanceof Collection<?> collection) {
                 System.out.println("\033[95mCollection:\033[0;39m");
                 for (Object o : collection) {
-                    System.out.println("\t" + o);
+                    System.out.println("\t" + toString(o));
                 }
             } else if (value instanceof Map<?, ?> map) {
                 System.out.println("\033[95mMap:\033[0;39m");
-                map.forEach((k, v) -> System.out.println("\t" + k + " --- " + v));
+                map.forEach((k, v) -> System.out.println("\t" + toString(k) + " --- " + toString(v)));
             } else if (value.getClass().getName().startsWith("[")) {
                 int length = Array.getLength(value);
                 StringJoiner joiner = new StringJoiner(",", "[", "]");
                 for (int i = 0; i < length; i++) {
-                    joiner.add(String.valueOf(Array.get(value, i)));
+                    joiner.add(toString(Array.get(value, i), true));
                 }
                 System.out.println(joiner);
             } else {
-                if (value.toString().equals(value.getClass().getName() + "@" + Integer.toHexString(value.hashCode()))) {
-                    System.out.println(JSON.toJSONString(value, SerializerFeature.PrettyFormat));
-                } else {
-                    System.out.println(value);
-                }
+                System.out.println(toString(value, true));
             }
         } catch (Throwable e) {
             if (!JAR_ENV) {
@@ -349,30 +372,13 @@ public class ScriptStarter {
         }
     }
 
-    private static int leftBracket(String expr, char c1, char c2) {
-        char[] chars = expr.toCharArray();
-        int l = 0;
-        boolean quote = false;
-        boolean bigQuote = false;
-        for (char aChar : chars) {
-            if (!quote && aChar == '"') {
-                bigQuote = !bigQuote;
-            }
-            if (bigQuote) continue;
-            if (aChar == '\'') {
-                quote = !quote;
-            }
-            if (quote) continue;
+    private static String toString(Object o) {
+        return toString(o, false);
+    }
 
-            if (aChar == c1) {
-                l++;
-                continue;
-            }
-            if (aChar == c2) {
-                l--;
-            }
-        }
-        return l;
+    private static String toString(Object o, boolean pretty) {
+        return o.toString().equals(o.getClass().getName() + "@" + Integer.toHexString(o.hashCode())) ?
+                pretty ? JSON.toJSONString(o, SerializerFeature.PrettyFormat) : JSON.toJSONString(o) : o.toString();
     }
 
     private static void startRemote() {

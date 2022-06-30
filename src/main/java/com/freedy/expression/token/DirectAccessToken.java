@@ -27,6 +27,7 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
     private String methodName;
     private String[] methodArgsName;
     private List<UnsteadyArg> unsteadyArgList;
+    private boolean isInlineFunc;
 
     public DirectAccessToken(String value) {
         super("directAccess", value);
@@ -114,14 +115,18 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                 if (funcObj instanceof StanderEvaluationContext.FunctionalMethod func) {
                     funcObj = func.funcObj();
                     method = func.func();
+                    if (isInlineFunc && func.cmdParamMap() != null && checkArrType(args, 0, args.length) == String.class) {
+                        //启用自定义参数解析
+                        args = new Object[]{func.parseArgs(Arrays.copyOfRange(args, 0, args.length, String[].class))};
+                    }
                 } else {
                     //noinspection ConstantConditions
                     Class<?> functionClass = funcObj.getClass();
                     method = functionClass.getInterfaces()[0].getDeclaredMethods()[0];
                 }
                 method.setAccessible(true);
+                int count = method.getParameterCount();
                 if (method.isVarArgs() && args != null) {
-                    int count = method.getParameterCount();
                     Object[] nArgs = new Object[count];
                     //拷贝非可变参数参数
                     System.arraycopy(args, 0, nArgs, 0, count - 1);
@@ -139,7 +144,9 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                     args = nArgs;
                 }
 
+
                 invoke = method.invoke(funcObj, args);
+
 
             } catch (Exception e) {
                 Throwable cause = e.getCause();

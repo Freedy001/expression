@@ -55,10 +55,6 @@ public class Tokenizer {
         for (String sub : StringUtils.splitWithoutQuote(expression, '\n')) {
             int i1 = StringUtils.indexOfComment(sub);
             sub = sub.substring(0, i1 == -1 ? sub.length() : i1).trim();
-            int i2 = sub.indexOf("#");
-            if (i2 + 1 < sub.length() && sub.charAt(i2 + 1) == ' ') {
-                sub = sub.substring(0, i2) + "'" + sub.substring(i2 + 2) .replaceAll("'","\\'")+ "'";
-            }
             joiner.add(sub);
         }
         return doGetTokenStream(joiner.toString().trim());
@@ -99,6 +95,10 @@ public class Tokenizer {
     private static void parseExpression(String expression, TokenStream tokenStream) {
 
         if (StringUtils.isEmpty(expression)) return;
+        if (expression.startsWith("return")){
+            buildToken(tokenStream,expression);
+            return;
+        }
 
         char[] chars = expression.toCharArray();
         final int length = chars.length;
@@ -150,6 +150,7 @@ public class Tokenizer {
 
             if (leftBracesCount > 0 || leftBracketCount > 0) continue;
 
+            if (inspectChar == '#' && i + 1 < length && chars[i + 1] == ' ') break;
 
             if (inspectChar == ' ' || !operationSet.contains(inspectChar)) {
                 continue;

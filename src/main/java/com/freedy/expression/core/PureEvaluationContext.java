@@ -1,8 +1,10 @@
 package com.freedy.expression.core;
 
 import com.freedy.expression.core.EvaluationContext;
+import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Functional;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashMap;
@@ -15,22 +17,37 @@ import java.util.Set;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class PureEvaluationContext implements EvaluationContext {
-    public final Map<String, Object> variableMap = new HashMap<>();
-    public final Map<String, Functional> funMap = new HashMap<>();
+    protected final Map<String, Object> variableMap = new HashMap<>();
+    protected final Map<String, Functional> funMap = new HashMap<>();
+    protected Object root;
+
+    public PureEvaluationContext(Object root) {
+        this.root = root;
+    }
 
     @Override
     public Object setVariable(String name, Object variable) {
-        return variableMap.put(filterName(name),variable);
+        name = filterName(name);
+        if (name.equals("root")) {
+            setRoot(variable);
+        }
+        return variableMap.put(name, variable);
     }
 
     @Override
     public Object getVariable(String name) {
-        return variableMap.get(filterName(name));
+        name = filterName(name);
+        if (name.equals("root")) {
+            return getRoot();
+        }
+        return variableMap.get(name);
     }
 
     @Override
     public boolean containsVariable(String name) {
+        if (name.equals("root")) return getRoot() != null;
         return variableMap.containsKey(filterName(name));
     }
 
@@ -41,7 +58,13 @@ public class PureEvaluationContext implements EvaluationContext {
 
     @Override
     public Object removeVariable(String name) {
-        return variableMap.remove(filterName(name));
+        String filterName = filterName(name);
+        if (filterName.equals("root")) {
+            Object root = getRoot();
+            setRoot(null);
+            return root;
+        }
+        return variableMap.remove(filterName);
     }
 
     @Override
@@ -51,17 +74,19 @@ public class PureEvaluationContext implements EvaluationContext {
 
     @Override
     public Object setRoot(Object root) {
-        return null;
+        Object o = this.root;
+        this.root = root;
+        return o;
     }
 
     @Override
     public Object getRoot() {
-        return null;
+        return root;
     }
 
     @Override
     public Functional registerFunction(String name, Functional function) {
-        return funMap.put(name,function);
+        return funMap.put(name, function);
     }
 
     @Override

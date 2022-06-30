@@ -6,45 +6,51 @@ import com.alibaba.fastjson.serializer.JSONSerializer;
 import com.alibaba.fastjson.serializer.ObjectSerializer;
 import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.freedy.expression.utils.Color;
+import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.StringUtils;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Freedy
  * @date 2022/6/28 12:29
  */
 @Getter
-public class RequestObject {
+public class HttpReqParam implements HttpObject {
     @Setter
     @CMDParameter(value = "-protocol", helpText = "request protocol,it may http or https")
     private String protocol;
     @Setter
-    @CMDParameter(value = "-h", helpText = "request host or ip")
+    @CMDParameter(value = "-i", helpText = "request host or ip")
     private String ip;
     @Setter
     @CMDParameter(value = "-p", helpText = "request port")
     private int port;
     @Setter
     @CMDParameter(value = "-uri", helpText = "request uri")
-    private String uri;
-    private HttpMethod method;
-    private final Map<String, List<String>> headers = new HashMap<>();
+    private String uri="/";
+    private HttpMethod method=HttpMethod.GET;
+    private final List<Map.Entry<String, String>> headers = new ArrayList<>();
     @JSONField(serializeUsing = ContentSerializer.class)
-    private byte[] content;
-    private String contentType;
+    private byte[] content=new byte[0];
+    private String contentType="";
     private long length;
+    @SuppressWarnings("FieldMayBeFinal")
+    @CMDParameter(value = "-t", helpText = "timeout,time unit is second")
+    private int timeout = 10;
 
-    @CMDParameter(value = "-url", helpText = "request url")
+
+    @CMDParameter(value = "-u", helpText = "request url")
     public void setUrl(String url) {
         try {
             String urlWithoutProtocol;
@@ -86,33 +92,35 @@ public class RequestObject {
         }
     }
 
-    @CMDParameter(value = "-json", helpText = "json content")
+    @CMDParameter(value = "-j", helpText = "json content")
     public void setJsonContent(String content) {
         JSON.parse(content);
         setContent(content.getBytes(StandardCharsets.UTF_8));
         contentType = "application/json";
     }
 
-    @CMDParameter(value = "-text", helpText = "text content")
+    @CMDParameter(value = "-tc", helpText = "text content")
     public void setTextContent(String content) {
         setContent(content.getBytes(StandardCharsets.UTF_8));
         contentType = "text/plain";
     }
 
-    @CMDParameter(value = "-xml", helpText = "xml content")
+    @CMDParameter(value = "-x", helpText = "xml content")
     public void setXmlContent(String content) {
         setContent(content.getBytes(StandardCharsets.UTF_8));
         contentType = "application/xml";
     }
 
-    @CMDParameter(value = "-header", helpText = "xml content")
+    @CMDParameter(value = "-h", helpText = "set header")
     public void addHeader(String name, String value) {
-        headers.put(name, List.of(value));
+        headers.add(new Entry(name, value));
     }
 
-    @CMDParameter(value = "-multiHeader", helpText = "xml content")
-    public void addHeader(String name, List<String> value) {
-        headers.put(name, value);
+    @CMDParameter(value = "-mh", helpText = "set multi header")
+    public void addHeader(String name, String[] value) {
+        for (String val : value) {
+            headers.add(new Entry(name, val));
+        }
     }
 
 
@@ -123,7 +131,46 @@ public class RequestObject {
 
     @Override
     public String toString() {
-        return JSON.toJSONString(this, SerializerFeature.PrettyFormat);
+        return new PlaceholderParser("""
+                ?->
+                ?? ? HTTP/1.1?
+                ?*
+                
+                ?
+                """,
+                super.toString(),
+                Color.WHITE,
+                method,
+                uri,
+                Color.END,
+                headers.stream().map(e -> e.getKey() + ": " + e.getValue()).toList(),
+                Color.dPink(contentType.contains(HttpHeaderValues.APPLICATION_JSON) ?
+                        JSON.toJSONString(JSON.parse(new String(content)), SerializerFeature.PrettyFormat) : new String(content))
+        ).ifEmptyFillWith("").serialParamsSplit("\n").toString();
+    }
+
+
+    @AllArgsConstructor
+    private static class Entry implements Map.Entry<String, String> {
+        String key;
+        String value;
+
+        @Override
+        public String getKey() {
+            return key;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String setValue(String value) {
+            String val = this.value;
+            this.value = value;
+            return val;
+        }
     }
 
     static {

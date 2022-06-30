@@ -1,13 +1,12 @@
 package com.freedy.expression.stander.standerFunc;
 
-import com.freedy.expression.utils.EncryptUtil;
+import com.freedy.expression.stander.HttpObject;
+import com.freedy.expression.stander.HttpReqParam;
+import com.freedy.expression.stander.HttpResult;
+import com.freedy.expression.utils.*;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.stander.CodeDeCompiler;
 import com.freedy.expression.stander.ExpressionFunc;
-import com.freedy.expression.stander.RequestObject;
-import com.freedy.expression.utils.PlaceholderParser;
-import com.freedy.expression.utils.ReflectionUtils;
-import com.freedy.expression.utils.StringUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,7 +15,9 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
+import lombok.AllArgsConstructor;
 import lombok.Cleanup;
+import lombok.Setter;
 import lombok.SneakyThrows;
 
 import java.io.*;
@@ -27,6 +28,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -96,10 +101,10 @@ public class StanderUtils extends AbstractStanderFunc {
     public void help(String funcName) {
         context.getSelfFuncHelp().forEach((k, v) -> {
             if (k.toLowerCase(Locale.ROOT).contains(funcName.toLowerCase(Locale.ROOT))) {
-                System.out.println("function:");
-                System.out.println("\t\033[95m" + k + "\033[0;39m");
-                System.out.println("explain:");
-                System.out.println("\t\033[34m" + v.replace("\n", "\n    ") + "\033[0;39m");
+                System.out.println("function:\033[95m");
+                System.out.println("   " + k + "\033[0;39m");
+                System.out.println("explain:\033[34m");
+                System.out.println("   " + v.replace("\n", "\n   ") + "\033[0;39m");
                 System.out.println();
                 System.out.println();
             }
@@ -312,15 +317,16 @@ public class StanderUtils extends AbstractStanderFunc {
         System.out.println("dump success to " + file.getAbsolutePath());
     }
 
-    @ExpressionFunc("resolve the given parameters as concrete objects")
-    public static RequestObject parseRequest(String... args) throws Exception {
-        return parseArgs(RequestObject.class, args);
+    @ExpressionFunc(value = "resolve the given parameters as concrete objects", enableCMDParameter = true)
+    public HttpReqParam parseRequest(HttpReqParam obj) {
+        return obj;
     }
 
-    @ExpressionFunc("send a http request by RequestObject")
-    public static void http(RequestObject obj) throws InterruptedException {
+    @ExpressionFunc(value = "send a http request by HttpReqParam", enableCMDParameter = true)
+    public HttpObject http(HttpReqParam obj) throws InterruptedException, TimeoutException {
         Bootstrap bootstrap = new Bootstrap();
         NioEventLoopGroup group = new NioEventLoopGroup(1);
+        Exchanger<HttpResult> exchanger = new Exchanger<>();
         Channel channel = bootstrap.group(group)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<>() {
@@ -330,22 +336,30 @@ public class StanderUtils extends AbstractStanderFunc {
                                 new HttpRequestEncoder(),
                                 new HttpResponseDecoder(),
                                 new HttpObjectAggregator(Integer.MAX_VALUE),
-                                new SimpleChannelInboundHandler<FullHttpMessage>() {
+                                new SimpleChannelInboundHandler<FullHttpResponse>() {
                                     @Override
                                     public void channelActive(ChannelHandlerContext ctx) {
-                                        System.out.println("建立连接" + ctx);
+                                        System.out.println("connect->" + ctx.channel().remoteAddress());
                                     }
 
                                     @Override
-                                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpMessage msg) {
-                                        System.out.println(msg.headers());
-                                        System.out.println(msg.content().toString(Charset.defaultCharset()));
-                                        group.shutdownGracefully();
+                                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws InterruptedException {
+                                        exchanger.exchange(new HttpResult(
+                                                obj,
+                                                msg.status().code(),
+                                                msg.headers(),
+                                                msg.content().toString(Charset.defaultCharset())
+                                        ));
                                     }
 
                                     @Override
-                                    public void channelInactive(ChannelHandlerContext ctx) {
-                                        System.out.println("断开连接" + ctx);
+                                    public void channelInactive(ChannelHandlerContext ctx) throws InterruptedException {
+                                        exchanger.exchange(null);
+                                    }
+
+                                    @Override
+                                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws InterruptedException {
+                                        System.out.println(Color.dRed("error->" + cause.getMessage()));
                                     }
                                 }
                         );
@@ -361,10 +375,33 @@ public class StanderUtils extends AbstractStanderFunc {
         headers.set(HttpHeaderNames.ACCEPT_ENCODING, "gzip, deflate, br");
         headers.set(HttpHeaderNames.CONNECTION, "close");
         headers.set(HttpHeaderNames.HOST, obj.getIp());
-        headers.set(HttpHeaderNames.CONTENT_LENGTH, obj.getLength());
-        headers.set(HttpHeaderNames.CONTENT_TYPE, obj.getContentType());
-        request.content().writeBytes(obj.getContent());
+        if (obj.getLength() > 0) {
+            headers.set(HttpHeaderNames.CONTENT_LENGTH, obj.getLength());
+        }
+        if (StringUtils.hasText(obj.getContentType())) {
+            headers.set(HttpHeaderNames.CONTENT_TYPE, obj.getContentType());
+        }
+        List<Map.Entry<String, String>> reqHeaders = obj.getHeaders();
+        for (Map.Entry<String, String> entry : reqHeaders) {
+            headers.set(entry.getKey(), entry.getValue());
+        }
+        if (obj.getContent() != null) {
+            request.content().writeBytes(obj.getContent());
+        }
         channel.writeAndFlush(request);
+        HttpResult res;
+        try {
+            res = exchanger.exchange(null, obj.getTimeout(), TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            System.out.println(Color.dRed("request timeout!"));
+            return obj;
+        }
+        if (res==null){
+            System.out.println(Color.dRed("connect refuse!"));
+            return obj;
+        }
+        group.shutdownGracefully();
+        return res;
     }
 
 

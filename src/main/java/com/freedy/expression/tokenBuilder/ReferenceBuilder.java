@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  */
 public class ReferenceBuilder extends Builder {
 
-    private static final Pattern referencePattern = Pattern.compile("^([#@%]) *?(.*?) *?\\. *?(.*)");
+    private static final Pattern referencePattern = Pattern.compile("^([#@%])(.*?) *?\\. *?(.*)");
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
@@ -22,7 +22,7 @@ public class ReferenceBuilder extends Builder {
         if (matcher.find()) {
             ReferenceToken referenceToken = new ReferenceToken(token);
 
-            String reference = matcher.group(2).trim();
+            String reference = matcher.group(2).strip();
             Matcher listMatcher = relevantAccess.matcher(reference);
             String relevantOps = null;
             if (listMatcher.find()) {

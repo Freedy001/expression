@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  */
 public class InlineFunctionBuilder extends Builder {
 
-    private static final Pattern inline = Pattern.compile("([a-zA-Z_]\\w*) +(.*)");
+    private static final Pattern inline = Pattern.compile("(\\w+)# +(.*)");
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
@@ -23,10 +23,11 @@ public class InlineFunctionBuilder extends Builder {
 
         String funcName = matcher.group(1);
         DirectAccessToken directAccessToken = new DirectAccessToken(token);
+        directAccessToken.setInlineFunc(true);
         directAccessToken.setMethodName(funcName);
         directAccessToken.setMethodArgsName(Arrays.stream(
-                StringUtils.splitWithoutBracket(matcher.group(2), '\'', '\'', ' ')
-        ).filter(StringUtils::hasText).map(s -> StringUtils.isSurroundByQuote(s) ? s : "'" + s + "'").toArray(String[]::new));
+                StringUtils.splitWithoutQuote(matcher.group(2), ' ')
+        ).filter(StringUtils::hasText).map(s -> s.matches("^#(\\w+)") ? s : StringUtils.isSurroundByQuote(s) ? s : "'" + s + "'").toArray(String[]::new));
         tokenStream.addToken(directAccessToken);
         return true;
     }

@@ -2,6 +2,7 @@ package com.freedy.expression.token;
 
 import com.alibaba.fastjson.annotation.JSONType;
 import com.freedy.expression.core.EvaluationContext;
+import com.freedy.expression.core.Expression;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.StopSignal;
 import com.freedy.expression.exception.UnsupportedOperationException;
@@ -35,7 +36,7 @@ import java.util.List;
 @ToString(onlyExplicitlyIncluded = true)
 @JSONType(includes = {"type", "value"})
 public abstract sealed class Token implements Comparable
-        permits BasicVarToken, ClassToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, ObjectToken, OpsToken, StopToken, TernaryToken, StreamWrapperToken {
+        permits BasicVarToken, ClassToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, DefToken, OpsToken, StopToken, TernaryToken, StreamWrapperToken {
     //Token的type 结合isType()方法省去使用使用instance of进行判断
     @ToString.Include
     protected String type;
@@ -167,8 +168,9 @@ public abstract sealed class Token implements Comparable
 
     /**
      * 两个token进行逻辑运输
-     * @param o      需要与该token进行逻辑运算的token
-     * @param type   逻辑运算的类型
+     *
+     * @param o    需要与该token进行逻辑运算的token
+     * @param type 逻辑运算的类型
      */
     @SuppressWarnings("ConstantConditions")
     public boolean logicOps(Token o, Token type) {
@@ -197,8 +199,9 @@ public abstract sealed class Token implements Comparable
 
     /**
      * 两个token进行+,-,*,/,+=,-=,/=,*=运算
-     * @param o       需要与该token进行运算的token
-     * @param type    运算的类型
+     *
+     * @param o    需要与该token进行运算的token
+     * @param type 运算的类型
      */
     @SuppressWarnings("DuplicateExpressions")
     public String numSelfOps(Token o, Token type) {
@@ -281,15 +284,15 @@ public abstract sealed class Token implements Comparable
             case "*=" -> {
                 return opsAndAssign(a.multiply(b).toString(), type);
             }
-            case "|="->{
+            case "|=" -> {
                 intTypeCheck(o, a, b);
                 return opsAndAssign((a.intValue() | b.intValue()) + "", type);
             }
-            case "&="->{
+            case "&=" -> {
                 intTypeCheck(o, a, b);
                 return opsAndAssign((a.intValue() & b.intValue()) + "", type);
             }
-            case "^="->{
+            case "^=" -> {
                 intTypeCheck(o, a, b);
                 return opsAndAssign((a.intValue() ^ b.intValue()) + "", type);
             }
@@ -489,5 +492,41 @@ public abstract sealed class Token implements Comparable
         throw new UnsupportedOperationException("Number type ? not support", n.getClass().getName());
     }
 
+    protected String checkAndConverseTemplateStr(String str) {
+        char[] chars = str.toCharArray();
+        int length = chars.length;
+        boolean quote = false;
+        boolean bigQuote = false;
+
+        StringBuilder builder = new StringBuilder();
+        int lastSplit = 0;
+        for (int i = 0; i < length; i++) {
+            if (chars[i] == '$' && i + 1 < length && chars[i + 1] == '{') {
+                int j = i + 2;
+                for (; j < length; j++) {
+                    if (!quote && chars[i] == '"') {
+                        bigQuote = !bigQuote;
+                        continue;
+                    }
+                    if (bigQuote) continue;
+                    if (chars[i] == '\'') {
+                        quote = !quote;
+                    }
+                    if (quote) continue;
+                    if (chars[j] == '}') break;
+                }
+                if (j != length) {
+                    //找到闭合区间
+                    builder.append(str, lastSplit, i);
+                    builder.append(new Expression(str.substring(i + 2, j)).getValue(context));
+                    lastSplit = j + 1;
+                    i = j + 1;
+                }
+            }
+        }
+        builder.append(str, lastSplit, length);
+
+        return builder.toString();
+    }
 
 }

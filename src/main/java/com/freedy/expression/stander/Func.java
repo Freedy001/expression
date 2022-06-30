@@ -7,6 +7,7 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.exception.StopSignal;
 import com.freedy.expression.function.VarFunction;
+import com.freedy.expression.utils.PlaceholderParser;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -32,7 +33,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
     @Override
     public Object apply(Object... obj) {
         if (obj != null && obj.length != argName.length) {
-            throw new IllegalArgumentException("unmatched args ?(?*)", funcName, argName);
+            throw new IllegalArgumentException("wrong number of arguments,reference ?(?*)", funcName, argName);
         }
         StanderEvaluationContext subContext = new StanderEvaluationContext(superContext);
         if (obj != null) {
@@ -64,7 +65,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
             if (methodName.equals("setVariable")) {
                 String varName = (String) args[0];
                 StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[3];
-                if (stackTraceElement.getClassName().equals("com.freedy.expression.token.ObjectToken")) {
+                if (stackTraceElement.getClassName().equals("com.freedy.expression.token.DefToken")) {
                     if (!subContext.containsVariable(varName)) {
                         return subContext.setVariable(varName, args[1]);
                     }
@@ -87,7 +88,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
             if (methodName.matches("containsVariable")) {
                 String varName = (String) args[0];
                 String className = Thread.currentThread().getStackTrace()[3].getClassName();
-                if (className.equals("com.freedy.expression.token.LoopToken") || className.equals("com.freedy.expression.token.ObjectToken")) {
+                if (className.equals("com.freedy.expression.token.LoopToken") || className.equals("com.freedy.expression.token.DefToken")) {
                     return subContext.containsVariable(varName);
                 }
                 if (!varName.startsWith("@")) {
@@ -121,4 +122,8 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
         }
     }
 
+    @Override
+    public String toString() {
+        return new PlaceholderParser("[FUNCTION:?(?*)]",funcName, argName).toString();
+    }
 }

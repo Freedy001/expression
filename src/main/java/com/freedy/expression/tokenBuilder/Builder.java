@@ -158,7 +158,7 @@ public abstract class Builder {
     @AllArgsConstructor
     protected static class ReplacedStr {
         /**
-         * 被替换后的结果字符串
+         * 替换后的结果
          */
         String result;
         /**
@@ -166,7 +166,7 @@ public abstract class Builder {
          */
         String aimedStr;
         /**
-         * 被替换字符串的初始下班
+         * 被替换字符串的初始下标
          */
         int aimedIndex;
     }

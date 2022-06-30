@@ -7,6 +7,7 @@ import com.freedy.expression.utils.ReflectionUtils;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.regex.Pattern;
 
 /**
  * @author Freedy
@@ -15,8 +16,6 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @JSONType(includes = {"type", "value"})
 public final class BasicVarToken extends Token {
-
-
     public BasicVarToken(String type, String value) {
         super(type, value);
     }
@@ -25,7 +24,12 @@ public final class BasicVarToken extends Token {
     @Override
     public Object doCalculate(Class<?> desiredType) {
         if (isType("str")) {
-            return checkAndSelfOps(ReflectionUtils.convertType(value.substring(1, value.length() - 1), desiredType));
+            return checkAndSelfOps(ReflectionUtils.convertType(
+                    checkAndConverseTemplateStr(
+                            value.substring(1, value.length() - 1)
+                    ),
+                    desiredType
+            ));
         }
         if (isType("numeric")) { //int long
             if (desiredType.getName().matches("java\\.lang\\.Integer|int")) {
@@ -49,7 +53,7 @@ public final class BasicVarToken extends Token {
         if (isType("bool")) {
             return checkAndSelfOps(Boolean.parseBoolean(value));
         }
-        if (isType("null")){
+        if (isType("null")) {
             return null;
         }
         throw new EvaluateException("illegal type ?", type).errToken(this);

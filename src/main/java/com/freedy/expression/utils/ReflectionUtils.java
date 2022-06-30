@@ -592,7 +592,7 @@ public class ReflectionUtils {
         throw new NoSuchMethodException(new PlaceholderParser(
                 "no such method ? in\033[34m ? !\033[0;39myou can call these similar method: ?*",
                 methodName + argStr,
-                targetClass.getName(),
+                targetClass.getSimpleName(),
                 similar.stream().map(method -> {
                     StringJoiner argString = new StringJoiner(",", "(", ")");
                     for (Parameter arg : method.getParameters()) {

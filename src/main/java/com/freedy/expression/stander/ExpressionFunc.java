@@ -15,6 +15,6 @@ public @interface ExpressionFunc {
     //注释
     String value() default "";
 
-    Class<?> CMDParameters() default Void.class;
+    boolean enableCMDParameter() default false;
 
 }

@@ -1,7 +1,9 @@
 package com.freedy.expression.tokenBuilder;
 
 import com.freedy.expression.core.TokenStream;
-import com.freedy.expression.token.ObjectToken;
+import com.freedy.expression.core.Tokenizer;
+import com.freedy.expression.token.DefToken;
+import com.freedy.expression.utils.StringUtils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,22 +14,31 @@ import java.util.regex.Pattern;
  */
 public class DefBuilder extends Builder {
 
-    private static final Pattern defPattern = Pattern.compile("^def +([a-zA-Z_]\\w*)");
+    private static final Pattern defValPattern = Pattern.compile("^def +(\\w+)");
+    private static final Pattern defFuncPattern = Pattern.compile("^def +(\\w+) *\\((\\w+|(?:\\w+,)+\\w+)?\\) *\\{(.*)}");
 
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         //构建def token
-        Matcher matcher = defPattern.matcher(token);
+        Matcher matcher = defValPattern.matcher(token);
         if (!matcher.find()) return false;
-        ObjectToken objectToken = new ObjectToken(token);
-        String varName = matcher.group(1);
-        if (!varPattern.matcher(varName).matches()) {
-            holder.setMsg("illegal var name")
-                    .setErrorPart("def@" + varName);
-            return false;
+        Matcher funcMatcher = defFuncPattern.matcher(token);
+        DefToken objectToken = new DefToken(token);
+        if (funcMatcher.find()) {
+            objectToken.setMethodName(funcMatcher.group(1));
+            String args = funcMatcher.group(2);
+            objectToken.setMethodArgs(StringUtils.hasText(args) ? args.split(",") : new String[0]);
+            objectToken.setMethodBody(Tokenizer.doGetTokenStream(funcMatcher.group(3)));
+        } else {
+            String varName = matcher.group(1);
+            if (!varPattern.matcher(varName).matches()) {
+                holder.setMsg("illegal var name")
+                        .setErrorPart("def@" + varName);
+                return false;
+            }
+            objectToken.setVariableName(varName);
         }
-        objectToken.setVariableName(varName);
         tokenStream.addToken(objectToken);
         return true;
     }

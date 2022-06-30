@@ -28,10 +28,11 @@ public class Main {
 
 
     public static void main(String[] args) throws Throwable {
+
 //        http();
-//        RequestObject object = parseRequestArgs(StringUtils.splitWithoutBracket("""
+//        HttpReqParam object = parseRequestArgs(StringUtils.splitWithoutBracket("""
 //                -m post -url http://127.0.0.1/test -header token abcsasdasdasdas auth zxczxczxczxcz -json '{"articleId": "1388865816372539452","username": "TEST","email": "985948228@qq.com","content": "哈哈,你好啊"}'
-//                """, '[', ']', ' '), RequestObject.class);
+//                """, '[', ']', ' '), HttpReqParam.class);
 //        System.out.println(object);
 //        http(object);
     }
