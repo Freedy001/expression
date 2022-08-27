@@ -327,7 +327,7 @@ public class Tokenizer {
             }
             if (!success) {
                 //遍历完所有处理器 都不能处理
-                holder.setMsg("unrecognized token!");
+                holder.setMsg("unrecognized token!").setErrorPart(token);
                 break err;
             }
             return;

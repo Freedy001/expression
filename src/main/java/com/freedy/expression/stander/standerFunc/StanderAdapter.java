@@ -44,6 +44,7 @@ public class StanderAdapter extends AbstractStanderFunc {
             }
             seminary.add(cst);
         }
+        args = Arrays.copyOf(args, args.length, Object[].class);
         for (Constructor<?> constructor : constructorList) {
             Class<?>[] types = constructor.getParameterTypes();
             int i = 0;
@@ -191,17 +192,19 @@ public class StanderAdapter extends AbstractStanderFunc {
         return arr;
     }
 
-    @ExpressionFunc(value = "run cmd")
-    public void cmd(String cmd) throws Exception {
+    @ExpressionFunc(value = "run cmd,you can specify the charset by defining _cmdCharset variable")
+    public String cmd(String cmd) throws Exception {
         Process exec = Runtime.getRuntime().exec(cmd);
         InputStream es = exec.getErrorStream();
         InputStream is = exec.getInputStream();
+        String cmdCharset = Optional.ofNullable(context.getVariable("_cmdCharset")).orElse("").toString();
+        StringBuffer buffer = new StringBuffer();
         new Thread(() -> {
             if (es != null) {
                 try {
-                    String s = new String(es.readAllBytes());
+                    String s = new String(es.readAllBytes(), StringUtils.hasText(cmdCharset) ? cmdCharset : "UTF-8");
                     if (StringUtils.hasText(s))
-                        System.err.println(s);
+                        buffer.append(s);
                 } catch (Exception ignored) {
                 }
             }
@@ -209,9 +212,9 @@ public class StanderAdapter extends AbstractStanderFunc {
         new Thread(() -> {
             if (is != null) {
                 try {
-                    String s = new String(is.readAllBytes());
+                    String s = new String(is.readAllBytes(), StringUtils.hasText(cmdCharset) ? cmdCharset : "UTF-8");
                     if (StringUtils.hasText(s))
-                        System.out.println();
+                        buffer.append(s);
                 } catch (Exception ignored) {
                 }
             }
@@ -220,6 +223,7 @@ public class StanderAdapter extends AbstractStanderFunc {
             exec.destroy();
             throw new java.lang.IllegalArgumentException("Execution timeout(3S)");
         }
+        return buffer.toString();
     }
 
     @NonNull

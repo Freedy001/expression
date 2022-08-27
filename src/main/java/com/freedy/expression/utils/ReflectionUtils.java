@@ -141,7 +141,18 @@ public class ReflectionUtils {
         for (Class<?> aClass : getClassRecursion(clazz)) {
             list.addAll(List.of(aClass.getDeclaredMethods()));
         }
+        for (Class<?> aClass : getInterfaceRecursion(clazz)) {
+            list.addAll(List.of(aClass.getDeclaredMethods()));
+        }
         return list;
+    }
+
+    public static List<Field> getStaticFieldsRecursion(Class clazz) {
+        return getFieldsRecursion(clazz).stream().filter(field -> Modifier.isStatic(field.getModifiers())).toList();
+    }
+
+    public static List<Method> getStaticMethodsRecursion(Class clazz) {
+        return getMethodsRecursion(clazz).stream().filter(method -> Modifier.isStatic(method.getModifiers())).toList();
     }
 
     /**
@@ -526,11 +537,11 @@ public class ReflectionUtils {
     }
 
 
-    public static Object invokeMethod(Object target, String methodName, Object... args) throws Throwable {
-        return invokeMethod(target.getClass(), target, methodName, args);
+    public static Object invokeMethod(String methodName, Object target, Object... args) throws Throwable {
+        return invokeMethod(methodName, target.getClass(), target, args);
     }
 
-    public static Object invokeMethod(Class<?> targetClass, Object target, String methodName, Object... args) throws Throwable {
+    public static Object invokeMethod(String methodName, Class<?> targetClass, Object target, Object... args) throws Throwable {
         List<Method> list = new ArrayList<>();
         List<Method> similar = new ArrayList<>();
         int methodLen = methodName.length();
@@ -550,6 +561,7 @@ public class ReflectionUtils {
             if (method.getParameterCount() == length) {
                 Class<?>[] clazz = method.getParameterTypes();
                 int i = 0;
+                // TODO: 2022/7/1 优化可变参数
                 for (; i < length; i++) {
                     Class<?> originMethodArgs = convertToWrapper(clazz[i]);
                     Class<?> supplyMethodArgs = convertToWrapper(args[i] == null ? clazz[i] : args[i].getClass());
@@ -586,7 +598,7 @@ public class ReflectionUtils {
         if (methodName.equals("getClass") && args.length == 0) return targetClass;
         StringJoiner argStr = new StringJoiner(",", "(", ")");
         for (Object arg : args) {
-            argStr.add(arg == null ? "null" : arg.getClass().getName());
+            argStr.add(arg == null ? "null" : arg.getClass().getSimpleName());
         }
         similar.sort(Comparator.comparing(o -> Math.abs(o.getName().length() - methodLen)));
         throw new NoSuchMethodException(new PlaceholderParser(

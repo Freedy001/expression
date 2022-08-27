@@ -1,6 +1,5 @@
 package com.freedy.expression.stander;
 
-import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.PureEvaluationContext;
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
@@ -12,21 +11,11 @@ import com.freedy.expression.utils.PackageScanner;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.attribute.BasicFileAttributeView;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,7 +24,6 @@ import java.util.stream.Collectors;
  * @date 2021/12/15 16:22
  */
 @Getter
-@Setter
 public class StanderEvaluationContext extends PureEvaluationContext {
     /**
      * 标准方法帮助信息
@@ -46,32 +34,41 @@ public class StanderEvaluationContext extends PureEvaluationContext {
      */
     private final HashMap<String, String> importMap = new HashMap<>();
     /**
-     * 当该变量不为空时表示此容器为子容器。
-     */
-    private EvaluationContext superContext;
-    /**
      * 当前路径
      */
+    @Setter
     private String currentPath = ".";
 
-    public StanderEvaluationContext() {
-        init();
+
+    public StanderEvaluationContext(String... packages) {
+        HashSet<String> set = new HashSet<>(Arrays.asList(packages));
+        set.add("com.freedy.expression.stander.standerFunc");
+        init(set);
         this.root = new StanderRoot(this);
     }
 
-    public StanderEvaluationContext(Object root) {
-        init();
+
+    public StanderEvaluationContext root(Object root) {
         this.root = root;
+        return this;
     }
 
-    public StanderEvaluationContext(EvaluationContext superContext) {
-        //子容器不需要初始化
-        this.root = superContext.getRoot();
-        this.superContext = superContext;
+    public StanderEvaluationContext putVar(String key, Object val) {
+        variableMap.put(key, val);
+        return this;
+    }
+
+    public StanderEvaluationContext importPack(String pack) {
+        importMap.put("package:"+pack.strip(), "*");
+        return this;
+    }
+    public StanderEvaluationContext importClass(String simpleClassname,String fullClassname) {
+        importMap.put(simpleClassname,fullClassname);
+        return this;
     }
 
 
-    private void init() {
+    private void init(Set<String> standerFuncPackage) {
         variableMap.put("ctx", this);
         importMap.put("package:java.lang", "*");
         importMap.put("package:java.util", "*");
@@ -85,7 +82,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         registerFunctionWithHelp("condition", "use in for statement,to indicate whether should stop loop.\n\texample:def a=10; for(i:condition(@block{a++<10})){print(num);}; \n\t it will print 1 to 10", (Function._1ParameterFunction<TokenStream, TokenStream>) t -> t);
         registerFunctionWithHelp("tokenStream", "transfer to token stream", (Function._1ParameterFunction<TokenStream, TokenStream>) o -> o);
         Set<String> keywords = CodeDeCompiler.getKeywords();
-        for (Class<?> aClass : PackageScanner.doScan("com.freedy.expression.stander.standerFunc")) {
+        for (Class<?> aClass : PackageScanner.doScan(standerFuncPackage.toArray(String[]::new), new String[0])) {
             if (aClass.getSuperclass() != AbstractStanderFunc.class) continue;
             AbstractStanderFunc o;
             try {
@@ -102,7 +99,9 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                 if (func.enableCMDParameter()) {
                     Class<?>[] types = method.getParameterTypes();
                     if (types.length > 1) {
-                        throw new IllegalArgumentException("this function couldn't enable CMDParameter,because the number of parameter of this function is not 1");
+                        throw new IllegalArgumentException("?(?*) couldn't enable CMDParameter,because the number of parameter of this function is not 1",
+                                method.getName(), Arrays.stream(method.getParameters())
+                                .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
                     }
                     valInjectorMap = new HashMap<>();
                     paramHelp = new StringBuilder();
@@ -110,7 +109,9 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                         CMDParameter cmd = f.getAnnotation(CMDParameter.class);
                         if (cmd == null) continue;
                         if (!cmd.value().startsWith("-")) {
-                            throw new java.lang.IllegalArgumentException("illegal parameter name,it should start with '-'");
+                            throw new IllegalArgumentException("illegal parameter name ? in ?(?*),it should start with '-'",
+                                    cmd.value(), method.getName(), Arrays.stream(method.getParameters())
+                                    .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
                         }
                         paramHelp.append(cmd.value()).append(" ".repeat(Math.max(20 - cmd.value().length(), 5))).append(cmd.helpText()).append("\n");
                         valInjectorMap.put(cmd.value(), new FunctionalMethod.ValInjector(f, cmd.value()));
@@ -119,13 +120,17 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                         CMDParameter cmd = m.getAnnotation(CMDParameter.class);
                         if (cmd == null) continue;
                         if (!cmd.value().startsWith("-")) {
-                            throw new java.lang.IllegalArgumentException("illegal parameter name,it should start with '-'");
+                            throw new IllegalArgumentException("illegal parameter name? in ?(?*),it should start with '-'",
+                                    cmd.value(), method.getName(), Arrays.stream(method.getParameters())
+                                    .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
                         }
                         paramHelp.append(cmd.value()).append(" ".repeat(Math.max(20 - cmd.value().length(), 5))).append(cmd.helpText()).append("\n");
                         valInjectorMap.put(cmd.value(), new FunctionalMethod.ValInjector(m, cmd.value()));
                     }
                     if (valInjectorMap.size() == 0) {
-                        throw new IllegalArgumentException("no CMDParameter annotation found in this function's parameter");
+                        throw new IllegalArgumentException("no CMDParameter annotation found in stander function's arg ?(?*)",
+                                method.getName(), Arrays.stream(method.getParameters())
+                                .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
                     }
                 }
                 String name = method.getName();
@@ -256,20 +261,4 @@ public class StanderEvaluationContext extends PureEvaluationContext {
             throw e;
         }
     }
-
-
-
-    // TODO: 2022/7/1 优化func
-    @Override
-    public boolean containsVariable(String name) {
-//        if (superContext != null) {
-//            if (name.startsWith("@"))
-//                return superContext.containsVariable(name);
-//            if (super.containsVariable(name)) return true;
-//            return super.containsVariable(name);
-//        }
-        return super.containsVariable(name);
-    }
-
-
 }

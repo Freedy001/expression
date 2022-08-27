@@ -1,6 +1,5 @@
 package com.freedy.expression.core;
 
-import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Functional;
 import lombok.Getter;
@@ -23,26 +22,17 @@ public class PureEvaluationContext implements EvaluationContext {
     protected final Map<String, Functional> funMap = new HashMap<>();
     protected Object root;
 
-    public PureEvaluationContext(Object root) {
-        this.root = root;
-    }
 
     @Override
     public Object setVariable(String name, Object variable) {
-        name = filterName(name);
-        if (name.equals("root")) {
-            setRoot(variable);
-        }
-        return variableMap.put(name, variable);
+        if (name.equals("root")) setRoot(variable);
+        return variableMap.put(filterName(name), variable);
     }
 
     @Override
     public Object getVariable(String name) {
-        name = filterName(name);
-        if (name.equals("root")) {
-            return getRoot();
-        }
-        return variableMap.get(name);
+        if (name.equals("root")) return getRoot();
+        return variableMap.get(filterName(name));
     }
 
     @Override
@@ -58,13 +48,8 @@ public class PureEvaluationContext implements EvaluationContext {
 
     @Override
     public Object removeVariable(String name) {
-        String filterName = filterName(name);
-        if (filterName.equals("root")) {
-            Object root = getRoot();
-            setRoot(null);
-            return root;
-        }
-        return variableMap.remove(filterName);
+        if (name.equals("root")) return setRoot(null);
+        return variableMap.remove(filterName(name));
     }
 
     @Override

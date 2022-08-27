@@ -125,7 +125,7 @@ public class StringUtils {
     }
 
     public static String getNotEmpty(String first, String second) {
-        return hasText(first) ? first : second;
+        return hasText(first) ? first : hasText(second) ? second : first != null ? first : second;
     }
 
 

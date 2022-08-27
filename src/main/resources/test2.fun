@@ -32,6 +32,6 @@ defClass('com.freedy.expression.stander.TestDefClass',@block{
 
 print(code('com.freedy.expression.stander.TestDefClass'));
 
-def test=new ('com.freedy.expression.stander.TestDefClass',12.2,'4234');
+def test=new ('com.freedy.expression.stander.TestDefClass',12.1,'4234');
 
 test.fun1(1,'2');

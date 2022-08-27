@@ -1,5 +1,7 @@
 package com.freedy.expression.stander.standerFunc;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.freedy.expression.stander.HttpObject;
 import com.freedy.expression.stander.HttpReqParam;
 import com.freedy.expression.stander.HttpResult;
@@ -7,6 +9,7 @@ import com.freedy.expression.utils.*;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.stander.CodeDeCompiler;
 import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.utils.Color;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,6 +23,9 @@ import lombok.Cleanup;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.lang.reflect.*;
 import java.nio.charset.Charset;
@@ -28,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -396,7 +403,7 @@ public class StanderUtils extends AbstractStanderFunc {
             System.out.println(Color.dRed("request timeout!"));
             return obj;
         }
-        if (res==null){
+        if (res == null) {
             System.out.println(Color.dRed("connect refuse!"));
             return obj;
         }
@@ -404,5 +411,16 @@ public class StanderUtils extends AbstractStanderFunc {
         return res;
     }
 
+    @ExpressionFunc(value = "resolve the given parameters as concrete objects")
+    public void clip(Object str) {
+        Toolkit.getDefaultToolkit()
+                .getSystemClipboard()
+                .setContents(new StringSelection(str.toString()), null);
+    }
+
+    @ExpressionFunc(value = "format to json")
+    public String ftj(Object o) {
+        return JSON.toJSONString(o, SerializerFeature.PrettyFormat);
+    }
 
 }

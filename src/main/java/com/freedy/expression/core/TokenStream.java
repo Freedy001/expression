@@ -2,7 +2,6 @@ package com.freedy.expression.core;
 
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
-import com.freedy.expression.stander.StanderTokenBlockSorter;
 import com.freedy.expression.token.*;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -43,7 +42,22 @@ public class TokenStream {
     @Getter
     protected final String expression;
     @Setter
-    private Function<List<List<Token>>, List<List<Token>>> sorter = new StanderTokenBlockSorter();
+    private Function<List<List<Token>>, List<List<Token>>> sorter = lists->{
+        List<List<Token>> funcList = new ArrayList<>();
+        List<List<Token>> normList = new ArrayList<>();
+        for (List<Token> stream : lists) {
+            if ((stream.size() == 1 && stream.get(0) instanceof DefToken def &&
+                    def != null && def.isFunc()) ||
+                    (stream.size() == 1 && stream.get(0) instanceof DirectAccessToken dir &&
+                            dir != null && "func".equals(dir.getMethodName()))) {
+                funcList.add(stream);
+            } else {
+                normList.add(stream);
+            }
+        }
+        funcList.addAll(normList);
+        return funcList;
+    };
     private EvaluationContext context;
 
 
@@ -163,7 +177,7 @@ public class TokenStream {
             if (doubleOps.contains(nOps)) {
                 token.setValue(nOps);
             } else {
-                if (nOps.length()==2&&Tokenizer.operationWithOutBracketSet.contains(nOps.charAt(0))&&nOps.charAt(1)=='-'){
+                if (nOps.length() == 2 && Tokenizer.operationWithOutBracketSet.contains(nOps.charAt(0)) && nOps.charAt(1) == '-') {
                     return false;
                 }
                 //区分a++ + 5
@@ -357,14 +371,19 @@ public class TokenStream {
         for (Token token : tokenList) {
             List<Token> originToken = token.getOriginToken();
             if (originToken != null) {
-                int lastCursor=currentCursor;
+                int lastCursor = currentCursor;
                 calculateOffset(originToken);
-                currentCursor=lastCursor;
+                currentCursor = lastCursor;
             }
             int[] index = findSubStrIndex(expression, token.getValue(), currentCursor);
-            assert index != null;
+            if (index == null) { // 没找到token位置可能因为方法代码被自动被抽取到代码段前方导致在当前坐标下无法找到相应token的便宜
+                index = findSubStrIndex(expression, token.getValue(), 0);
+                assert index != null;  // 如果这里为空 是一个严重的bug
+                currentCursor=Math.max(currentCursor,index[1]);
+            } else {
+                currentCursor = index[1];
+            }
             token.setOffset(index[0]);
-            currentCursor = index[1];
         }
     }
 

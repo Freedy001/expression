@@ -296,33 +296,37 @@ public class ExpressionSyntaxException extends RuntimeException {
 
     private int[][] findAllIndex(String str, List<SyntaxErr> errList) {
         List<int[]> result = new ArrayList<>();
-        for (SyntaxErr err : errList) {
-            //找到token的坐标   返回的结果数组的数量大于2表示匹配到多个值
-            int[] subStrIndex = findSubStrIndex(str, err.info, err.startIndex);
-            if (subStrIndex == null) {
-                result.add(null);
-                continue;
-            }
+        try {
+            for (SyntaxErr err : errList) {
+                //找到token的坐标   返回的结果数组的数量大于2表示匹配到多个值
+                int[] subStrIndex = findSubStrIndex(str, err.info, err.startIndex);
+                if (subStrIndex == null) {
+                    result.add(null);
+                    continue;
+                }
 
-            if (err.isTokenType()) {
-                List<String> subStrList = err.getRelevantToken().getErrStr();
-                if (subStrList != null && !subStrList.isEmpty()) {
-                    for (String sub : subStrList) {
-                        assert subStrIndex != null;
-                        subStrIndex = findSubStrIndex(err.info,
-                                StringUtils.isSurroundByQuote(sub) ? sub.substring(1, sub.length() - 1) : sub,
-                                subStrIndex[0]);
+                if (err.isTokenType()) {
+                    List<String> subStrList = err.getRelevantToken().getErrStr();
+                    if (subStrList != null && !subStrList.isEmpty()) {
+                        for (String sub : subStrList) {
+                            assert subStrIndex != null;
+                            subStrIndex = findSubStrIndex(err.info,
+                                    StringUtils.isSurroundByQuote(sub) ? sub.substring(1, sub.length() - 1) : sub,
+                                    subStrIndex[0]);
+                            result.add(subStrIndex);
+                        }
+                    } else {
                         result.add(subStrIndex);
                     }
+
+                    currentTokenIndex.put(err.relevantToken, subStrIndex);
                 } else {
                     result.add(subStrIndex);
                 }
 
-                currentTokenIndex.put(err.relevantToken, subStrIndex);
-            } else {
-                result.add(subStrIndex);
             }
-
+        } catch (Exception ig) {
+            ig.printStackTrace();
         }
         return result.toArray(int[][]::new);
     }
@@ -364,7 +368,7 @@ public class ExpressionSyntaxException extends RuntimeException {
                     }
                 }
                 if (chars[i] != subChars[j]) {
-                    i=start;
+                    i = start;
                     break;
                 } else {
                     if (j == subLen - 1) {

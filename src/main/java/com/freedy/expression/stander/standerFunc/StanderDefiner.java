@@ -136,14 +136,14 @@ public class StanderDefiner extends AbstractStanderFunc {
 
 
     @ExpressionFunc("find loadedClass")
-    public Set<Class<?>> loadedClass(String ...tip){
+    public Set<Class<?>> loadedClass(String tip){
         //noinspection unchecked
         List<Class<?>> extLoad = (List<Class<?>>) UNSAFE.getReference(APP_CLASSLOADER.getParent(), CLASS_OFFSET);
         //noinspection unchecked
         List<Class<?>> appLoad = (List<Class<?>>) UNSAFE.getReference(APP_CLASSLOADER, CLASS_OFFSET);
         //noinspection unchecked
         List<Class<?>> customer = (List<Class<?>>) UNSAFE.getReference(CustomStringJavaCompiler.getSelfClassLoader(), CLASS_OFFSET);
-        if (tip.length == 0 || StringUtils.isEmpty(tip[0])) {
+        if (StringUtils.isEmpty(tip)) {
             Set<Class<?>> result = new TreeSet<>(Comparator.comparing(Class::toString));
             result.addAll(extLoad);
             result.addAll(appLoad);
@@ -153,17 +153,17 @@ public class StanderDefiner extends AbstractStanderFunc {
 
         Set<Class<?>> result = new TreeSet<>(Comparator.comparing(Class::toString));
         for (Class<?> aClass : appLoad) {
-            if (aClass.getName().contains(tip[0])) {
+            if (aClass.getName().contains(tip)) {
                 result.add(aClass);
             }
         }
         for (Class<?> aClass : customer) {
-            if (aClass.getName().contains(tip[0])) {
+            if (aClass.getName().contains(tip)) {
                 result.add(aClass);
             }
         }
         for (Class<?> aClass : extLoad) {
-            if (aClass.getName().contains(tip[0])) {
+            if (aClass.getName().contains(tip)) {
                 result.add(aClass);
             }
         }

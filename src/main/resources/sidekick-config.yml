@@ -1,0 +1,7 @@
+sidekick:
+  apiKey: 409a12b4-923f-44ae-b774-b7054ed21371
+  agent:
+    application:
+      name: fun-script
+      stage: dev
+      version: 1.0.1

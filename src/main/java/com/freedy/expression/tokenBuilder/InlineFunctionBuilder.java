@@ -27,7 +27,7 @@ public class InlineFunctionBuilder extends Builder {
         directAccessToken.setMethodName(funcName);
         directAccessToken.setMethodArgsName(Arrays.stream(
                 StringUtils.splitWithoutQuote(matcher.group(2), ' ')
-        ).filter(StringUtils::hasText).map(s -> s.matches("^#(\\w+)") ? s : StringUtils.isSurroundByQuote(s) ? s : "'" + s + "'").toArray(String[]::new));
+        ).filter(StringUtils::hasText).map(s -> s.startsWith("#") ? s : StringUtils.isSurroundByQuote(s) ? s : "'" + s + "'").toArray(String[]::new));
         tokenStream.addToken(directAccessToken);
         return true;
     }

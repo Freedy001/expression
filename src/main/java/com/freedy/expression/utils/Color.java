@@ -25,6 +25,8 @@ public class Color {
 
     public static final String END = "\033[0;39m";
 
+    public void test(){}
+
     public static String red(Object str) {
         if (str == null) return null;
         return RED + str + END;

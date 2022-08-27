@@ -16,7 +16,7 @@ print('--------------------------------');
 #testArr.sort(lambda('o1','o2',@block{#o1-#o2}));
 print(#testArr);
 
-func('quickSort','arr','left','right',@block{
+def quickSort(arr,left,right){
     if(#left>=#right){return;};
     def midVal=#arr[#left];
     def l=#left;
@@ -35,4 +35,4 @@ func('quickSort','arr','left','right',@block{
     #r++;
     quickSort(#arr,#left,#l);
     quickSort(#arr,#r,#right);
-});
+};

@@ -1,5 +1,6 @@
 package com.freedy.expression.stander;
 
+import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.StringUtils;
 import lombok.*;
 import org.benf.cfr.reader.api.CfrDriver;
@@ -19,25 +20,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.freedy.expression.utils.Color.END;
+
 /**
  * @author Freedy
  * @date 2022/1/7 22:37
  */
 public class CodeDeCompiler {
-    @Setter
-    private static String KEYWORD = "\033[91m";
-    @Setter
-    private static String BIG_BRACKET = "\033[34m";
-    @Setter
-    private static String SMALL_BRACKET = "\033[36m";
-    @Setter
-    private static String ANNOTATION = "\033[93m";
-    @Setter
-    private static String NUMBER = "\033[94m";
-    @Setter
-    private static String STRING = "\033[32m";
-    @Setter
-    public static String END = "\033[0;39m";
+    private static final String KEYWORD = Color.D_RED;
+    private static final String BIG_BRACKET = Color.BLUE;
+    private static final String SMALL_BRACKET = Color.CYAN;
+    private static final String ANNOTATION = Color.D_YELLOW;
+    private static final String NUMBER = Color.D_BLUE;
+    private static final String STRING = Color.GREEN;
     public static final Set<Character> splitSet = Set.of(' ', '\n', '.', '<', '>', ';', '=', '(', ')', '{', '}');
     @Getter
     private static final Set<String> keywords = Set.of("abstract", "assert", "boolean", "break", "byte", "case", "catch",

@@ -8,9 +8,9 @@ func('getWinIp','originIp','originMask',@block{
     def joiner = new('StringJoiner','.');
     for(i:4){
         def res = T(Byte).toUnsignedInt(ip[i]) & T(Byte).toUnsignedInt(mask[i]);
-        print((i == 3 ? res + 1 : res));
+        //print((i == 3 ? res + 1 : res));
         joiner.add((i == 3 ? res + 1 : res) + '');
     };
 });
 
-getWinIp('172.27.215.84','255.255.240.0');
+getWinIp(arg1,arg2);

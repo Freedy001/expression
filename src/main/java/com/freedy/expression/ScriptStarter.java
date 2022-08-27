@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.freedy.expression.core.Expression;
 import com.freedy.expression.exception.IllegalArgumentException;
+import com.freedy.expression.log.LogRecorder;
 import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.*;
 import io.netty.bootstrap.Bootstrap;
@@ -35,6 +36,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -51,10 +54,11 @@ import java.util.stream.Collectors;
  */
 public class ScriptStarter {
 
-    public final static boolean JAR_ENV = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
     public final static Scanner SCANNER = new Scanner(System.in);
     public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
+    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("dev")).orElse("false"));
 
+    public static boolean JAR_ENV = false;
     public static LineReader READER;
     private static Terminal TERMINAL;
     private static LogRecorder LOG_RECORDER;
@@ -63,9 +67,9 @@ public class ScriptStarter {
     private static StanderEvaluationContext context = new StanderEvaluationContext();
     private static Channel pc;
 
-    public static void initializeCMD() {
+    private static void initializeCMD() {
         try {
-            LOG_RECORDER = new LogRecorder(System.out);
+            JAR_ENV = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
             TERMINAL = TerminalBuilder.terminal();
             TERMINAL.puts(InfoCmp.Capability.clear_screen);
             READER = LineReaderBuilder.builder().terminal(TERMINAL).completer((reader1, line, candidates) -> {
@@ -80,42 +84,25 @@ public class ScriptStarter {
                         return;
                     }
                     if (str.length == 1) {
-                        Set<Candidate> set = getDefaultTipCandidate(subLine.substring(0, str[0]), "");
+                        String varPrefix = subLine.substring(str[0], str[0] + 1);
+                        Set<Candidate> set = getDefaultTipCandidate(subLine.substring(0, str[0]), varPrefix.matches("[#$@]") ? varPrefix : "");
                         candidates.addAll(set);
                     } else {
                         String resultStr = subLine.substring(str[0], str[1]);
                         String baseStr = lineStr.substring(0, str[0]) + resultStr;
                         String[] varArr = resultStr.split("\\.");
-                        Object variable = context.getVariable(varArr[0]);
-                        if (variable == null) return;
-                        Class<?> varType = variable.getClass();
-                        int len = varArr.length;
-                        if (len == 1) {
-                            candidates.addAll(ReflectionUtils.getFieldsRecursion(varType).stream().map(field -> {
-                                String tip = baseStr + "." + field.getName() + suffix;
-                                return new Candidate(tip, tip, "variable", null, null, null, false, 0);
-                            }).collect(Collectors.toSet()));
-                            candidates.addAll(ReflectionUtils.getMethodsRecursion(varType).stream().map(method -> {
-                                int count = method.getParameterCount();
-                                String tip = baseStr + "." + method.getName() + "(" + ",".repeat(count <= 1 ? 0 : count - 1) + ")" + suffix;
-                                return new Candidate(tip, tip, "function", null, null, null, true, 1);
-                            }).collect(Collectors.toSet()));
-                            return;
+                        Matcher matcher = staticPattern.matcher(varArr[0]);
+                        if (matcher.find()) {
+                            String className = matcher.group(1).strip();
+                            try {
+                                injectTips(candidates, suffix, baseStr, varArr, context.findClass(className), true);
+                            } catch (ClassNotFoundException ignored) {
+                            }
+                        } else {
+                            Object variable = context.getVariable(varArr[0]);
+                            if (variable == null) return;
+                            injectTips(candidates, suffix, baseStr, varArr, variable.getClass(), false);
                         }
-                        for (int i = 1; i < len; i++) {
-                            Field field = ReflectionUtils.getFieldRecursion(varType, varArr[i]);
-                            if (field == null) return;
-                            varType = field.getType();
-                        }
-                        candidates.addAll(ReflectionUtils.getFieldsRecursion(varType).stream().map(field -> {
-                            String tip = baseStr + "." + field.getName() + suffix;
-                            return new Candidate(tip, tip, "variable", null, null, null, false, 0);
-                        }).collect(Collectors.toSet()));
-                        candidates.addAll(ReflectionUtils.getMethodsRecursion(varType).stream().map(method -> {
-                            int count = method.getParameterCount();
-                            String tip = baseStr + "." + method.getName() + "(" + ",".repeat(count <= 1 ? 0 : count - 1) + ")" + suffix;
-                            return new Candidate(tip, tip, "function", null, null, null, true, 1);
-                        }).collect(Collectors.toSet()));
                     }
                 }
             }).highlighter(new DefaultHighlighter()).parser(new DefaultParser().escapeChars(new char[]{})).build();
@@ -124,12 +111,36 @@ public class ScriptStarter {
         }
     }
 
+    private static void injectTips(List<Candidate> candidates, String suffix, String baseStr, String[] varArr, Class<?> varType, boolean staticType) {
+        int len = varArr.length;
+        for (int i = 1; i < len; i++) {
+            Field field = ReflectionUtils.getFieldRecursion(varType, varArr[i]);
+            if (field == null) return;
+            varType = field.getType();
+        }
+        doInjectTips(candidates, varType, baseStr, suffix, staticType);
+    }
 
-    private static Set<Candidate> getDefaultTipCandidate(String base, String suffix) {
-        Set<Candidate> set = context.getVariableMap().keySet().stream().map(var -> new Candidate(base + var + suffix, base + var + suffix, "_variable", null, null, null, false, 0)).collect(Collectors.toSet());
+    private static void doInjectTips(List<Candidate> candidates, Class<?> varType, String baseStr, String suffix, boolean staticType) {
+        candidates.addAll((staticType ? ReflectionUtils.getStaticFieldsRecursion(varType) : ReflectionUtils.getFieldsRecursion(varType)).stream().map(field -> {
+            String tip = baseStr + "." + field.getName() + suffix;
+            return new Candidate(tip, tip, "variable", null, null, null, false, 0);
+        }).collect(Collectors.toSet()));
+        candidates.addAll((staticType ? ReflectionUtils.getStaticMethodsRecursion(varType) : ReflectionUtils.getMethodsRecursion(varType)).stream().map(method -> {
+            int count = method.getParameterCount();
+            String tip = baseStr + "." + method.getName() + "(" + ",".repeat(count <= 1 ? 0 : count - 1) + ")" + suffix;
+            return new Candidate(tip, tip, "function", null, null, null, true, 1);
+        }).collect(Collectors.toSet()));
+    }
+
+    private final static Pattern staticPattern = Pattern.compile("^T *?\\((.*?)\\)$");
+
+
+    private static Set<Candidate> getDefaultTipCandidate(String base, String varPrefix) {
+        Set<Candidate> set = context.getVariableMap().keySet().stream().map(var -> new Candidate(base + varPrefix + var, base + varPrefix + var, "_variable", null, null, null, false, 0)).collect(Collectors.toSet());
         context.getFunMap().forEach((k, v) -> {
             int params = v.getClass().getDeclaredMethods()[0].getParameterCount();
-            String funStr = base + k + "(" + ",".repeat(params <= 1 ? 0 : params - 1) + ")" + suffix;
+            String funStr = base + k + "(" + ",".repeat(params <= 1 ? 0 : params - 1) + ")";
             set.add(new Candidate(funStr, funStr, "function", null, null, null, true, 1));
         });
         for (Field field : ReflectionUtils.getFieldsRecursion(context.getRoot().getClass())) {
@@ -157,10 +168,10 @@ public class ScriptStarter {
         int lastDot = -1;
         int i = len - 1;
         for (; i >= 0; i--) {
-            if (chars[i] == ')' || chars[i] == ',') {
+            if (chars[i] == ')') {
                 return null;
             }
-            if (chars[i] == '(' || chars[i] == '=') {
+            if (chars[i] == '(' || chars[i] == '=' || chars[i] == ',') {
                 break;
             }
             if (chars[i] == '.' && lastDot == -1) {
@@ -174,10 +185,14 @@ public class ScriptStarter {
     public static void main(String[] args) throws Exception {
         parseParameters(args);
         initializeCMD();
+        startLocalCmd();
+    }
+
+    public static void startLocalCmd() {
         collectScript(completeScript -> {
             evaluate(completeScript);
             return true;
-        }, ScriptStarter::resolveLocalCmd);
+        }, ScriptStarter::resolveLocalCmd, "fun> ");
     }
 
     private static void parseParameters(String[] args) throws Exception {
@@ -235,7 +250,13 @@ public class ScriptStarter {
                 return false;
             }
             if (line.endsWith(".fun")) {
-                main(new String[]{line});
+                @Cleanup FileInputStream scriptContent = null;
+                try {
+                    scriptContent = new FileInputStream(line);
+                } catch (Exception e) {
+                    System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
+                }
+                if (scriptContent != null) evaluate(new String(scriptContent.readAllBytes(), CHARSET));
                 return false;
             } else if (line.equals("::shutdown")) {
                 if (pc != null) {
@@ -261,22 +282,26 @@ public class ScriptStarter {
         return true;
     }
 
-
     /**
      * 启动命令行，用于收集用户输入的脚本。
      *
      * @param completeScriptAct 当用户输入了一个完整的脚本后会回调该lambda。返回true表示继续收集，返回false表示结束收集并退出循环。
      * @param lineInterceptor   每行输入的拦截器，返回true表示继续执行，返回false表示跳过该行输入。
      */
-    private static void collectScript(Function<String, Boolean> completeScriptAct, Function<String, Boolean> lineInterceptor) {
+    private static void collectScript(Function<String, Boolean> completeScriptAct, Function<String, Boolean> lineInterceptor, String placeholder) {
         StringBuilder builder = new StringBuilder();
         int blockMode = 0;
         int bracketMode = 0;
         boolean quote = false;
         boolean bigQuote = false;
         while (true) {
-            String line = stdin(blockMode != 0 || bracketMode != 0 || quote || bigQuote ? "...  " : "fun> ");
+            String line = stdin(blockMode != 0 || bracketMode != 0 || quote || bigQuote ? "...  " : placeholder);
             if (!lineInterceptor.apply(line)) {
+                builder = new StringBuilder();
+                blockMode = 0;
+                bracketMode = 0;
+                quote = false;
+                bigQuote = false;
                 continue;
             }
             builder.append(line).append("\n");
@@ -357,7 +382,7 @@ public class ScriptStarter {
                 System.out.println(toString(value, true));
             }
         } catch (Throwable e) {
-            if (!JAR_ENV) {
+            if (DEV) {
                 e.printStackTrace();
                 return;
             }
@@ -377,8 +402,11 @@ public class ScriptStarter {
     }
 
     private static String toString(Object o, boolean pretty) {
-        return o.toString().equals(o.getClass().getName() + "@" + Integer.toHexString(o.hashCode())) ?
-                pretty ? JSON.toJSONString(o, SerializerFeature.PrettyFormat) : JSON.toJSONString(o) : o.toString();
+        Object format = context.getVariable("jsonFormat");
+        if (format instanceof Boolean f && f) {
+            return o.toString().equals(o.getClass().getName() + "@" + Integer.toHexString(o.hashCode())) ?
+                    pretty ? JSON.toJSONString(o, SerializerFeature.PrettyFormat) : JSON.toJSONString(o) : o.toString();
+        } else return o.toString();
     }
 
     private static void startRemote() {
@@ -402,6 +430,7 @@ public class ScriptStarter {
 
     @SneakyThrows
     public static void startRemote(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
+        LOG_RECORDER = new LogRecorder();
         byte[] auth = EncryptUtil.stringToMD5(md5AuthStr).getBytes(StandardCharsets.UTF_8);
         pc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
@@ -435,6 +464,11 @@ public class ScriptStarter {
                                         LOG_RECORDER.getLog();
                                         evaluate(s, "\033[95mempty\033[0;39m");
                                         ctx.channel().writeAndFlush(LOG_RECORDER.getLog());
+                                    }
+
+                                    @Override
+                                    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                                        System.out.println(new PlaceholderParser("client[?] disconnected!", ctx.channel().remoteAddress()));
                                     }
 
                                     @Override
@@ -494,7 +528,7 @@ public class ScriptStarter {
             }
             bytes = EncryptUtil.stringToMD5(stdin("auth-key:")).getBytes(StandardCharsets.UTF_8);
         }
-        boolean[] shutDown = new boolean[]{false};
+        boolean[] shutDown = new boolean[]{true};
         String finalAesKey = aesKey;
         Channel channel = new Bootstrap()
                 .group(new NioEventLoopGroup())
@@ -522,7 +556,7 @@ public class ScriptStarter {
                                     public void channelInactive(ChannelHandlerContext ctx) {
                                         synchronized (channel) {
                                             System.out.println("\033[92mserver stopped!\033[0;39m");
-                                            shutDown[0] = true;
+                                            shutDown[0] = false;
                                             channel.notifyAll();
                                         }
                                     }
@@ -559,7 +593,7 @@ public class ScriptStarter {
                     return false;
                 }
                 return true;
-            });
+            }, "fun@" + ip + ":" + port + "> ");
         }
     }
 

@@ -21,7 +21,7 @@ public class StanderNumericOps extends AbstractStanderFunc {
     @ExpressionFunc("generate a list start with param 1 and end with param 2 and each interval param 3")
     public List<Integer> stepRange(Integer a, Integer b, Integer step) {
         ArrayList<Integer> list = new ArrayList<>();
-        for (int i = a; i <= b; i += step) {
+        for (int i = a; i < b; i += step) {
             list.add(i);
         }
         return list;

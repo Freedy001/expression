@@ -14,8 +14,8 @@ import java.util.regex.Pattern;
  */
 public class DefBuilder extends Builder {
 
-    private static final Pattern defValPattern = Pattern.compile("^def +(\\w+)");
-    private static final Pattern defFuncPattern = Pattern.compile("^def +(\\w+) *\\((\\w+|(?:\\w+,)+\\w+)?\\) *\\{(.*)}");
+    private static final Pattern defValPattern = Pattern.compile("^def +([a-zA-Z_]\\w*)");
+    private static final Pattern defFuncPattern = Pattern.compile("^def +([a-zA-Z_]\\w*) *\\((\\w+|(?:\\w+,)+\\w+)?\\) *\\{(.*)}");
 
 
     @Override

@@ -143,7 +143,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
             } else {
                 Object[] args = getMethodArgs(step.getUnsteadyArgList());
                 try {
-                    origin = ReflectionUtils.invokeMethod(originType, origin, step.getMethodName(), args);
+                    origin = ReflectionUtils.invokeMethod(step.getMethodName(), originType, origin, args);
                 } catch (Throwable e) {
                     if (Optional.ofNullable(step.getRelevantOps()).orElse("").trim().equals("?")) {
                         return null;
@@ -213,6 +213,10 @@ public abstract sealed class ClassToken extends Token implements Assignable
                 }
                 matcher = numeric.matcher(methodArg);
                 if (matcher.matches()) {
+                    if (methodArg.contains(".")) {
+                        args.add(new UnsteadyArg(UnsteadyArg.NUMERIC, Double.parseDouble(methodArg)));
+                        continue;
+                    }
                     if (new BigDecimal(methodArg).compareTo(new BigDecimal(Integer.MAX_VALUE)) > 0) {
                         if (new BigDecimal(methodArg).compareTo(new BigDecimal(Long.MAX_VALUE)) > 0) {
                             throw new EvaluateException("? exceed the max of the Long ?", methodArg, Long.MAX_VALUE);
@@ -282,9 +286,9 @@ public abstract sealed class ClassToken extends Token implements Assignable
             if (Collection.class.isAssignableFrom(type)) {
                 try {
                     if (List.class.isAssignableFrom(type)) {
-                        baseObj = ReflectionUtils.invokeMethod(baseObj, "get", expression.getValue(Integer.class));
+                        baseObj = ReflectionUtils.invokeMethod("get", baseObj, expression.getValue(Integer.class));
                     } else {
-                        Object[] arr = (Object[]) ReflectionUtils.invokeMethod(baseObj, "toArray");
+                        Object[] arr = (Object[]) ReflectionUtils.invokeMethod("toArray", baseObj);
                         baseObj = arr[expression.getValue(Integer.class)];
                     }
                 } catch (Throwable e) {
@@ -292,7 +296,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
                 }
             } else if (Map.class.isAssignableFrom(type)) {
                 try {
-                    baseObj = ReflectionUtils.invokeMethod(baseObj, "get", expression.getValue());
+                    baseObj = ReflectionUtils.invokeMethod("get", baseObj, expression.getValue());
                 } catch (Throwable e) {
                     throw new EvaluateException("?", e).errorPart(ops);
                 }

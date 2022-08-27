@@ -3,7 +3,6 @@ package com.freedy.expression.token;
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.stander.Func;
-import com.freedy.expression.stander.standerFunc.StanderDefiner;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,9 +25,13 @@ public final class DefToken extends Token implements Assignable {
         super("def", value);
     }
 
+    public boolean isFunc(){
+        return methodName!=null;
+    }
+
     @Override
     public void assignFrom(Token assignment) {
-        if (methodName!=null){
+        if (isFunc()){
             throw new EvaluateException("function can't be assign!");
         }
         if (context.containsVariable(variableName)){
@@ -39,7 +42,7 @@ public final class DefToken extends Token implements Assignable {
 
     @Override
     protected Object doCalculate(Class<?> desiredType) {
-        if (methodName==null) return checkAndSelfOps(context.getVariable(variableName));
+        if (!isFunc()) return checkAndSelfOps(context.getVariable(variableName));
         Func func = new Func(context);
         func.setFuncName(methodName);
         func.setArgName(methodArgs);

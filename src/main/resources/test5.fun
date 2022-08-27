@@ -62,4 +62,4 @@ print(maxPlus1(12,20));
 
 
 
-if(a>b){return {a+1};}else{	return {b+1};};
+if(a>b){return a+1;}else{return b+1;};
