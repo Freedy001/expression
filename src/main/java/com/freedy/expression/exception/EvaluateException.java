@@ -12,7 +12,7 @@ import java.util.List;
  * @author Freedy
  * @date 2021/12/16 9:39
  */
-public class EvaluateException extends FException {
+public class EvaluateException extends FunBaseException {
 
     @Getter
     private final List<Token> tokenList=new ArrayList<>();

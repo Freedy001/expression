@@ -1,10 +1,8 @@
 package com.freedy.expression.core;
 
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.exception.ExpressionSyntaxException;
-import com.freedy.expression.exception.FunScriptRuntimeException;
+import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.token.*;
-import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +10,6 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Stack;
 
 import static com.freedy.expression.token.Token.ANY_TYPE;
@@ -30,7 +27,6 @@ public class Expression {
     @Getter
     @Setter
     private EvaluationContext defaultContext;
-    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("dev")).orElse("false"));
 
     public Expression(TokenStream stream) {
         setTokenStream(stream);
@@ -90,40 +86,17 @@ public class Expression {
 
 
     private Object evaluate(Class<?> desired, EvaluationContext context) {
-        try {
-            if (stream == null) throw new IllegalArgumentException("please set a tokenStream");
-            if (context == null)
-                throw new IllegalArgumentException("please set a context or call getValue method with context param");
-            int size = stream.blockSize();
-            Object[] result = new Object[1];
-            stream.forEachStream(context, (i, suffixList) -> {
-                result[0] = doEvaluate(suffixList, i == size - 1 ? desired : ANY_TYPE);
-            });
-            return result[0];
-        } catch (Throwable e) {
-            if (DEV) {
-                throw e;
-            }
-            StringBuilder builder = new StringBuilder();
-            builder.append("\n")
-                    .append(e.getMessage().strip())
-                    .append("\n")
-                    .append(Color.red("----------------------------------------------------------------------------------------------"))
-                    .append("\n")
-                    .append(Color.red("cause:"))
-                    .append("\n");
-            Throwable cause = e.getCause();
-            while (cause != null) {
-                builder.append("\t")
-                        .append(Color.red(cause.getClass().getSimpleName()))
-                        .append(" -> ")
-                        .append(cause.getMessage())
-                        .append("\n");
-                cause = cause.getCause();
-            }
-            throw new FunScriptRuntimeException(builder.toString());
-        }
+        if (stream == null) throw new IllegalArgumentException("please set a tokenStream");
+        if (context == null)
+            throw new IllegalArgumentException("please set a context or call getValue method with context param");
+        int size = stream.blockSize();
+        Object[] result = new Object[1];
+        stream.forEachStream(context, (i, suffixList) -> {
+            result[0] = doEvaluate(suffixList, i == size - 1 ? desired : ANY_TYPE);
+        });
+        return result[0];
     }
+
 
     private Object doEvaluate(List<Token> suffixTokenList, Class<?> desired) {
         Stack<Token> varStack = new Stack<>();
@@ -138,13 +111,13 @@ public class Expression {
                     continue;
                 }
                 varStack.push(token);
-            } catch (ExpressionSyntaxException e) {
+            } catch (FunRuntimeException e) {
                 e.clearErrorStr().buildToken(token);
-                ExpressionSyntaxException.thrThis(expression, e);
+                FunRuntimeException.thrThis(expression, e);
             } catch (EvaluateException e) {
-                ExpressionSyntaxException.thrEvaluateException(e, expression, token);
+                FunRuntimeException.thrEvaluateException(e, expression, token);
             } catch (Throwable e) {
-                ExpressionSyntaxException.tokenThr(e, expression, token);
+                FunRuntimeException.tokenThr(e, expression, token);
             }
         }
         if (varStack.size() == 1) {
@@ -152,18 +125,18 @@ public class Expression {
             Object result = null;
             try {
                 result = token.calculateResult(desired);
-            } catch (ExpressionSyntaxException e) {
+            } catch (FunRuntimeException e) {
                 e.clearErrorStr().buildToken(token);
-                ExpressionSyntaxException.thrThis(expression, e);
+                FunRuntimeException.thrThis(expression, e);
             } catch (EvaluateException e) {
-                ExpressionSyntaxException.thrEvaluateException(e, expression, token);
+                FunRuntimeException.thrEvaluateException(e, expression, token);
             } catch (Throwable e) {
-                ExpressionSyntaxException.tokenThr(e, expression, token);
+                FunRuntimeException.tokenThr(e, expression, token);
             }
             return result;
         }
         if (varStack.size() == 0) return null;
-        ExpressionSyntaxException.tokenThr(expression, list.toArray(Token[]::new));
+        FunRuntimeException.tokenThr(expression, list.toArray(Token[]::new));
         throw new IllegalArgumentException("unreachable statement");
     }
 

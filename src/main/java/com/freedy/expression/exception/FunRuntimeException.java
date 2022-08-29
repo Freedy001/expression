@@ -1,6 +1,7 @@
 package com.freedy.expression.exception;
 
 import com.freedy.expression.token.Token;
+import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Data;
@@ -8,16 +9,19 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Freedy
  * @date 2021/12/15 9:49
  */
-public class ExpressionSyntaxException extends RuntimeException {
+public class FunRuntimeException extends RuntimeException {
 
     public static void buildThr(Class<?> builderClass, String msg, String expression, StackTraceElement[] ele, Token... tokens) {
-        new ExpressionSyntaxException(expression)
+        new FunRuntimeException(expression)
                 .buildMsg(msg)
                 .buildToken(tokens)
                 .buildCause(new BuildFailException(ele, builderClass == null ? "no builder detected" : builderClass.getSimpleName() + ":build failed!"))
@@ -28,7 +32,7 @@ public class ExpressionSyntaxException extends RuntimeException {
 
 
     public static void tokenThr(String msg, String expression, Token... tokens) {
-        new ExpressionSyntaxException(expression)
+        new FunRuntimeException(expression)
                 .buildMsg(msg)
                 .buildToken(tokens)
                 .buildConsoleErrorMsg()
@@ -38,7 +42,7 @@ public class ExpressionSyntaxException extends RuntimeException {
 
 
     public static void tokenThr(String expression, Token... tokens) {
-        new ExpressionSyntaxException(expression)
+        new FunRuntimeException(expression)
                 .buildToken(tokens)
                 .buildConsoleErrorMsg()
                 .buildStackTrace()
@@ -47,7 +51,7 @@ public class ExpressionSyntaxException extends RuntimeException {
 
 
     public static void tokenThr(Throwable cause, String expression, Token... tokens) {
-        new ExpressionSyntaxException(expression)
+        new FunRuntimeException(expression)
                 .buildCause(cause)
                 .buildToken(tokens)
                 .buildConsoleErrorMsg()
@@ -59,7 +63,7 @@ public class ExpressionSyntaxException extends RuntimeException {
     public static void thrEvaluateException(EvaluateException e, String expression, Token token) {
         List<Token> tokens = e.getTokenList();
         String sub = e.getExpression();
-        new ExpressionSyntaxException(StringUtils.hasText(sub) ? sub : expression)
+        new FunRuntimeException(StringUtils.hasText(sub) ? sub : expression)
                 .buildCause(e)
                 .buildToken(tokens.isEmpty() ? new Token[]{token} : tokens.toArray(Token[]::new))
                 .buildConsoleErrorMsg()
@@ -69,7 +73,7 @@ public class ExpressionSyntaxException extends RuntimeException {
 
 
     public static void thr(String expression, String... syntaxErrSubStr) {
-        new ExpressionSyntaxException(expression)
+        new FunRuntimeException(expression)
                 .buildErrorStr(syntaxErrSubStr)
                 .buildConsoleErrorMsg()
                 .thr();
@@ -77,15 +81,15 @@ public class ExpressionSyntaxException extends RuntimeException {
 
 
     public static void thrWithMsg(String msg, String expression, String... syntaxErrSubStr) {
-        new ExpressionSyntaxException(expression)
+        new FunRuntimeException(expression)
                 .buildErrorStr(syntaxErrSubStr)
                 .buildMsg(msg)
                 .buildConsoleErrorMsg()
                 .thr();
     }
 
-    public static void thrThis(String expression, ExpressionSyntaxException thisException) {
-        new ExpressionSyntaxException(expression)
+    public static void thrThis(String expression, FunRuntimeException thisException) {
+        new FunRuntimeException(expression)
                 .buildErrorStr(thisException.getSyntaxErrStr().toArray(String[]::new))
                 .buildToken(thisException.getLayer().toArray(Token[]::new))
                 .buildMsg("sub expression err")
@@ -94,7 +98,7 @@ public class ExpressionSyntaxException extends RuntimeException {
                 .thr();
     }
 
-    private final String expression;
+    private String expression;
     private String msg;
     private Throwable cause;
     @Getter
@@ -105,11 +109,15 @@ public class ExpressionSyntaxException extends RuntimeException {
     //每一层相应token对应的坐标
     private Map<Token, int[]> currentTokenIndex = new TreeMap<>(Comparator.comparing(Token::getOffset));
 
-    public ExpressionSyntaxException(String expression) {
+    public FunRuntimeException(String expression) {
         this.expression = expression;
     }
 
-    public ExpressionSyntaxException buildToken(Token... tokens) {
+    public FunRuntimeException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
+
+    public FunRuntimeException buildToken(Token... tokens) {
         if (tokens == null || tokens.length == 0) {
             return this;
         }
@@ -135,7 +143,7 @@ public class ExpressionSyntaxException extends RuntimeException {
     }
 
 
-    public ExpressionSyntaxException buildErrorStr(String... str) {
+    public FunRuntimeException buildErrorStr(String... str) {
         if (str == null) return this;
         for (String s : str) {
             if (StringUtils.hasText(s)) {
@@ -145,22 +153,22 @@ public class ExpressionSyntaxException extends RuntimeException {
         return this;
     }
 
-    public ExpressionSyntaxException clearErrorStr() {
+    public FunRuntimeException clearErrorStr() {
         syntaxErrStr.clear();
         return this;
     }
 
-    public ExpressionSyntaxException buildMsg(String msg) {
+    public FunRuntimeException buildMsg(String msg) {
         this.msg = msg;
         return this;
     }
 
-    public ExpressionSyntaxException buildCause(Throwable cause) {
+    public FunRuntimeException buildCause(Throwable cause) {
         this.cause = cause;
         return this;
     }
 
-    public ExpressionSyntaxException buildConsoleErrorMsg() {
+    public FunRuntimeException buildConsoleErrorMsg() {
         List<SyntaxErr> syntaxErrSubStr = new ArrayList<>(layer.stream().map(SyntaxErr::new).toList());
         syntaxErrSubStr.addAll((syntaxErrStr.stream().map(SyntaxErr::new).toList()));
 
@@ -198,7 +206,7 @@ public class ExpressionSyntaxException extends RuntimeException {
         return this;
     }
 
-    public ExpressionSyntaxException buildStackTrace() {
+    public FunRuntimeException buildStackTrace() {
         if (placeholder == null) {
             throw new java.lang.UnsupportedOperationException("please call buildConsoleErrorMsg() first!");
         }
@@ -227,18 +235,7 @@ public class ExpressionSyntaxException extends RuntimeException {
 
     @SneakyThrows
     public void thr() {
-        Class<Throwable> aClass = Throwable.class;
-        //设置msg
-        Field exceptionMsg;
-        exceptionMsg = aClass.getDeclaredField("detailMessage");
-        exceptionMsg.setAccessible(true);
-        exceptionMsg.set(this, placeholder == null ? "white blank" : placeholder.toString());
-        if (cause != null) {
-            Field causeField = aClass.getDeclaredField("cause");
-            causeField.setAccessible(true);
-            causeField.set(this, cause);
-        }
-        throw this;
+        throw new FunRuntimeException(placeholder == null ? "white blank" : placeholder.toString(), cause);
     }
 
     private Map<Token, int[]> getNextLayer() {
@@ -403,5 +400,82 @@ public class ExpressionSyntaxException extends RuntimeException {
         }
     }
 
+    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("funScriptDevMode")).orElse("false"));
+
+    /*--add-opens
+        java.base/java.lang=ALL-UNNAMED
+    --add-opens
+        java.base/java.util=ALL-UNNAMED
+    --add-opens
+        java.base/jdk.internal.misc=ALL-UNNAMED
+    --add-opens
+        java.base/jdk.internal.loader=ALL-UNNAMED
+    --add-opens
+        java.base/java.security=ALL-UNNAMED
+    --add-opens
+        java.base/java.util.stream=ALL-UNNAMED*/
+    @Override
+    public void printStackTrace() {
+        if (DEV) {
+            super.printStackTrace();
+            return;
+        }
+        Throwable thr = this;
+        String option = null;
+        while (thr != null) {
+            if (thr instanceof InaccessibleObjectException) {
+                option = getOption(thr, "module (.*?) does not", "not \"opens (.*?)\" to");
+            }
+            if (thr instanceof IllegalAccessError) {
+                option = getOption(thr, "\\(in module (.*?)\\)", "does not export (.*?) to");
+            }
+            thr = thr.getCause();
+        }
+        if (option != null) {
+            System.out.println(Color.dRed("""
+                    stuck due to InaccessibleObjectException,please add a vm option then restart and retry!
+                    vm option -> """ + option));
+            return;
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append(this.getClass().getName())
+                .append(":")
+                .append("\n")
+                .append(this.getMessage().strip())
+                .append("\n")
+                .append(Color.red("----------------------------------------------------------------------------------------------"))
+                .append("\n")
+                .append(Color.red("cause:"))
+                .append("\n");
+        Throwable cause = this.getCause();
+        while (cause != null) {
+            builder.append("\t")
+                    .append(Color.red(cause.getClass().getSimpleName()))
+                    .append(" -> ")
+                    .append(cause.getMessage())
+                    .append("\n");
+            cause = cause.getCause();
+        }
+        System.out.println(builder);
+    }
+
+    private static String getOption(Throwable thr, String moduleReg, String packReg) {
+        String option = null;
+        String message = thr.getMessage();
+        Matcher matcher = Pattern.compile(moduleReg).matcher(message);
+        String module = null;
+        if (matcher.find()) {
+            module = matcher.group(1).strip();
+        }
+        matcher = Pattern.compile(packReg).matcher(message);
+        String pack = null;
+        if (matcher.find()) {
+            pack = matcher.group(1).strip();
+        }
+        if (module != null && pack != null) {
+            option = "--add-opens " + module + "/" + pack + "=ALL-UNNAMED";
+        }
+        return option;
+    }
 
 }

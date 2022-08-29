@@ -18,14 +18,12 @@ import java.util.*;
  * @date 2022/3/6 15:28
  */
 public class StanderDefiner extends AbstractStanderFunc {
-    private final static Unsafe UNSAFE = (Unsafe) ReflectionUtils.getter(Unsafe.class, null, "theUnsafe");
-    private final static ClassLoader APP_CLASSLOADER = StanderEvaluationContext.class.getClassLoader();
-    private final static long CLASS_OFFSET = UNSAFE.objectFieldOffset(ClassLoader.class, "classes");
-    public final static Map<String, TokenStream> CLASS_MAP=new HashMap<>();
+    public final static Map<String, TokenStream> CLASS_MAP = new HashMap<>();
+
 
     @ExpressionFunc("def a class")
-    public Class<?> defClass(String cName, TokenStream tokenStreams){
-        CLASS_MAP.put(cName,tokenStreams);
+    public Class<?> defClass(String cName, TokenStream tokenStreams) {
+        CLASS_MAP.put(cName, tokenStreams);
         int lastDot = cName.lastIndexOf(".");
         String packageName = cName.substring(0, lastDot);
         String className = cName.substring(lastDot + 1);
@@ -44,19 +42,19 @@ public class StanderDefiner extends AbstractStanderFunc {
         importSet.add("import com.freedy.expression.function.Functional;");
         importSet.add("import java.util.Map;");
         StringBuilder code = new StringBuilder(new PlaceholderParser("""
-                    \tprivate Map<String, Object> varMap;
-                    \tprivate Map<String, Functional> funcMap;
-                    \tprivate boolean hasInit=false;
-                                        
-                    \t{
-                    \t    ExpressionClassEvaluateContext ownContext = new ExpressionClassEvaluateContext(this);
-                    \t    new Expression(com.freedy.expression.stander.standerFunc.StanderDefiner.CLASS_MAP.get("?"), ownContext).getValue();
-                    \t    funcMap = ownContext.getFunMap();
-                    \t    varMap = ownContext.getVariableMap();
-                    \t    hasInit=true;
-                    \t}
-                    \t//below are user defined
-                    """, cName).toString());
+                \tprivate Map<String, Object> varMap;
+                \tprivate Map<String, Functional> funcMap;
+                \tprivate boolean hasInit=false;
+                                    
+                \t{
+                \t    ExpressionClassEvaluateContext ownContext = new ExpressionClassEvaluateContext(this);
+                \t    new Expression(com.freedy.expression.stander.standerFunc.StanderDefiner.CLASS_MAP.get("?"), ownContext).getValue();
+                \t    funcMap = ownContext.getFunMap();
+                \t    varMap = ownContext.getVariableMap();
+                \t    hasInit=true;
+                \t}
+                \t//below are user defined
+                """, cName).toString());
         varMap.forEach((k, v) -> {
             String fieldType;
             if (v == null) {
@@ -66,57 +64,57 @@ public class StanderDefiner extends AbstractStanderFunc {
                 Class<?> typeClass = v.getClass();
                 String simpleName = getSimpleName(importSet, typeClass);
                 code.append(new PlaceholderParser("""
-                            \tprivate ? ? = (?) varMap.get("?");
-                            """, simpleName, k, simpleName, k));
+                        \tprivate ? ? = (?) varMap.get("?");
+                        """, simpleName, k, simpleName, k));
                 fieldType = simpleName;
             }
             String firstUpperName = k.substring(0, 1).toUpperCase(Locale.ROOT) + k.substring(1);
             code.append(new PlaceholderParser("""
-                        \tpublic ? get?() {
-                        \t    return ?;
-                        \t}
-                                                
-                        """, fieldType, firstUpperName, k));
+                    \tpublic ? get?() {
+                    \t    return ?;
+                    \t}
+                                            
+                    """, fieldType, firstUpperName, k));
             code.append(new PlaceholderParser("""
-                        \tpublic void set?(? ?) {
-                        \t    if(hasInit){
-                        \t        varMap.put("?", ?);
-                        \t    }
-                        \t    this.? = ?;
-                        \t}
-                                                
-                        """, firstUpperName, fieldType, k, k, k, k, k));
+                    \tpublic void set?(? ?) {
+                    \t    if(hasInit){
+                    \t        varMap.put("?", ?);
+                    \t    }
+                    \t    this.? = ?;
+                    \t}
+                                            
+                    """, firstUpperName, fieldType, k, k, k, k, k));
         });
         funcMap.forEach((k, v) -> {
             if (v instanceof Func func) {
                 Object[] args = Arrays.stream(func.getArgName()).map(argName -> "Object " + argName).toArray();
                 if (k.equals("construct")) {
                     code.append(new PlaceholderParser("""
-                                \tpublic ?(?*) {
-                                \t    ((Func) funcMap.get("?")).apply(?*);
-                                \t}
-                                                        
-                                """, className, args, k, func.getArgName()).ifEmptyFillWith("").serialParamsSplit(","));
+                            \tpublic ?(?*) {
+                            \t    ((Func) funcMap.get("?")).apply(?*);
+                            \t}
+                                                    
+                            """, className, args, k, func.getArgName()).ifEmptyFillWith("").serialParamsSplit(","));
                 } else {
                     code.append(new PlaceholderParser("""
-                                \tpublic Object ?(?*) {
-                                \t    return ((Func) funcMap.get("?")).apply(?*);
-                                \t}
-                                                        
-                                """, k, args, k, func.getArgName()).ifEmptyFillWith("").serialParamsSplit(","));
+                            \tpublic Object ?(?*) {
+                            \t    return ((Func) funcMap.get("?")).apply(?*);
+                            \t}
+                                                    
+                            """, k, args, k, func.getArgName()).ifEmptyFillWith("").serialParamsSplit(","));
                 }
             }
         });
 
         CustomStringJavaCompiler compiler = new CustomStringJavaCompiler(new PlaceholderParser("""
-                    package ?;
-                                        
-                    ?*
-                                        
-                    public class ?{
-                    ?
-                    }
-                    """, packageName, importSet, className, code).serialParamsSplit("\n").toString());
+                package ?;
+                                    
+                ?*
+                                    
+                public class ?{
+                ?
+                }
+                """, packageName, importSet, className, code).serialParamsSplit("\n").toString());
         if (!compiler.compiler()) {
             System.err.println("compile failed！");
             System.err.println(compiler.getCompilerMessage());
@@ -125,7 +123,7 @@ public class StanderDefiner extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("compile java code")
-    public Class<?> compileJava(String code){
+    public Class<?> compileJava(String code) {
         CustomStringJavaCompiler compiler = new CustomStringJavaCompiler(code);
         if (!compiler.compiler()) {
             System.err.println("compile failed！");
@@ -136,13 +134,16 @@ public class StanderDefiner extends AbstractStanderFunc {
 
 
     @ExpressionFunc("find loadedClass")
-    public Set<Class<?>> loadedClass(String tip){
+    public Set<Class<?>> loadedClass(String tip) {
+        Unsafe unsafe = (Unsafe) ReflectionUtils.getter(Unsafe.class, null, "theUnsafe");
+        long classOffset = unsafe.objectFieldOffset(ClassLoader.class, "classes");
+        ClassLoader classLoader = StanderEvaluationContext.class.getClassLoader();
         //noinspection unchecked
-        List<Class<?>> extLoad = (List<Class<?>>) UNSAFE.getReference(APP_CLASSLOADER.getParent(), CLASS_OFFSET);
+        List<Class<?>> extLoad = (List<Class<?>>) unsafe.getReference(classLoader.getParent(), classOffset);
         //noinspection unchecked
-        List<Class<?>> appLoad = (List<Class<?>>) UNSAFE.getReference(APP_CLASSLOADER, CLASS_OFFSET);
+        List<Class<?>> appLoad = (List<Class<?>>) unsafe.getReference(classLoader, classOffset);
         //noinspection unchecked
-        List<Class<?>> customer = (List<Class<?>>) UNSAFE.getReference(CustomStringJavaCompiler.getSelfClassLoader(), CLASS_OFFSET);
+        List<Class<?>> customer = (List<Class<?>>) unsafe.getReference(CustomStringJavaCompiler.getSelfClassLoader(), classOffset);
         if (StringUtils.isEmpty(tip)) {
             Set<Class<?>> result = new TreeSet<>(Comparator.comparing(Class::toString));
             result.addAll(extLoad);
@@ -171,10 +172,9 @@ public class StanderDefiner extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("find loadedClass")
-    public boolean isDef(String varName){
+    public boolean isDef(String varName) {
         return context.containsVariable(varName);
     }
-
 
 
     private String getSimpleName(Set<String> importCode, Class<?> returnType) {

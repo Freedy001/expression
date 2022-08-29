@@ -2,7 +2,7 @@ package com.freedy.expression.spring;
 
 import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.core.Expression;
-import com.freedy.expression.core.PureEvaluationContext;
+import com.freedy.expression.stander.StanderEvaluationContext;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,17 +18,19 @@ import org.springframework.stereotype.Component;
 @Component
 @EnableConfigurationProperties(ScriptStarterProperties.class)
 public class FunScriptAutoconfiguration implements ApplicationContextAware, SmartLifecycle {
-    private final Expression ex=new Expression(new PureEvaluationContext());
+    private Expression ex = new Expression(new StanderEvaluationContext());
+
     {
         ex.getValue("def log=T(org.slf4j.LoggerFactory).getLogger(T(Class).forName('com.freedy.expression.spring.FunScriptAutoconfiguration'));");
     }
+
     @Autowired
     private ScriptStarterProperties properties;
     private ApplicationContext ctx;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        ctx=applicationContext;
+        ctx = applicationContext;
     }
 
 
@@ -61,11 +63,12 @@ public class FunScriptAutoconfiguration implements ApplicationContextAware, Smar
 
         if (properties.isEnableRemote()) {
             new Thread(() -> {
-                ex.getValue("log.info('start remote fun script engine on thread {}-{}', Thread.currentThread().getName(), Thread.currentThread().getId());");
+                ex.getValue("log.info('start remote fun script engine on thread {}-{}', T(Thread).currentThread().getName(), T(Thread).currentThread().getId());");
                 startServer(properties.getPort(), properties.getAesKey(), properties.getAuth());
             }, "remote-fun-thread").start();
         }
         start = true;
+        ex = null; //gc
     }
 
     private void startServer(int port, String key, String auth) {

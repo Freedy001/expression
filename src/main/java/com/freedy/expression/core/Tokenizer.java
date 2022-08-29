@@ -1,6 +1,6 @@
 package com.freedy.expression.core;
 
-import com.freedy.expression.exception.ExpressionSyntaxException;
+import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.token.ErrMsgToken;
 import com.freedy.expression.token.OpsToken;
 import com.freedy.expression.token.TernaryToken;
@@ -95,8 +95,8 @@ public class Tokenizer {
     private static void parseExpression(String expression, TokenStream tokenStream) {
 
         if (StringUtils.isEmpty(expression)) return;
-        if (expression.startsWith("return")){
-            buildToken(tokenStream,expression);
+        if (expression.startsWith("return")) {
+            buildToken(tokenStream, expression);
             return;
         }
 
@@ -186,7 +186,7 @@ public class Tokenizer {
                     int index = StringUtils.preNonempty(chars, i);
                     if (index == -1 || (operationWithOutBracketSet.contains(chars[index]))) {
                         if (StringUtils.hasText(token)) {
-                            ExpressionSyntaxException.thr(expression, token + "$(");
+                            FunRuntimeException.thr(expression, token + "$(");
                         }
                         tokenStream.addBracket(true);
                     } else {
@@ -229,10 +229,10 @@ public class Tokenizer {
         }
 
         if (leftBracketCount != 0) {
-            ExpressionSyntaxException.thrWithMsg("[] are not paired", expression, "[", "]");
+            FunRuntimeException.thrWithMsg("[] are not paired", expression, "[", "]");
         }
         if (leftBracesCount != 0) {
-            ExpressionSyntaxException.thrWithMsg("{} are not paired", expression, "{", "}");
+            FunRuntimeException.thrWithMsg("{} are not paired", expression, "{", "}");
         }
 
         //build last
@@ -284,7 +284,7 @@ public class Tokenizer {
             end = expression.length();
         }
         if (divide == -2) {
-            ExpressionSyntaxException.thrWithMsg("illegal ternary expression", expression, "?$" + expression.substring(i[0] + 1));
+            FunRuntimeException.thrWithMsg("illegal ternary expression", expression, "?$" + expression.substring(i[0] + 1));
         }
         if (divide == -1) {
             //没有检测到三元表达式
@@ -294,8 +294,8 @@ public class Tokenizer {
         try {
             token.setTrueTokenStream(doGetTokenStream(expression.substring(i[0] + 1, divide)));
             token.setFalseTokenStream(doGetTokenStream(expression.substring(divide + 1, end)));
-        } catch (ExpressionSyntaxException e) {
-            new ExpressionSyntaxException(expression)
+        } catch (FunRuntimeException e) {
+            new FunRuntimeException(expression)
                     .buildErrorStr(e.getSyntaxErrStr().toArray(new String[0]))
                     .buildToken(e.getLayer().toArray(new Token[0]))
                     .buildMsg("sub expression err")
@@ -331,8 +331,8 @@ public class Tokenizer {
                 break err;
             }
             return;
-        } catch (ExpressionSyntaxException e) {
-            new ExpressionSyntaxException(tokenStream.getExpression())
+        } catch (FunRuntimeException e) {
+            new FunRuntimeException(tokenStream.getExpression())
                     .buildErrorStr(e.getSyntaxErrStr().toArray(new String[0]))
                     .buildToken(e.getLayer().toArray(new Token[0]))
                     .buildMsg("sub expression err")
@@ -340,7 +340,7 @@ public class Tokenizer {
                     .buildConsoleErrorMsg()
                     .thr();
         } catch (Exception e) {
-            new ExpressionSyntaxException(tokenStream.getExpression())
+            new FunRuntimeException(tokenStream.getExpression())
                     .buildErrorStr(token)
                     .buildCause(e)
                     .buildConsoleErrorMsg()
@@ -348,7 +348,7 @@ public class Tokenizer {
                     .thr();
         }
         if (holder.isErr()) {
-            ExpressionSyntaxException.buildThr(errBuilder, holder.getMsg(), tokenStream.getExpression(), holder.getElements(), new ErrMsgToken(token).errStr(holder.getErrPart()));
+            FunRuntimeException.buildThr(errBuilder, holder.getMsg(), tokenStream.getExpression(), holder.getElements(), new ErrMsgToken(token).errStr(holder.getErrPart()));
         }
     }
 

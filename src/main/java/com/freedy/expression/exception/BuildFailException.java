@@ -6,7 +6,7 @@ import com.freedy.expression.utils.ReflectionUtils;
  * @author Freedy
  * @date 2022/1/25 12:29
  */
-public class BuildFailException extends RuntimeException {
+public class BuildFailException extends FunBaseException {
 
     public BuildFailException(StackTraceElement[] elements,String msg) {
         super(msg);

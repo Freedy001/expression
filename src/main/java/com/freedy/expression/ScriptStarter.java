@@ -253,11 +253,7 @@ public class ScriptStarter {
                 System.out.println(toString(value, true));
             }
         } catch (Throwable e) {
-            if (e.getStackTrace() == null) {
-                System.out.println("\n" + e.getMessage());
-            } else {
-                e.printStackTrace();
-            }
+            e.printStackTrace();
         }
     }
 

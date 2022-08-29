@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Freedy
@@ -18,14 +19,15 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 public class PureEvaluationContext implements EvaluationContext {
-    protected final Map<String, Object> variableMap = new HashMap<>();
-    protected final Map<String, Functional> funMap = new HashMap<>();
+    protected final Map<String, Object> variableMap = new ConcurrentHashMap<>();
+    protected final Map<String, Functional> funMap = new ConcurrentHashMap<>();
     protected Object root;
 
 
     @Override
     public Object setVariable(String name, Object variable) {
         if (name.equals("root")) setRoot(variable);
+        if (variable==null) return variableMap.remove(name);
         return variableMap.put(filterName(name), variable);
     }
 

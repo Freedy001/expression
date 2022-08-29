@@ -8,7 +8,7 @@ import lombok.Getter;
  * @date 2021/12/23 21:11
  */
 @Getter
-public class StopSignal extends RuntimeException {
+public class StopSignal extends FunBaseException {
 
     String signal;
     TokenStream returnStream;

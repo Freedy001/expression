@@ -1,7 +1,7 @@
 package com.freedy.expression.core;
 
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.exception.ExpressionSyntaxException;
+import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.token.*;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -90,7 +90,7 @@ public class TokenStream {
             bracketsPares++;
         } else {
             if (bracketsPares == 0) {
-                ExpressionSyntaxException.thrWithMsg("() are not paired!", expression, (infixExpression.size() == 0 ? "" : infixExpression.get(infixExpression.size() - 1).getValue()) + "@)");
+                FunRuntimeException.thrWithMsg("() are not paired!", expression, (infixExpression.size() == 0 ? "" : infixExpression.get(infixExpression.size() - 1).getValue()) + "@)");
             }
             infixExpression.add(new OpsToken(")"));
             bracketsPares--;
@@ -201,7 +201,7 @@ public class TokenStream {
                     return true;
                 }
                 if (!permitOps.contains(nOps)) {
-                    ExpressionSyntaxException.thr(expression, nOps);
+                    FunRuntimeException.thr(expression, nOps);
                     return true;
                 }
                 infixExpression.add(new OpsToken(currentOps + ""));
@@ -254,7 +254,7 @@ public class TokenStream {
                         }
                         continue;
                     } catch (EmptyStackException e) {
-                        ExpressionSyntaxException.tokenThr("brackets are not paired!", expression, token);
+                        FunRuntimeException.tokenThr("brackets are not paired!", expression, token);
                     }
                 }
                 while (true) {
@@ -289,7 +289,7 @@ public class TokenStream {
                 if (token.isType("operation") && singleOps.contains(ops)) {
                     if ("!".equals(ops)) {
                         if (i + 1 >= infixExpression.size()) {
-                            ExpressionSyntaxException.tokenThr(expression, token);
+                            FunRuntimeException.tokenThr(expression, token);
                         }
                         Token nextToken = infixExpression.get(i + 1);
                         if (nextToken.isType("operation")) {
@@ -304,7 +304,7 @@ public class TokenStream {
                                     subExp.append(inner.getValue());
                                 }
                                 if (leftBreaker != 0) {
-                                    ExpressionSyntaxException.tokenThr("brackets are not paired!", expression, nextToken);
+                                    FunRuntimeException.tokenThr("brackets are not paired!", expression, nextToken);
                                 }
                                 TokenStream stream = new TokenStream(subExp.toString());
                                 StreamWrapperToken wrapperToken = new StreamWrapperToken(stream);
@@ -317,7 +317,7 @@ public class TokenStream {
                                 infixExpression.set(i, wrapperToken);
                                 continue;
                             } else {  //其他操作 直接报错
-                                ExpressionSyntaxException.tokenThr(expression, token, nextToken);
+                                FunRuntimeException.tokenThr(expression, token, nextToken);
                             }
                         }
                         nextToken.setNotFlag(true);
@@ -333,7 +333,7 @@ public class TokenStream {
                         }
                         if (preToken == null || preToken.isType("operation")) {
                             if (nextToken == null) {
-                                ExpressionSyntaxException.tokenThr(expression, token);
+                                FunRuntimeException.tokenThr(expression, token);
                             }
                             assert nextToken != null;
                             nextToken.setOriginToken(token, nextToken);
@@ -356,9 +356,9 @@ public class TokenStream {
                     }
                 }
             } catch (EvaluateException e) {
-                ExpressionSyntaxException.thrEvaluateException(e, expression, token);
+                FunRuntimeException.thrEvaluateException(e, expression, token);
             } catch (Exception e) {
-                ExpressionSyntaxException.tokenThr(e, expression, token);
+                FunRuntimeException.tokenThr(e, expression, token);
             }
         }
 

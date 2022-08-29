@@ -408,9 +408,7 @@ try_catch(newInterface('com.freedy.expression.function.Runnable','run',@block{
 输出
 
 ```shell
-com.freedy.expression.exception.ExpressionSyntaxException: 
-
-:)BigInteger divide by zero at:
+com.freedy.expression.exception.FunRuntimeExceptionBigInteger divide by zero at:
     10/0;
       ^
 ```

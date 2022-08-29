@@ -1,7 +1,6 @@
 package com.freedy.expression.utils;
 
 
-import com.freedy.expression.exception.FInitException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.LambdaAdapter;
 import lombok.SneakyThrows;
@@ -434,8 +433,7 @@ public class ReflectionUtils {
             case "java.util.Queue" -> {
                 return new ArrayDeque<>();
             }
-            default ->
-                    throw new FInitException("unsupported type for type ?,please change a supported(List,Set,Queue) type");
+            default -> throw new UnsupportedOperationException("unsupported type for type ?,please change a supported(List,Set,Queue) type");
         }
     }
 

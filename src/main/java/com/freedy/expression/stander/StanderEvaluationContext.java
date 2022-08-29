@@ -17,6 +17,7 @@ import lombok.SneakyThrows;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -32,7 +33,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     /**
      * import信息可以简化表达式中全类名的书写
      */
-    private final HashMap<String, String> importMap = new HashMap<>();
+    private final Map<String, String> importMap = new ConcurrentHashMap<>();
     /**
      * 当前路径
      */

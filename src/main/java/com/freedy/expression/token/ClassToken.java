@@ -4,7 +4,7 @@ import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.Expression;
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.exception.ExpressionSyntaxException;
+import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.utils.ReflectionUtils;
@@ -228,7 +228,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
                     continue;
                 }
                 args.add(new UnsteadyArg(UnsteadyArg.TOKEN_STREAM, Tokenizer.getTokenStream(methodArg)));
-            } catch (ExpressionSyntaxException e) {
+            } catch (FunRuntimeException e) {
                 throw e;
             } catch (Throwable e) {
                 throw new EvaluateException("get method args ? failed,because ?", methodArg, e).errToken(this.errStr(methodArg));

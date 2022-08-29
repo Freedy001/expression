@@ -1,13 +1,12 @@
 package com.freedy.expression.stander.standerFunc;
 
+import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.ExpressionFunc;
-import com.freedy.expression.core.Tokenizer;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
 import java.io.FileInputStream;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -39,7 +38,7 @@ public class StanderImport extends AbstractStanderFunc {
 
     @ExpressionFunc
     public void clearImport(String ...name){
-        HashMap<String, String> importMap = context.getImportMap();
+        Map<String, String> importMap = context.getImportMap();
         for (String s : name) {
             if (!s.matches("\\w+|(?:\\w+\\.)+(?:\\*|\\w+)")) {
                 throw new IllegalArgumentException("illegal package name ?", s);

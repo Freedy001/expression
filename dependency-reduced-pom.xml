@@ -26,14 +26,6 @@
     <url>git:https://github.com/Freedy001/expression.git</url>
   </scm>
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/java</directory>
-      </resource>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-    </resources>
     <plugins>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
