@@ -2,7 +2,9 @@ package com.freedy.expression.core;
 
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.ExpressionSyntaxException;
+import com.freedy.expression.exception.FunScriptRuntimeException;
 import com.freedy.expression.token.*;
+import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +12,7 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Stack;
 
 import static com.freedy.expression.token.Token.ANY_TYPE;
@@ -27,26 +30,15 @@ public class Expression {
     @Getter
     @Setter
     private EvaluationContext defaultContext;
-
-    public Expression(String expression) {
-        this.stream = Tokenizer.getTokenStream(expression);
-        this.expression = expression;
-    }
-
-    public Expression(String expression, EvaluationContext defaultContext) {
-        this(expression);
-        this.defaultContext = defaultContext;
-    }
+    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("dev")).orElse("false"));
 
     public Expression(TokenStream stream) {
-        this.stream = stream;
-        this.expression = stream.getExpression();
+        setTokenStream(stream);
     }
 
 
     public Expression(TokenStream stream, EvaluationContext defaultContext) {
-        this.stream = stream;
-        this.expression = stream.getExpression();
+        setTokenStream(stream);
         this.defaultContext = defaultContext;
     }
 
@@ -76,17 +68,61 @@ public class Expression {
         return desiredResultType.cast(evaluate(desiredResultType, context));
     }
 
+    public Object getValue(String expr) {
+        setTokenStream(Tokenizer.getTokenStream(expr));
+        return getValue();
+    }
+
+    public <T> T getValue(String expr, Class<T> desiredResultType) {
+        setTokenStream(Tokenizer.getTokenStream(expr));
+        return getValue(desiredResultType);
+    }
+
+    public Object getValue(String expr, EvaluationContext context) {
+        setTokenStream(Tokenizer.getTokenStream(expr));
+        return getValue(context);
+    }
+
+    public <T> T getValue(String expr, EvaluationContext context, Class<T> desiredResultType) {
+        setTokenStream(Tokenizer.getTokenStream(expr));
+        return getValue(context, desiredResultType);
+    }
+
 
     private Object evaluate(Class<?> desired, EvaluationContext context) {
-        if (stream == null) throw new IllegalArgumentException("please set a tokenStream");
-        if (context == null)
-            throw new IllegalArgumentException("please set a context or call getValue method with context param");
-        int size = stream.blockSize();
-        Object[] result = new Object[1];
-        stream.forEachStream(context, (i, suffixList) -> {
-            result[0] = doEvaluate(suffixList, i == size - 1 ? desired : ANY_TYPE);
-        });
-        return result[0];
+        try {
+            if (stream == null) throw new IllegalArgumentException("please set a tokenStream");
+            if (context == null)
+                throw new IllegalArgumentException("please set a context or call getValue method with context param");
+            int size = stream.blockSize();
+            Object[] result = new Object[1];
+            stream.forEachStream(context, (i, suffixList) -> {
+                result[0] = doEvaluate(suffixList, i == size - 1 ? desired : ANY_TYPE);
+            });
+            return result[0];
+        } catch (Throwable e) {
+            if (DEV) {
+                throw e;
+            }
+            StringBuilder builder = new StringBuilder();
+            builder.append("\n")
+                    .append(e.getMessage().strip())
+                    .append("\n")
+                    .append(Color.red("----------------------------------------------------------------------------------------------"))
+                    .append("\n")
+                    .append(Color.red("cause:"))
+                    .append("\n");
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                builder.append("\t")
+                        .append(Color.red(cause.getClass().getSimpleName()))
+                        .append(" -> ")
+                        .append(cause.getMessage())
+                        .append("\n");
+                cause = cause.getCause();
+            }
+            throw new FunScriptRuntimeException(builder.toString());
+        }
     }
 
     private Object doEvaluate(List<Token> suffixTokenList, Class<?> desired) {

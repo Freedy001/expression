@@ -55,20 +55,20 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.22</version>
+            <version>1.18.24</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.79</version>
+            <version>1.2.83</version>
         </dependency>
 
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.72.Final</version>
+            <version>4.1.77.Final</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.benf/cfr -->
@@ -92,24 +92,55 @@
             <version>5.10.0</version>
         </dependency>
 
+<!--        <dependency>-->
+<!--            <groupId>org.ow2.asm</groupId>-->
+<!--            <artifactId>asm</artifactId>-->
+<!--            <version>9.3</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>org.ow2.asm</groupId>-->
+<!--            <artifactId>asm-commons</artifactId>-->
+<!--            <version>9.3</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>org.ow2.asm</groupId>-->
+<!--            <artifactId>asm-util</artifactId>-->
+<!--            <version>9.3</version>-->
+<!--        </dependency>-->
+
         <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm</artifactId>
-            <version>9.3</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>2.2.13.RELEASE</version>
+            <optional>true</optional>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>jakarta.annotation</groupId>
+                    <artifactId>jakarta.annotation-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>springframework</groupId>
+                    <artifactId>spring-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-commons</artifactId>
-            <version>9.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-util</artifactId>
-            <version>9.3</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <version>2.2.13.RELEASE</version>
+            <optional>true</optional>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
+
 
     
     <build>

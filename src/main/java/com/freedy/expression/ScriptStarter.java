@@ -6,7 +6,10 @@ import com.freedy.expression.core.Expression;
 import com.freedy.expression.jline.*;
 import com.freedy.expression.log.LogRecorder;
 import com.freedy.expression.stander.StanderEvaluationContext;
-import com.freedy.expression.utils.*;
+import com.freedy.expression.utils.Color;
+import com.freedy.expression.utils.EncryptUtil;
+import com.freedy.expression.utils.PlaceholderParser;
+import com.freedy.expression.utils.ReflectionUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -18,11 +21,8 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 import lombok.*;
 import org.jline.reader.Candidate;
-import org.jline.reader.ParsedLine;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,8 +55,7 @@ public class ScriptStarter {
     private static JlineSuggestion suggestion = new LocalJlineSuggestion(context);
     public final static Scanner scanner = new Scanner(System.in);
     public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
-    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("dev")).orElse("false"));
-
+    private final static Expression ex = new Expression();
 
     public static void main(String[] args) throws Exception {
         parseParameters(args);
@@ -215,12 +214,8 @@ public class ScriptStarter {
                 continue;
             }
             if (blockMode == 0 && bracketMode == 0 && !quote && !bigQuote) {
-                try {
-                    if (!completeScriptAct.apply(builder.toString())) {
-                        return;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+                if (!completeScriptAct.apply(builder.toString())) {
+                    return;
                 }
                 builder = new StringBuilder();
             }
@@ -233,7 +228,7 @@ public class ScriptStarter {
 
     private static void evaluate(String completeScript, String nullValTips) {
         try {
-            Object value = new Expression(completeScript).getValue(context);
+            Object value = ex.getValue(completeScript, context);
             context.setVariable("_lastReturn", value);
             if (value == null) {
                 System.out.println(nullValTips);
@@ -258,17 +253,10 @@ public class ScriptStarter {
                 System.out.println(toString(value, true));
             }
         } catch (Throwable e) {
-            if (DEV) {
+            if (e.getStackTrace() == null) {
+                System.out.println("\n" + e.getMessage());
+            } else {
                 e.printStackTrace();
-                return;
-            }
-            System.out.println(e.getMessage().strip());
-            Throwable cause = e.getCause();
-            System.out.println("\033[31m----------------------------------------------------------------------------------------------");
-            System.out.println("cause:\033[0;39m");
-            while (cause != null) {
-                System.out.println("\t\033[31m" + cause.getClass().getSimpleName() + "\033[0;39m -> " + cause.getMessage());
-                cause = cause.getCause();
             }
         }
     }
@@ -369,11 +357,11 @@ public class ScriptStarter {
     }
 
     private static boolean checkSuggestion() {
-        if (suggestion instanceof LocalJlineSuggestion l){
-            if (l.getContext()!=context){
+        if (suggestion instanceof LocalJlineSuggestion l) {
+            if (l.getContext() != context) {
                 l.setContext(context);
             }
-        }else {
+        } else {
             System.out.println(Color.dRed("wrong suggestion type!"));
             return true;
         }

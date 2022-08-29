@@ -518,7 +518,7 @@ public abstract sealed class Token implements Comparable
                 if (j != length) {
                     //找到闭合区间
                     builder.append(str, lastSplit, i);
-                    builder.append(new Expression(str.substring(i + 2, j)).getValue(context));
+                    builder.append(new Expression(context).getValue(str.substring(i + 2, j)));
                     lastSplit = j + 1;
                     i = j + 1;
                 }
