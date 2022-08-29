@@ -3,7 +3,7 @@ package com.freedy.expression;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.freedy.expression.core.Expression;
-import com.freedy.expression.exception.IllegalArgumentException;
+import com.freedy.expression.jline.*;
 import com.freedy.expression.log.LogRecorder;
 import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.*;
@@ -15,30 +15,22 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import lombok.*;
 import org.jline.reader.Candidate;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.impl.DefaultHighlighter;
-import org.jline.reader.impl.DefaultParser;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp;
+import org.jline.reader.ParsedLine;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * 用于以命令行的方式启动,直接运行会启动用于运行脚本的命令行。 <br/>
@@ -54,137 +46,21 @@ import java.util.stream.Collectors;
  */
 public class ScriptStarter {
 
-    public final static Scanner SCANNER = new Scanner(System.in);
-    public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
-    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("dev")).orElse("false"));
-
-    public static boolean JAR_ENV = false;
-    public static LineReader READER;
-    private static Terminal TERMINAL;
-    private static LogRecorder LOG_RECORDER;
+    public static boolean isJlineMode = false;
+    private static Channel pc;
     @Setter
     @Getter
+    // TODO: 2022/8/29 启动检查
     private static StanderEvaluationContext context = new StanderEvaluationContext();
-    private static Channel pc;
-
-    private static void initializeCMD() {
-        try {
-            JAR_ENV = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
-            TERMINAL = TerminalBuilder.terminal();
-            TERMINAL.puts(InfoCmp.Capability.clear_screen);
-            READER = LineReaderBuilder.builder().terminal(TERMINAL).completer((reader1, line, candidates) -> {
-                String lineStr = line.word();
-                if (StringUtils.isEmpty(lineStr)) {
-                    candidates.addAll(getDefaultTipCandidate("", ""));
-                } else {
-                    String subLine = lineStr.substring(0, line.wordCursor());
-                    String suffix = lineStr.substring(line.wordCursor());
-                    int[] str = findEvaluateStr(subLine);
-                    if (str == null) {
-                        return;
-                    }
-                    if (str.length == 1) {
-                        String varPrefix = subLine.substring(str[0], str[0] + 1);
-                        Set<Candidate> set = getDefaultTipCandidate(subLine.substring(0, str[0]), varPrefix.matches("[#$@]") ? varPrefix : "");
-                        candidates.addAll(set);
-                    } else {
-                        String resultStr = subLine.substring(str[0], str[1]);
-                        String baseStr = lineStr.substring(0, str[0]) + resultStr;
-                        String[] varArr = resultStr.split("\\.");
-                        Matcher matcher = staticPattern.matcher(varArr[0]);
-                        if (matcher.find()) {
-                            String className = matcher.group(1).strip();
-                            try {
-                                injectTips(candidates, suffix, baseStr, varArr, context.findClass(className), true);
-                            } catch (ClassNotFoundException ignored) {
-                            }
-                        } else {
-                            Object variable = context.getVariable(varArr[0]);
-                            if (variable == null) return;
-                            injectTips(candidates, suffix, baseStr, varArr, variable.getClass(), false);
-                        }
-                    }
-                }
-            }).highlighter(new DefaultHighlighter()).parser(new DefaultParser().escapeChars(new char[]{})).build();
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    private static void injectTips(List<Candidate> candidates, String suffix, String baseStr, String[] varArr, Class<?> varType, boolean staticType) {
-        int len = varArr.length;
-        for (int i = 1; i < len; i++) {
-            Field field = ReflectionUtils.getFieldRecursion(varType, varArr[i]);
-            if (field == null) return;
-            varType = field.getType();
-        }
-        doInjectTips(candidates, varType, baseStr, suffix, staticType);
-    }
-
-    private static void doInjectTips(List<Candidate> candidates, Class<?> varType, String baseStr, String suffix, boolean staticType) {
-        candidates.addAll((staticType ? ReflectionUtils.getStaticFieldsRecursion(varType) : ReflectionUtils.getFieldsRecursion(varType)).stream().map(field -> {
-            String tip = baseStr + "." + field.getName() + suffix;
-            return new Candidate(tip, tip, "variable", null, null, null, false, 0);
-        }).collect(Collectors.toSet()));
-        candidates.addAll((staticType ? ReflectionUtils.getStaticMethodsRecursion(varType) : ReflectionUtils.getMethodsRecursion(varType)).stream().map(method -> {
-            int count = method.getParameterCount();
-            String tip = baseStr + "." + method.getName() + "(" + ",".repeat(count <= 1 ? 0 : count - 1) + ")" + suffix;
-            return new Candidate(tip, tip, "function", null, null, null, true, 1);
-        }).collect(Collectors.toSet()));
-    }
-
-    private final static Pattern staticPattern = Pattern.compile("^T *?\\((.*?)\\)$");
-
-
-    private static Set<Candidate> getDefaultTipCandidate(String base, String varPrefix) {
-        Set<Candidate> set = context.getVariableMap().keySet().stream().map(var -> new Candidate(base + varPrefix + var, base + varPrefix + var, "_variable", null, null, null, false, 0)).collect(Collectors.toSet());
-        context.getFunMap().forEach((k, v) -> {
-            int params = v.getClass().getDeclaredMethods()[0].getParameterCount();
-            String funStr = base + k + "(" + ",".repeat(params <= 1 ? 0 : params - 1) + ")";
-            set.add(new Candidate(funStr, funStr, "function", null, null, null, true, 1));
-        });
-        for (Field field : ReflectionUtils.getFieldsRecursion(context.getRoot().getClass())) {
-            set.add(new Candidate(field.getName(), field.getName(), "root", null, null, null, false, 0));
-        }
-        set.addAll(List.of(
-                new Candidate("for()", "for", "keyword", null, null, null, false, 0),
-                new Candidate("if()", "if", "keyword", null, null, null, false, 0),
-                new Candidate("def", "def", "keyword", null, null, null, false, 0),
-                new Candidate("T()", "T()", "keyword", null, null, null, false, 0),
-                new Candidate("[]", "[]", "keyword", null, null, null, false, 0),
-                new Candidate("{}", "{}", "keyword", null, null, null, false, 0),
-                new Candidate("@block{", "@block{", "keyword", null, null, null, false, 0),
-                new Candidate("continue;", "continue", "keyword", null, null, null, false, 0),
-                new Candidate("break;", "break", "keyword", null, null, null, false, 0),
-                new Candidate("return;", "return", "keyword", null, null, null, false, 0)
-        ));
-        return set;
-    }
-
-
-    private static int[] findEvaluateStr(String line) {
-        char[] chars = line.toCharArray();
-        int len = chars.length;
-        int lastDot = -1;
-        int i = len - 1;
-        for (; i >= 0; i--) {
-            if (chars[i] == ')') {
-                return null;
-            }
-            if (chars[i] == '(' || chars[i] == '=' || chars[i] == ',') {
-                break;
-            }
-            if (chars[i] == '.' && lastDot == -1) {
-                lastDot = i;
-            }
-        }
-        return lastDot == -1 ? new int[]{i + 1} : new int[]{i + 1, lastDot};
-    }
+    private static JlineSuggestion suggestion = new LocalJlineSuggestion(context);
+    public final static Scanner scanner = new Scanner(System.in);
+    public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
+    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("dev")).orElse("false"));
 
 
     public static void main(String[] args) throws Exception {
         parseParameters(args);
-        initializeCMD();
+        isJlineMode = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
         startLocalCmd();
     }
 
@@ -245,8 +121,8 @@ public class ScriptStarter {
 
     private static boolean resolveLocalCmd(String line) {
         try {
-            if (line.equals("cls") && JAR_ENV) {
-                TERMINAL.puts(InfoCmp.Capability.clear_screen);
+            if (line.equals("cls") && isJlineMode) {
+                suggestion.clearScreen();
                 return false;
             }
             if (line.endsWith(".fun")) {
@@ -430,7 +306,8 @@ public class ScriptStarter {
 
     @SneakyThrows
     public static void startRemote(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
-        LOG_RECORDER = new LogRecorder();
+        LogRecorder LOG_RECORDER = new LogRecorder();
+        if (checkSuggestion()) return;
         byte[] auth = EncryptUtil.stringToMD5(md5AuthStr).getBytes(StandardCharsets.UTF_8);
         pc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
@@ -443,8 +320,8 @@ public class ScriptStarter {
                                 new LengthFieldPrepender(4),
                                 new AuthenticAndEncrypt(aesKey, auth),
                                 new AuthenticAndDecrypt(aesKey, auth),
-                                new StringEncoder(),
-                                new StringDecoder(),
+                                new ObjectEncoder(),
+                                new ObjectDecoder(ClassResolvers.cacheDisabled(ScriptStarter.class.getClassLoader())),
                                 new SimpleChannelInboundHandler<String>() {
 
                                     @Override
@@ -476,11 +353,31 @@ public class ScriptStarter {
                                         cause.printStackTrace();
                                         ctx.channel().writeAndFlush(cause.getMessage());
                                     }
+                                }, new SimpleChannelInboundHandler<SuggestionMetadata>() {
+                                    @Override
+                                    protected void channelRead0(ChannelHandlerContext ctx, SuggestionMetadata msg) throws Exception {
+                                        if (msg == null) return;
+                                        ArrayList<Candidate> list = new ArrayList<>();
+                                        suggestion.suggest(null, msg, list);
+                                        ctx.channel().writeAndFlush(list.stream().map(ca -> ReflectionUtils.copyReference(ca, SerializableCandidate.class)).toList());
+                                    }
                                 }
                         );
                     }
                 }).bind(port).sync().channel();
         System.out.println("\033[95mserver start success on port" + port + "\033[0;39m");
+    }
+
+    private static boolean checkSuggestion() {
+        if (suggestion instanceof LocalJlineSuggestion l){
+            if (l.getContext()!=context){
+                l.setContext(context);
+            }
+        }else {
+            System.out.println(Color.dRed("wrong suggestion type!"));
+            return true;
+        }
+        return false;
     }
 
     //127.0.0.1:21;abcdsawerfsasxcs;asdasdas
@@ -541,8 +438,8 @@ public class ScriptStarter {
                                 new LengthFieldPrepender(4),
                                 new AuthenticAndEncrypt(finalAesKey, bytes),
                                 new AuthenticAndDecrypt(finalAesKey, bytes),
-                                new StringEncoder(),
-                                new StringDecoder(),
+                                new ObjectEncoder(),
+                                new ObjectDecoder(ClassResolvers.cacheDisabled(ScriptStarter.class.getClassLoader())),
                                 new SimpleChannelInboundHandler<String>() {
                                     @Override
                                     protected void channelRead0(ChannelHandlerContext channelHandlerContext, String s) {
@@ -568,10 +465,11 @@ public class ScriptStarter {
                                         }
                                         System.out.println(new PlaceholderParser("EXCEPTION ?", cause.getMessage()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_RED));
                                     }
-                                }
-                        );
+                                });
                     }
                 }).connect(ip, port).sync().channel();
+        JlineSuggestion replicate = suggestion;
+        suggestion = new ClientJlineSuggestion(channel);
         synchronized (channel) {
             collectScript(completeScript -> {
                 channel.writeAndFlush(completeScript);
@@ -595,6 +493,7 @@ public class ScriptStarter {
                 return true;
             }, "fun@" + ip + ":" + port + "> ");
         }
+        suggestion = replicate;
     }
 
     @Data
@@ -619,13 +518,13 @@ public class ScriptStarter {
     }
 
 
-    private static String stdin(String placeholder) {
+    public static String stdin(String placeholder) {
         String line;
-        if (JAR_ENV) {
-            line = READER.readLine(placeholder);
+        if (isJlineMode) {
+            line = suggestion.stdin(placeholder);
         } else {
             System.out.print(placeholder);
-            line = SCANNER.nextLine();
+            line = scanner.nextLine();
         }
         return line;
     }

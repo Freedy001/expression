@@ -72,8 +72,8 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         variableMap.put("ctx", this);
         importMap.put("package:java.lang", "*");
         importMap.put("package:java.util", "*");
-        importMap.put("package:java.io", "*");
         importMap.put("package:java.net", "*");
+        importMap.put("package:java.io", "*");
         importMap.put("package:java.time", "*");
         importMap.put("package:java.math", "*");
         importMap.put("package:java.util.function", "*");
@@ -237,7 +237,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
 
     @Override
     public Class<?> findClass(String className) throws ClassNotFoundException {
-        if (!className.matches("\\w+|(?:\\w+\\.)+\\w+")) {
+        if (!className.matches("\\w+|(?:\\w+[.$])+\\w+")) {
             throw new IllegalArgumentException("illegal class name ?", className);
         }
         ClassLoader loader = CustomStringJavaCompiler.getSelfClassLoader();

@@ -39,6 +39,10 @@ public class TokenStream {
             Set.of("*", "/"),
             Set.of(".")
     );//从上往下 优先级逐渐变大
+    //后门 可以在fun运行时调用 T(com.freedy.expression.core.TokenStream).cleanMode=true 改变cleanMode
+    @SuppressWarnings("FieldMayBeFinal")
+    private static boolean cleanMode = StringUtils.hasText(System.getProperty("cleanMode"));
+
     @Getter
     protected final String expression;
     @Setter
@@ -60,7 +64,6 @@ public class TokenStream {
     };
     private EvaluationContext context;
 
-
     // b<a=2+3+(5*4/2)
     // ba2=
     // <+
@@ -75,7 +78,6 @@ public class TokenStream {
     @Getter
     private final List<String> defTokenList = new ArrayList<>();
     private boolean hasSort = false;
-
 
     private int bracketsPares = 0;
 
@@ -123,7 +125,7 @@ public class TokenStream {
         if (this.context != context) {
             this.context = context;
             //注册销毁
-            if (StringUtils.hasText(System.getProperty("cleanMode"))) {
+            if (cleanMode) {
                 context.registerClean(this, defTokenList);
             }
         }

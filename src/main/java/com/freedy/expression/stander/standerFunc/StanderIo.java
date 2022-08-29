@@ -29,11 +29,7 @@ public class StanderIo extends AbstractStanderFunc {
 
     @ExpressionFunc("stander input same as new Scanner(System.in).nextLine()")
     public String stdin() {
-        if (ScriptStarter.JAR_ENV && ScriptStarter.READER != null) {
-            return ScriptStarter.READER.readLine();
-        } else {
-            return ScriptStarter.SCANNER.nextLine();
-        }
+        return ScriptStarter.stdin("");
     }
 
     @SneakyThrows

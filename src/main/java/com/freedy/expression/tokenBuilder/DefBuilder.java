@@ -5,6 +5,8 @@ import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.token.DefToken;
 import com.freedy.expression.utils.StringUtils;
 
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,7 +17,7 @@ import java.util.regex.Pattern;
 public class DefBuilder extends Builder {
 
     private static final Pattern defValPattern = Pattern.compile("^def +([a-zA-Z_]\\w*)");
-    private static final Pattern defFuncPattern = Pattern.compile("^def +([a-zA-Z_]\\w*) *\\((\\w+|(?:\\w+,)+\\w+)?\\) *\\{(.*)}");
+    private static final Pattern defFuncPattern = Pattern.compile("^def +([a-zA-Z_]\\w*) *\\(( *\\w+ *|(?: *\\w+ *, *)+ *\\w+ *)?\\) *\\{(.*)}");
 
 
     @Override
@@ -28,16 +30,13 @@ public class DefBuilder extends Builder {
         if (funcMatcher.find()) {
             objectToken.setMethodName(funcMatcher.group(1));
             String args = funcMatcher.group(2);
-            objectToken.setMethodArgs(StringUtils.hasText(args) ? args.split(",") : new String[0]);
+            objectToken.setMethodArgs(StringUtils.isEmpty(args) ? new String[0] : Arrays.stream(args.split(",")).map(String::strip).toArray(String[]::new));
             objectToken.setMethodBody(Tokenizer.doGetTokenStream(funcMatcher.group(3)));
+        } else if (defValPattern.matcher(token).matches()) {
+            objectToken.setVariableName(matcher.group(1));
         } else {
-            String varName = matcher.group(1);
-            if (!varPattern.matcher(varName).matches()) {
-                holder.setMsg("illegal var name")
-                        .setErrorPart("def@" + varName);
-                return false;
-            }
-            objectToken.setVariableName(varName);
+            holder.setMsg("illegal def statement").setErrorPart("def");
+            return false;
         }
         tokenStream.addToken(objectToken);
         return true;

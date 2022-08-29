@@ -49,6 +49,27 @@ public class ReflectionUtils {
         }
     }
 
+    public static <T> T copyReference(Object source, Class<T> destClass) {
+        if (source == null) return null;
+        Class<?> sourceClass = source.getClass();
+        T dest;
+        try {
+            dest = destClass.getDeclaredConstructor().newInstance();
+            for (Field destField : getFieldsRecursion(destClass)) {
+                Field sourceField = getFieldRecursion(sourceClass, destField.getName());
+                if (sourceField == null) continue;
+                if (destField.getType().isAssignableFrom(sourceField.getType())) {
+                    sourceField.setAccessible(true);
+                    destField.setAccessible(true);
+                    destField.set(dest, sourceField.get(source));
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("copy reference failed,because ?", e);
+        }
+        return dest;
+    }
+
 
     public static Object getFieldVal(Class<?> objectClass, Object object, String fieldName) {
         try {
