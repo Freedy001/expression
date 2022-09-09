@@ -171,7 +171,7 @@ public class CustomStringJavaCompiler {
                 return defineClass(name, bytes, 0, bytes.length);
             }
             try {
-                return ClassLoader.getSystemClassLoader().loadClass(name);
+                return CustomStringJavaCompiler.class.getClassLoader().loadClass(name);
             } catch (Exception e) {
                 return super.findClass(name);
             }

@@ -68,7 +68,7 @@ public class FunScriptAutoconfiguration implements ApplicationContextAware, Smar
             }, "remote-fun-thread").start();
         }
         start = true;
-        ex = null; //gc
+//        ex = null; //gc
     }
 
     private void startServer(int port, String key, String auth) {

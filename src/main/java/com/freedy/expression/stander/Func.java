@@ -3,15 +3,12 @@ package com.freedy.expression.stander;
 import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.Expression;
 import com.freedy.expression.core.TokenStream;
-import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.exception.StopSignal;
 import com.freedy.expression.function.VarFunction;
 import com.freedy.expression.utils.PlaceholderParser;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.lang.reflect.Proxy;
 
 /**
  * @author Freedy

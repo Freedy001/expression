@@ -61,6 +61,7 @@ public class ScriptStarter {
         parseParameters(args);
         isJlineMode = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
         startLocalCmd();
+
     }
 
     public static void startLocalCmd() {

@@ -3,6 +3,7 @@ package com.freedy.expression.utils;
 import com.freedy.expression.core.Tokenizer;
 import lombok.NonNull;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
@@ -24,7 +25,9 @@ public class PackageScanner {
     }
 
     public static List<Class<?>> doScan(@NonNull String[] PackageNames, String[] exclude) {
+        System.getProperties().forEach((k,v)->{
 
+        });
         ClassLoader classLoader = Tokenizer.class.getClassLoader();
         List<Class<?>> list = new ArrayList<>();
 
@@ -55,7 +58,7 @@ public class PackageScanner {
         String lastPackageName = packSplit[packSplit.length - 1];
         Files.walk(Paths.get(url.toURI())).forEach(pa -> {
             if (Files.isRegularFile(pa)) {
-                String[] split = pa.toString().split("\\\\");
+                String[] split = pa.toString().split(System.getProperty("os.name").toLowerCase().contains("win") ? "\\\\" : "/");
                 int length = split.length;
                 int index = length - 1;
                 for (; index >= 0; index--) {

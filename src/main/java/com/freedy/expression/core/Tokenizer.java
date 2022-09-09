@@ -184,8 +184,9 @@ public class Tokenizer {
                 //构建token
                 if (inspectChar == '(') {
                     int index = StringUtils.preNonempty(chars, i);
-                    if (index == -1 || (operationWithOutBracketSet.contains(chars[index]))) {
+                    if ((index == -1 || (operationWithOutBracketSet.contains(chars[index]))) && expressionLeftBracket == 0) {
                         if (StringUtils.hasText(token)) {
+                            //TODO: 2022/8/30 条件检查
                             FunRuntimeException.thr(expression, token + "$(");
                         }
                         tokenStream.addBracket(true);

@@ -80,6 +80,16 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         importMap.put("package:java.util.function", "*");
         importMap.put("package:java.util.regex", "*");
         importMap.put("package:java.util.stream", "*");
+        importMap.put("package:com.freedy.expression", "*");
+        importMap.put("package:com.freedy.expression.core", "*");
+        importMap.put("package:com.freedy.expression.jline", "*");
+        importMap.put("package:com.freedy.expression.log", "*");
+        importMap.put("package:com.freedy.expression.spring", "*");
+        importMap.put("package:com.freedy.expression.token", "*");
+        importMap.put("package:com.freedy.expression.tokenBuilder", "*");
+        importMap.put("package:com.freedy.expression.utils", "*");
+        importMap.put("package:com.freedy.expression.stander", "*");
+        importMap.put("package:com.freedy.expression.stander.standerFunc", "*");
         registerFunctionWithHelp("condition", "use in for statement,to indicate whether should stop loop.\n\texample:def a=10; for(i:condition(@block{a++<10})){print(num);}; \n\t it will print 1 to 10", (Function._1ParameterFunction<TokenStream, TokenStream>) t -> t);
         registerFunctionWithHelp("tokenStream", "transfer to token stream", (Function._1ParameterFunction<TokenStream, TokenStream>) o -> o);
         Set<String> keywords = CodeDeCompiler.getKeywords();
