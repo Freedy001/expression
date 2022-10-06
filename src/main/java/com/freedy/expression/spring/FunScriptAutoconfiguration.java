@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 @EnableConfigurationProperties(ScriptStarterProperties.class)
 public class FunScriptAutoconfiguration implements ApplicationContextAware, SmartLifecycle {
-    private Expression ex = new Expression(new StanderEvaluationContext());
+    private final Expression ex = new Expression(new StanderEvaluationContext());
 
     {
         ex.getValue("def log=T(org.slf4j.LoggerFactory).getLogger(T(Class).forName('com.freedy.expression.spring.FunScriptAutoconfiguration'));");

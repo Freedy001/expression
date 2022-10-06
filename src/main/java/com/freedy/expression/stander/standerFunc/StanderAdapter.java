@@ -8,6 +8,7 @@ import com.freedy.expression.stander.ExpressionFunc;
 import com.freedy.expression.stander.Func;
 import com.freedy.expression.stander.LambdaAdapter;
 import com.freedy.expression.utils.PlaceholderParser;
+import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -34,48 +35,49 @@ public class StanderAdapter extends AbstractStanderFunc {
     @SneakyThrows
     @ExpressionFunc(value = "new a instance,param 1 is full class name,the rest param is constructor's param")
     public Object _new(String className, Object... args) {
-        Class<?> aClass = context.findClass(className);
-        List<Constructor<?>> constructorList = new ArrayList<>();
-        List<Constructor<?>> seminary = new ArrayList<>();
-        int length = args.length;
-        for (Constructor<?> cst : aClass.getConstructors()) {
-            if (cst.getParameterCount() == length) {
-                constructorList.add(cst);
-            }
-            seminary.add(cst);
-        }
-        args = Arrays.copyOf(args, args.length, Object[].class);
-        for (Constructor<?> constructor : constructorList) {
-            Class<?>[] types = constructor.getParameterTypes();
-            int i = 0;
-            for (; i < length; i++) {
-                Class<?> originMethodArgs = convertToWrapper(types[i]);
-                Class<?> supplyMethodArgs = convertToWrapper(args[i] == null ? types[i] : args[i].getClass());
-                if (!originMethodArgs.isAssignableFrom(supplyMethodArgs)) {
-                    Object o = tryConvert(originMethodArgs, args[i]);
-                    if (o != Boolean.FALSE) {
-                        args[i] = o;
-                    } else {
-                        break;
-                    }
-                }
-            }
-            if (i == length) {
-                constructor.setAccessible(true);
-                return constructor.newInstance(args);
-            }
-        }
-        StringJoiner argStr = new StringJoiner(",", "(", ")");
-        for (Object arg : args) {
-            argStr.add(arg.getClass().getName());
-        }
-        throw new NoSuchMethodException("no constructor" + argStr + "!you can call these constructors:" + new PlaceholderParser("?*", seminary.stream().map(method -> {
-            StringJoiner argString = new StringJoiner(",", "(", ")");
-            for (Parameter arg : method.getParameters()) {
-                argString.add(arg.getType().getSimpleName() + " " + arg.getName());
-            }
-            return method.getName() + argString;
-        }).toList()).serialParamsSplit(" , ").ifEmptyFillWith("not find matched method"));
+        return ReflectionUtils.invokeMethod("<init>", context.findClass(className), null, args);
+//        Class<?> aClass = context.findClass(className);
+//        List<Constructor<?>> constructorList = new ArrayList<>();
+//        List<Constructor<?>> seminary = new ArrayList<>();
+//        int length = args.length;
+//        for (Constructor<?> cst : aClass.getConstructors()) {
+//            if (cst.getParameterCount() == length) {
+//                constructorList.add(cst);
+//            }
+//            seminary.add(cst);
+//        }
+//        args = Arrays.copyOf(args, args.length, Object[].class);
+//        for (Constructor<?> constructor : constructorList) {
+//            Class<?>[] types = constructor.getParameterTypes();
+//            int i = 0;
+//            for (; i < length; i++) {
+//                Class<?> originMethodArgs = convertToWrapper(types[i]);
+//                Class<?> supplyMethodArgs = convertToWrapper(args[i] == null ? types[i] : args[i].getClass());
+//                if (!originMethodArgs.isAssignableFrom(supplyMethodArgs)) {
+//                    Object o = tryConvert(originMethodArgs, args[i]);
+//                    if (o != Boolean.FALSE) {
+//                        args[i] = o;
+//                    } else {
+//                        break;
+//                    }
+//                }
+//            }
+//            if (i == length) {
+//                constructor.setAccessible(true);
+//                return constructor.newInstance(args);
+//            }
+//        }
+//        StringJoiner argStr = new StringJoiner(",", "(", ")");
+//        for (Object arg : args) {
+//            argStr.add(arg.getClass().getName());
+//        }
+//        throw new NoSuchMethodException("no constructor" + argStr + "!you can call these constructors:" + new PlaceholderParser("?*", seminary.stream().map(method -> {
+//            StringJoiner argString = new StringJoiner(",", "(", ")");
+//            for (Parameter arg : method.getParameters()) {
+//                argString.add(arg.getType().getSimpleName() + " " + arg.getName());
+//            }
+//            return method.getName() + argString;
+//        }).toList()).serialParamsSplit(" , ").ifEmptyFillWith("not find matched method"));
     }
 
 
@@ -112,7 +114,7 @@ public class StanderAdapter extends AbstractStanderFunc {
             ni hao
             """)
     public Object newInterface(String name, Object... funcPara) {
-        Class<?> clazz = Class.forName(name);
+        Class<?> clazz = context.findClass(name);
         if (!clazz.isInterface()) {
             throw new IllegalArgumentException("? is not interface", name);
         }

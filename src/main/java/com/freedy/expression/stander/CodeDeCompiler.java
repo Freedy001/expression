@@ -43,7 +43,7 @@ public class CodeDeCompiler {
             "protected", "public", "return", "short", "static", "strictfp", "super",
             "switch", "synchronized", "this", "throw", "throws", "transient", "try",
             "true", "void", "volatile", "while", "sealed", "permits");
-    private static final Pattern annotationPattern = Pattern.compile("@ *?[a-zA-Z]\\w+");
+    private static final Pattern annotationPattern = Pattern.compile("@ *?[a-zA-Z_$][\\w$]*");
     private static final Pattern numPattern = Pattern.compile("[*/+-]?\\d*_*\\d*\\.?\\d*_*\\d*");
 
     @Data
@@ -114,7 +114,7 @@ public class CodeDeCompiler {
     @SneakyThrows
     public static String getCode(Class<?> clazz, boolean raw, String method) {
         String fullName = clazz.getName();
-        Map<String, CustomStringJavaCompiler.ByteJavaFileObject> javaFileObjectMap = CustomStringJavaCompiler.getJavaFileObjectMap();
+        Map<String, CustomJavaCompiler.ByteJavaFileObject> javaFileObjectMap = CustomJavaCompiler.getJavaFileObjectMap();
         if (javaFileObjectMap.get(fullName) != null) {
             List<ClassByteCode> list = new ArrayList<>();
             getExpressionByteCode(clazz, javaFileObjectMap, list);
@@ -152,9 +152,9 @@ public class CodeDeCompiler {
         return codeList;
     }
 
-    private static void getExpressionByteCode(Class<?> clazz, Map<String, CustomStringJavaCompiler.ByteJavaFileObject> javaFileObjectMap, List<ClassByteCode> list) {
+    private static void getExpressionByteCode(Class<?> clazz, Map<String, CustomJavaCompiler.ByteJavaFileObject> javaFileObjectMap, List<ClassByteCode> list) {
         String fullName = clazz.getName();
-        CustomStringJavaCompiler.ByteJavaFileObject fileObject = javaFileObjectMap.get(fullName);
+        CustomJavaCompiler.ByteJavaFileObject fileObject = javaFileObjectMap.get(fullName);
         if (fileObject != null) {
             list.add(new ClassByteCode(fullName.replace(".", "/") + ".class", fileObject.getCompiledBytes()));
             for (Class<?> aClass : clazz.getDeclaredClasses()) {

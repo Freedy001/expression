@@ -3,11 +3,16 @@ package com.freedy.expression.stander.standerFunc;
 import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.stander.StanderClassLoader;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
 import java.io.FileInputStream;
+import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Map;
+
+import static com.freedy.expression.SysConstant.CHARSET;
 
 /**
  * @author Freedy
@@ -55,6 +60,21 @@ public class StanderImport extends AbstractStanderFunc {
             }
         }
     }
+
+    @ExpressionFunc("""
+            import a pom file or a class directory or a jar file to class path
+            The return value represents the path where the jar package was not successfully added
+            if you import a wrong path you can call clearPath() function or ctx.regardLoader() method!
+            """)
+    public Collection<Path> addPath(String path) throws Exception {
+        return context.addPath(path);
+    }
+
+    @ExpressionFunc("clear added path!")
+    public StanderClassLoader clearPath(){
+        return context.regardLoader();
+    }
+
 
     @SneakyThrows
     @ExpressionFunc("execute script")

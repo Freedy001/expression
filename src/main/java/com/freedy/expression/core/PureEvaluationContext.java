@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,7 +28,7 @@ public class PureEvaluationContext implements EvaluationContext {
     @Override
     public Object setVariable(String name, Object variable) {
         if (name.equals("root")) setRoot(variable);
-        if (variable==null) return variableMap.remove(name);
+        if (variable == null) return variableMap.remove(name);
         return variableMap.put(filterName(name), variable);
     }
 

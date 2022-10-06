@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  * @author Freedy
  * @date 2022/1/8 14:54
  */
-public class CustomStringJavaCompiler {
+public class CustomJavaCompiler {
     //类全名
     private final String fullClassName;
     private final String sourceCode;
@@ -32,7 +32,7 @@ public class CustomStringJavaCompiler {
     @Getter
     private final static ClassLoader selfClassLoader = new StringClassLoader();
 
-    public CustomStringJavaCompiler(String sourceCode) {
+    public CustomJavaCompiler(String sourceCode) {
         this.sourceCode = sourceCode;
         this.fullClassName = getFullClassName(sourceCode);
     }
@@ -152,7 +152,7 @@ public class CustomStringJavaCompiler {
         public JavaFileObject getJavaFileForOutput(Location location, String className, JavaFileObject.Kind kind, FileObject sibling) {
             ByteJavaFileObject javaFileObject = new ByteJavaFileObject(className, kind);
             if (javaFileObjectMap.put(className, javaFileObject) != null) {
-                throw new IllegalArgumentException("you have def ?",className);
+                throw new IllegalArgumentException("you have def ?", className);
             }
             return javaFileObject;
         }
@@ -170,11 +170,7 @@ public class CustomStringJavaCompiler {
                 byte[] bytes = fileObject.getCompiledBytes();
                 return defineClass(name, bytes, 0, bytes.length);
             }
-            try {
-                return CustomStringJavaCompiler.class.getClassLoader().loadClass(name);
-            } catch (Exception e) {
-                return super.findClass(name);
-            }
+            return super.findClass(name);
         }
     }
 }

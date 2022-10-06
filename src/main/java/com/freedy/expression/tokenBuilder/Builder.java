@@ -21,7 +21,7 @@ public abstract class Builder {
 
     public static final Pattern methodPattern = Pattern.compile("(.*?)\\((.*)\\)");
 
-    public static final Pattern varPattern = Pattern.compile("^[a-zA-Z_]\\w*");
+    public static final Pattern varPattern = Pattern.compile("^[a-zA-Z_$][\\w$]*");
 
     public static final Pattern relevantAccess = Pattern.compile("(.*?)((?:\\?|\\[.*]|\\? *?\\[.*])+)");
 

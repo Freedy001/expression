@@ -190,5 +190,4 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
         }
         return cl;
     }
-
 }

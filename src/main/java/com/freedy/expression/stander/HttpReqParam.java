@@ -26,7 +26,7 @@ import java.util.*;
  * @date 2022/6/28 12:29
  */
 @Getter
-public class HttpReqParam implements HttpObject {
+public final class HttpReqParam implements HttpObject {
     @Setter
     @CMDParameter(value = "-protocol", helpText = "request protocol,it may http or https")
     private String protocol;

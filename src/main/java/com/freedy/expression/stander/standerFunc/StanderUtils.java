@@ -2,14 +2,11 @@ package com.freedy.expression.stander.standerFunc;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.freedy.expression.stander.HttpObject;
-import com.freedy.expression.stander.HttpReqParam;
-import com.freedy.expression.stander.HttpResult;
-import com.freedy.expression.utils.*;
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.stander.CodeDeCompiler;
-import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.stander.HttpObject;
+import com.freedy.expression.stander.*;
 import com.freedy.expression.utils.Color;
+import com.freedy.expression.utils.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -18,29 +15,28 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
-import lombok.AllArgsConstructor;
 import lombok.Cleanup;
-import lombok.Setter;
 import lombok.SneakyThrows;
 
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.RandomAccessFile;
 import java.lang.reflect.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.Exchanger;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
+import static com.freedy.expression.SysConstant.SEPARATOR;
 /**
  * @author Freedy
  * @date 2022/3/6 15:38
@@ -48,14 +44,14 @@ import java.util.stream.Collectors;
 public class StanderUtils extends AbstractStanderFunc {
 
     @ExpressionFunc("list function")
-    public List<String> lf(Object o) {
-        return getMethod(getClassByArg(o));
+    public void lf(Object o) {
+        getMethod(getClassByArg(o)).forEach(System.out::println);
     }
 
     @ExpressionFunc("list variable")
-    public List<String> lv(Object o) {
+    public void lv(Object o) {
         Class<?> oClass = getClassByArg(o);
-        return ReflectionUtils.getFieldsRecursion(oClass).stream().map(field -> {
+        ReflectionUtils.getFieldsRecursion(oClass).stream().map(field -> {
             field.setAccessible(true);
             Type fieldType = field.getGenericType();
             String fieldTypeName = "?";
@@ -66,11 +62,11 @@ public class StanderUtils extends AbstractStanderFunc {
                 fieldTypeName = clazz.getSimpleName();
             }
             try {
-                return (Modifier.isStatic(field.getModifiers()) ? "\033[92mstatic \033[0;39m" : "") + "\033[91m" + fieldTypeName + "\033[0:39m \033[93m" + field.getName() + "\033[0;39m \033[34m" + (Modifier.isStatic(field.getModifiers()) ? getVarString(field.get(null)) : getVarString(field.get(o))) + "\033[0;39m";
+                return (Modifier.isStatic(field.getModifiers()) ? "\033[92mstatic \033[0;39m" : "") + "\033[91m" + fieldTypeName + "\033[0:39m \033[93m" + field.getName() + "\033[0;39m \033[34m" + (o instanceof Class || o instanceof String ? "null" : (Modifier.isStatic(field.getModifiers()) ? getVarString(field.get(null)) : getVarString(field.get(o)))) + "\033[0;39m";
             } catch (Exception e) {
                 throw new EvaluateException("?", e);
             }
-        }).collect(Collectors.toList());
+        }).forEach(System.out::println);
     }
 
 

@@ -1,6 +1,7 @@
 package com.freedy.expression.utils;
 
 
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.LambdaAdapter;
 import lombok.SneakyThrows;
@@ -75,6 +76,7 @@ public class ReflectionUtils {
             if (objectClass.getName().startsWith("[") && fieldName.equals("length")) {
                 return Array.getLength(object);
             }
+            if (fieldName.equals("class")) return objectClass;
             Field field = getFieldRecursion(objectClass, fieldName);
             if (field == null) {
                 throw new IllegalArgumentException("no such field: ?", fieldName);
@@ -433,7 +435,8 @@ public class ReflectionUtils {
             case "java.util.Queue" -> {
                 return new ArrayDeque<>();
             }
-            default -> throw new UnsupportedOperationException("unsupported type for type ?,please change a supported(List,Set,Queue) type");
+            default ->
+                    throw new UnsupportedOperationException("unsupported type for type ?,please change a supported(List,Set,Queue) type");
         }
     }
 
@@ -561,53 +564,65 @@ public class ReflectionUtils {
     }
 
     public static Object invokeMethod(String methodName, Class<?> targetClass, Object target, Object... args) throws Throwable {
-        List<Method> list = new ArrayList<>();
-        List<Method> similar = new ArrayList<>();
-        int methodLen = methodName.length();
-        for (Method method : getMethodsRecursion(targetClass)) {
-            String name = method.getName();
-            if (name.equals(methodName)) {
-                list.add(method);
-            }
-            if (name.contains(methodName) || methodName.contains(name)) {
-                similar.add(method);
+        List<Executable> list = new ArrayList<>();
+        List<Executable> similar = new ArrayList<>();
+        if (methodName.equals("<init>")) {
+            list.addAll(List.of(targetClass.getDeclaredConstructors()));
+        } else {
+            for (Method method : getMethodsRecursion(targetClass)) {
+                String name = method.getName();
+                if (name.equals(methodName)) {
+                    list.add(method);
+                }
+                if (name.contains(methodName) || methodName.contains(name)) {
+                    similar.add(method);
+                }
             }
         }
-        int length = args.length;
         Map<Integer, Class<?>> lambdaIndex = new HashMap<>();
-        for (Method method : list) {
+        for (Executable method : list) {
             lambdaIndex.clear();
-            if (method.getParameterCount() == length) {
+            int count;
+            boolean isVar = method.isVarArgs();
+            if ((count = method.getParameterCount()) == args.length || isVar) {
                 Class<?>[] clazz = method.getParameterTypes();
                 int i = 0;
-                // TODO: 2022/7/1 优化可变参数
-                for (; i < length; i++) {
+                for (; i < count; i++) {
                     Class<?> originMethodArgs = convertToWrapper(clazz[i]);
-                    Class<?> supplyMethodArgs = convertToWrapper(args[i] == null ? clazz[i] : args[i].getClass());
-                    if (!originMethodArgs.isAssignableFrom(supplyMethodArgs)) {
-                        Object o = tryConvert(originMethodArgs, args[i]);
-                        if (o != Boolean.FALSE) {
-                            args[i] = o;
-                        } else if (supplyMethodArgs == LambdaAdapter.class) {
-                            //根据参数类型构建lambda
-                            lambdaIndex.put(i, originMethodArgs);
-                        } else {
-                            break;
+                    if (i == count - 1 && isVar && originMethodArgs.isArray()) {
+                        args = convertArgsForVarArgsMethod(count, method, args);
+                    } else {
+                        Class<?> supplyMethodArgs = convertToWrapper(args.length == 0 ? null : args[i] == null ? clazz[i] : args[i].getClass());
+                        if (!originMethodArgs.isAssignableFrom(supplyMethodArgs)) {
+                            Object o = tryConvert(originMethodArgs, args[i]);
+                            if (o != Boolean.FALSE) {
+                                args[i] = o;
+                            } else if (args[i] instanceof TokenStream ts && ts.getMetadata() instanceof LambdaAdapter adapter) {
+                                Class<?> type = adapter.getInterfaceType();
+                                if ((type != null && !originMethodArgs.isAssignableFrom(type)) || adapter.notFunctional(originMethodArgs)) {
+                                    break;
+                                }
+                                lambdaIndex.put(i, originMethodArgs);
+                            } else {
+                                break;
+                            }
                         }
                     }
                 }
-                if (i == length) {
+                if (i == count) {
                     method.setAccessible(true);
                     //参数lambda参数替换
                     if (lambdaIndex.size() > 0) {
-                        lambdaIndex.forEach((index, originMethodArgs) -> {
-                            if (args[index] instanceof LambdaAdapter adapter) {
-                                args[index] = adapter.getInstance(originMethodArgs);
+                        args = Arrays.copyOf(args, args.length, Object[].class);
+                        for (Map.Entry<Integer, Class<?>> entry : lambdaIndex.entrySet()) {
+                            if (args[entry.getKey()] instanceof TokenStream ts && ts.getMetadata() instanceof LambdaAdapter adapter) {
+                                args[entry.getKey()] = adapter.getInstance(entry.getValue());
                             }
-                        });
+                        }
                     }
                     try {
-                        return method.invoke(target, args);
+                        if (method instanceof Method m) return m.invoke(target, args);
+                        if (method instanceof Constructor m) return m.newInstance(args);
                     } catch (InvocationTargetException e) {
                         throw e.getCause() != null ? e.getCause() : e;
                     }
@@ -615,13 +630,54 @@ public class ReflectionUtils {
             }
         }
         if (methodName.equals("getClass") && args.length == 0) return targetClass;
+        throw thr(methodName, targetClass, similar, args);
+    }
+
+    private static Object[] convertArgsForVarArgsMethod(int count, Executable e, Object[] args) {
+//        if (count == 1) return args;
+        Object[] nArgs = new Object[count];
+        //拷贝非可变参数参数
+        System.arraycopy(args, 0, nArgs, 0, count - 1);
+        //检测可变参数数组的所有元素是否都是相同类型
+        Class<?> eleType = checkArrType(args, count - 1, args.length);
+        Object[] varArg;
+        //拷贝可变数组
+        if (eleType != null) {
+            //noinspection unchecked
+            varArg = Arrays.copyOfRange(args, count - 1, args.length, (Class<Object[]>) eleType.arrayType());
+        } else {
+            varArg = Arrays.copyOfRange(args, count - 1, args.length, (Class<Object[]>) e.getParameters()[count - 1].getType());
+        }
+        nArgs[count - 1] = varArg;
+        args = nArgs;
+        return args;
+    }
+
+    private static Class<?> checkArrType(Object[] arr, int start, int end) {
+        if (start > end) {
+            throw new IllegalArgumentException("start index ? gt end index ?", start, end);
+        }
+        if (start >= arr.length) {
+            return null;
+        }
+        Class<?> cl = arr[start].getClass();
+        for (int i = start + 1; i < end; i++) {
+            if (arr[i].getClass() != cl) {
+                return null;
+            }
+        }
+        return cl;
+    }
+
+    private static Exception thr(String methodName, Class<?> targetClass, List<Executable> similar, Object[] args) throws NoSuchMethodException {
         StringJoiner argStr = new StringJoiner(",", "(", ")");
         for (Object arg : args) {
             argStr.add(arg == null ? "null" : arg.getClass().getSimpleName());
         }
-        similar.sort(Comparator.comparing(o -> Math.abs(o.getName().length() - methodLen)));
-        throw new NoSuchMethodException(new PlaceholderParser(
-                "no such method ? in\033[34m ? !\033[0;39myou can call these similar method: ?*",
+        int length = methodName.length();
+        similar.sort(Comparator.comparing(o -> Math.abs(o.getName().length() - length)));
+        return new NoSuchMethodException(new PlaceholderParser(
+                "no such executable ? in\033[34m ? !\033[0;39myou can call these similar method: ?*",
                 methodName + argStr,
                 targetClass.getSimpleName(),
                 similar.stream().map(method -> {
@@ -666,6 +722,7 @@ public class ReflectionUtils {
         convertableMap.put("java.lang.Double", Set.of("java.lang.Float", "double", "float"));
         convertableMap.put("java.lang.Float", Set.of("java.lang.Double", "double", "float"));
     }
+
 
     public static boolean isConvertable(Class<?> originMethodArgs, Class<?> supplyMethodArgs) {
         return Optional.ofNullable(convertableMap.get(originMethodArgs.getName())).orElse(Set.of()).contains(supplyMethodArgs.getName());

@@ -16,7 +16,7 @@ import java.util.Optional;
  * @date 2022/6/30 1:28
  */
 @Data
-public class HttpResult implements HttpObject {
+public final class HttpResult implements HttpObject {
     private HttpReqParam req;
     private int respCode;
     private HttpHeaders respHeaders;

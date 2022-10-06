@@ -7,6 +7,8 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.core.Tokenizer;
+import com.freedy.expression.stander.Func;
+import com.freedy.expression.stander.LambdaAdapter;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.*;
@@ -17,6 +19,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Freedy
@@ -29,9 +32,9 @@ public abstract sealed class ClassToken extends Token implements Assignable
         permits DirectAccessToken, DotSplitToken, ReferenceToken, StaticToken {
     protected static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
     protected static final Pattern numeric = Pattern.compile("-?\\d+|-?\\d+[lL]|-?\\d+?\\.\\d+");
-    protected static final Pattern tokenStreamArg = Pattern.compile("^@block\\{(.*)}$");
+    protected static final Pattern blockTokenStream = Pattern.compile("^@block(?:\\[([\\w$]*?)])? *(?:\\(( *[\\w$]+ *|(?: *[\\w$]+ *, *)+ *[\\w$]+ *)?\\))? *\\{(.*)}$");
     private static final Pattern relevantOpsPattern = Pattern.compile("(?:\\?|\\[.*]|\\? *?\\[.*])+");
-    private static final Pattern varPattern = Pattern.compile("^[a-zA-Z_]\\w*");
+    private static final Pattern varPattern = Pattern.compile("^[a-zA-Z_$][\\w$]*");
 
 
     protected String reference;
@@ -148,7 +151,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
                     if (Optional.ofNullable(step.getRelevantOps()).orElse("").trim().equals("?")) {
                         return null;
                     }
-                    throw new EvaluateException("invoke target method failed,because ?", e).errToken(this.errStr(step.getStr()));
+                    throw new EvaluateException("invoke target method ?? failed,because ?", step.getMethodName(), Arrays.stream(args).map(String::valueOf).collect(Collectors.joining(",", "(", ")")), e).errToken(this.errStr(step.getStr()));
                 }
             }
             try {
@@ -190,6 +193,8 @@ public abstract sealed class ClassToken extends Token implements Assignable
     }
 
 
+    // TODO: 2022/10/5 将方法参数预处理放到token builder中
+
     /**
      * 对方法的参数进行预处理
      *
@@ -201,9 +206,19 @@ public abstract sealed class ClassToken extends Token implements Assignable
         for (String methodArg : argsStr) {
             try {
                 methodArg = methodArg.trim();
-                Matcher matcher = tokenStreamArg.matcher(methodArg);
+                Matcher matcher = blockTokenStream.matcher(methodArg);
                 if (matcher.find()) {
-                    args.add(new UnsteadyArg(UnsteadyArg.DELAY_TOKEN_STREAM, Tokenizer.getTokenStream(matcher.group(1))));
+                    TokenStream ts = Tokenizer.getTokenStream(matcher.group(3));
+                    Func func = new Func(() -> context);
+                    String lambdaArgs = matcher.group(2);
+                    func.setFuncName("__lambda$$func");
+                    func.setArgName(StringUtils.isEmpty(lambdaArgs) ? new String[0] : Arrays.stream(lambdaArgs.split(",")).map(String::strip).toArray(String[]::new));
+                    func.setFuncBody(ts);
+                    LambdaAdapter adapter = new LambdaAdapter(func);
+                    String functionalInterfaceName = matcher.group(1);
+                    adapter.setInterfaceName(functionalInterfaceName);
+                    ts.setMetadata(adapter);
+                    args.add(new UnsteadyArg(UnsteadyArg.DELAY_TOKEN_STREAM, ts));
                     continue;
                 }
                 matcher = strPattern.matcher(methodArg);
@@ -322,7 +337,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
      * @param resultProvider   需要分配的对象提供者
      * @param normalAssignTask 没有相关操作时调用的分配方法
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     protected void relevantAssign(String relevantOps, Supplier<Object> baseObjProvider, Supplier<Object> resultProvider, Runnable normalAssignTask) {
         if (StringUtils.isEmpty(relevantOps)) {
             normalAssignTask.run();
@@ -490,6 +505,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
         private int type;
         private Object value;
     }
+
 
     public String getFullMethodName(String methodName, String[] methodArgs) {
         StringJoiner joiner = new StringJoiner(",", "(", ")");

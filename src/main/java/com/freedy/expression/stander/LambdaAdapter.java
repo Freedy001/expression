@@ -1,57 +1,89 @@
 package com.freedy.expression.stander;
 
+import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.exception.IllegalArgumentException;
-import lombok.AllArgsConstructor;
+import com.freedy.expression.utils.ReflectionUtils;
+import lombok.Setter;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.description.modifier.Visibility;
+import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.implementation.bind.annotation.AllArguments;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.This;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
-
-import static com.freedy.expression.token.Token.ANY_TYPE;
 
 /**
  * @author Freedy
  * @date 2021/12/31 9:26
  */
-@AllArgsConstructor
 public class LambdaAdapter {
 
-    private Func func;
+    private final Func func;
+    private Class<?> interfaceType;
+    @Setter
+    private String interfaceName;
 
-
-    public Object getInstance(Class<?> lambdaType) {
-        Method method = getLambdaMethod(lambdaType);
-        return Proxy.newProxyInstance(lambdaType.getClassLoader(), new Class[]{lambdaType}, (o, m, a) -> {
-            if (method.equals(m))
-                return func.apply(a);
-            else
-                return MethodHandles.lookup()
-                        .in(m.getDeclaringClass())
-                        .unreflectSpecial(m, m.getDeclaringClass())
-                        .bindTo(o)
-                        .invokeWithArguments(a);
-        });
+    public LambdaAdapter(Func func) {
+        this.func = func;
     }
 
-    private Method getLambdaMethod(Class<?> lambdaType) {
-        if (!lambdaType.isInterface()) {
-            throw new IllegalArgumentException("lambda only support interface,but ? is not", lambdaType.getName());
-        }
-        Method lambdaMethod = null;
+
+    public Class<?> getInterfaceType() throws ClassNotFoundException {
+        if (interfaceType != null) return interfaceType;
+        if (interfaceName == null) return null;
+        interfaceType = func.getSuperContext().findClass(interfaceName);
+        if (notFunctional(interfaceType))
+            throw new IllegalArgumentException("? is not a matching lambda function,please refer to interface ?", func, interfaceType.getName());
+        return interfaceType;
+    }
+
+    public Object getInstance(Class<?> lambdaType) throws Exception {
+        if (interfaceType != null) {
+            if (lambdaType != interfaceType)
+                throw new IllegalArgumentException("wrong interface type ?,should be ?", lambdaType, interfaceType);
+        } else if (notFunctional(lambdaType))
+            throw new IllegalArgumentException("? is not lambda interface", interfaceType.getName());
+        EvaluationContext ctx = func.getSuperContext();
+        //noinspection resource
+        Class<?> generatedClass = new ByteBuddy()
+                .subclass(Object.class)
+                .defineField("func", Func.class, Visibility.PRIVATE)
+                .implement(lambdaType)
+                .intercept(MethodDelegation.to(LambdaAdapter.class))
+                .make()
+                .load(ctx instanceof StanderEvaluationContext s ? s.getLoader() : Thread.currentThread().getContextClassLoader())
+                .getLoaded();
+        Object proxy = generatedClass.getConstructor().newInstance();
+        ReflectionUtils.setter(proxy, "func", func);
+        return proxy;
+//        return Proxy.newProxyInstance(lambdaType.getClassLoader(), new Class[]{lambdaType}, (o, m, a) -> {
+//            if (m.isDefault() || m.getName().matches("toString|equals|hashCode|wait|getClass|clone|notifyAll|finalize")) {
+//                return MethodHandles.lookup().in(m.getDeclaringClass()).unreflectSpecial(m, m.getDeclaringClass()).bindTo(o).invokeWithArguments(a);
+//            } else {
+//                return func.apply(a);
+//            }
+//        });
+    }
+
+    @RuntimeType
+    public static Object lambda(@AllArguments Object[] args, @This Object _this) throws Exception {
+        return ((Func) ReflectionUtils.getter(_this, "func")).apply(args);
+    }
+
+    public boolean notFunctional(Class<?> lambdaType) {
+        if (lambdaType == null) return true;
+        if (lambdaType.getAnnotation(FunctionalInterface.class) != null) return false;
+        if (!lambdaType.isInterface()) return true;
+        Method delegate = null;
         for (Method method : lambdaType.getDeclaredMethods()) {
-            if (Modifier.isAbstract(method.getModifiers())) {
-                try {
-                    ANY_TYPE.getMethod(method.getName(), method.getParameterTypes());
-                } catch (Exception e) {
-                    if (lambdaMethod != null) {
-                        throw new IllegalArgumentException("? is not lambda interface", lambdaType.getName());
-                    }
-                    lambdaMethod = method;
-                }
-            }
+            if (method.isDefault() || method.isSynthetic()) continue;
+            if (delegate != null) return true;
+            delegate = method;
         }
-        return lambdaMethod;
+        if (delegate == null) return true;
+        return delegate.getParameterCount() != func.getArgName().length;
     }
+
 
 }

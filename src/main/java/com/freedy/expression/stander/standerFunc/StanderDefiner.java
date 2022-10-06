@@ -2,7 +2,7 @@ package com.freedy.expression.stander.standerFunc;
 
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.function.Functional;
-import com.freedy.expression.stander.CustomStringJavaCompiler;
+import com.freedy.expression.stander.CustomJavaCompiler;
 import com.freedy.expression.stander.ExpressionFunc;
 import com.freedy.expression.stander.Func;
 import com.freedy.expression.stander.StanderEvaluationContext;
@@ -106,7 +106,7 @@ public class StanderDefiner extends AbstractStanderFunc {
             }
         });
 
-        CustomStringJavaCompiler compiler = new CustomStringJavaCompiler(new PlaceholderParser("""
+        CustomJavaCompiler compiler = new CustomJavaCompiler(new PlaceholderParser("""
                 package ?;
                                     
                 ?*
@@ -124,7 +124,7 @@ public class StanderDefiner extends AbstractStanderFunc {
 
     @ExpressionFunc("compile java code")
     public Class<?> compileJava(String code) {
-        CustomStringJavaCompiler compiler = new CustomStringJavaCompiler(code);
+        CustomJavaCompiler compiler = new CustomJavaCompiler(code);
         if (!compiler.compiler()) {
             System.err.println("compile failed！");
             System.err.println(compiler.getCompilerMessage());
@@ -143,7 +143,7 @@ public class StanderDefiner extends AbstractStanderFunc {
         //noinspection unchecked
         List<Class<?>> appLoad = (List<Class<?>>) unsafe.getReference(classLoader, classOffset);
         //noinspection unchecked
-        List<Class<?>> customer = (List<Class<?>>) unsafe.getReference(CustomStringJavaCompiler.getSelfClassLoader(), classOffset);
+        List<Class<?>> customer = (List<Class<?>>) unsafe.getReference(CustomJavaCompiler.getSelfClassLoader(), classOffset);
         if (StringUtils.isEmpty(tip)) {
             Set<Class<?>> result = new TreeSet<>(Comparator.comparing(Class::toString));
             result.addAll(extLoad);

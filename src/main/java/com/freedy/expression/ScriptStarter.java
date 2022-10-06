@@ -32,6 +32,9 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static com.freedy.expression.SysConstant.CHARSET;
+import static com.freedy.expression.SysConstant.SCANNER;
+
 /**
  * 用于以命令行的方式启动,直接运行会启动用于运行脚本的命令行。 <br/>
  * 可选参数:
@@ -53,15 +56,12 @@ public class ScriptStarter {
     // TODO: 2022/8/29 启动检查
     private static StanderEvaluationContext context = new StanderEvaluationContext();
     private static JlineSuggestion suggestion = new LocalJlineSuggestion(context);
-    public final static Scanner scanner = new Scanner(System.in);
-    public final static String CHARSET = System.getProperty("file.encoding") == null ? "UTF-8" : System.getProperty("file.encoding");
     private final static Expression ex = new Expression();
 
     public static void main(String[] args) throws Exception {
         parseParameters(args);
         isJlineMode = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
         startLocalCmd();
-
     }
 
     public static void startLocalCmd() {
@@ -329,7 +329,7 @@ public class ScriptStarter {
                                     }
 
                                     @Override
-                                    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                                    public void channelInactive(ChannelHandlerContext ctx) {
                                         System.out.println(new PlaceholderParser("client[?] disconnected!", ctx.channel().remoteAddress()));
                                     }
 
@@ -340,7 +340,7 @@ public class ScriptStarter {
                                     }
                                 }, new SimpleChannelInboundHandler<SuggestionMetadata>() {
                                     @Override
-                                    protected void channelRead0(ChannelHandlerContext ctx, SuggestionMetadata msg) throws Exception {
+                                    protected void channelRead0(ChannelHandlerContext ctx, SuggestionMetadata msg) {
                                         if (msg == null) return;
                                         ArrayList<Candidate> list = new ArrayList<>();
                                         suggestion.suggest(null, msg, list);
@@ -365,7 +365,7 @@ public class ScriptStarter {
         return false;
     }
 
-    //127.0.0.1:21;abcdsawerfsasxcs;asdasdas
+    //127.0.0.1:21;abc123123123;abc123123123
     @SneakyThrows
     private static void startClient() {
         File file = new File("./encrypt.txt");
@@ -509,7 +509,7 @@ public class ScriptStarter {
             line = suggestion.stdin(placeholder);
         } else {
             System.out.print(placeholder);
-            line = scanner.nextLine();
+            line = SCANNER.nextLine();
         }
         return line;
     }

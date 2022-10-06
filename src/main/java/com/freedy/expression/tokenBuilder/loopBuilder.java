@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 public class loopBuilder extends Builder {
 
     // for (i:10){// do some thing}
-    private static final Pattern loopPattern = Pattern.compile("^for *?\\(([a-zA-Z_]\\w*) *?([:@])(.*?)\\) *?\\{(.*)}");
+    private static final Pattern loopPattern = Pattern.compile("^for *?\\(([a-zA-Z_$][\\w$]*) *?([:@])(.*?)\\) *?\\{(.*)}");
 
 
     @Override

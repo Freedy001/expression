@@ -11,6 +11,9 @@ import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static com.freedy.expression.SysConstant.CHARSET;
+import static com.freedy.expression.SysConstant.SEPARATOR;
+
 /**
  * @author Freedy
  * @date 2022/3/6 0:10

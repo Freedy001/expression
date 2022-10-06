@@ -1,5 +1,7 @@
 package com.freedy.expression.exception;
 
+import com.freedy.expression.ScriptStarter;
+import com.freedy.expression.SysConstant;
 import com.freedy.expression.token.Token;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.PlaceholderParser;
@@ -400,8 +402,6 @@ public class FunRuntimeException extends RuntimeException {
         }
     }
 
-    private final static boolean DEV = Boolean.parseBoolean(Optional.ofNullable(System.getProperty("funScriptDevMode")).orElse("false"));
-
     /*--add-opens
         java.base/java.lang=ALL-UNNAMED
     --add-opens
@@ -416,7 +416,7 @@ public class FunRuntimeException extends RuntimeException {
         java.base/java.util.stream=ALL-UNNAMED*/
     @Override
     public void printStackTrace() {
-        if (DEV) {
+        if (SysConstant.DEV) {
             super.printStackTrace();
             return;
         }

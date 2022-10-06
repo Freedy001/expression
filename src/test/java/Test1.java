@@ -1,9 +1,7 @@
-import com.freedy.expression.core.Expression;
+import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.log.LogRecorder;
-import com.freedy.expression.stander.StanderEvaluationContext;
-
-import java.util.Arrays;
-import java.util.regex.Pattern;
+import com.freedy.expression.token.BasicVarToken;
+import com.freedy.expression.token.Token;
 
 /**
  * @author Freedy
@@ -11,10 +9,22 @@ import java.util.regex.Pattern;
  */
 public class Test1 {
     public static void main(String[] args) {
-        LogRecorder recorder = new LogRecorder();
-        for (int i = 0; i < 10; i++) {
-            System.out.println("abc" + i);
-        }
-        System.err.println(recorder.getLog());
+
+    }
+
+    public static void t(lambdaA a) {
+        a.test(new BasicVarToken());
+    }
+
+    public static void t(lambdaB a) {
+        a.test(new TokenStream(""));
+    }
+
+    public interface lambdaA {
+        void test(Token token);
+    }
+
+    public interface lambdaB {
+        void test(TokenStream token);
     }
 }

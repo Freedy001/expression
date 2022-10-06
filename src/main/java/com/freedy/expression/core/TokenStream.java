@@ -25,8 +25,6 @@ import java.util.function.Function;
  * @date 2021/12/14 19:46
  */
 public class TokenStream {
-    @Getter
-    protected List<Token> infixExpression = new ArrayList<>();
     private static final Set<String> doubleOps = Set.of("||", "&&", "!=", "==", ">=", "<=", "++", "--", "+=", "-=", "/=", "*=", "^=", "&=", "|=", "<<", ">>", ">>>");
     private static final Set<String> permitOps = Set.of("=!", "||!", "&&!", "==!", ">++", "<++", "++<", "++>", "=++", "++=", ">--", "<--", "-->", "--<", "=--", "--=", "+-", "-+", "++-", "--+");
     private static final Set<String> single2TokenOps = Set.of("+++", "---");
@@ -39,12 +37,16 @@ public class TokenStream {
             Set.of("*", "/"),
             Set.of(".")
     );//从上往下 优先级逐渐变大
-    //后门 可以在fun运行时调用 T(com.freedy.expression.core.TokenStream).cleanMode=true 改变cleanMode
-    @SuppressWarnings("FieldMayBeFinal")
-    private static boolean cleanMode = StringUtils.hasText(System.getProperty("cleanMode"));
 
     @Getter
-    protected final String expression;
+    private List<Token> infixExpression = new ArrayList<>();
+    /**
+     * 执行时遍历该list
+     */
+    private List<List<Token>> blockStream = new ArrayList<>();
+    @Getter
+    private final String expression;
+
     @Setter
     private Function<List<List<Token>>, List<List<Token>>> sorter = lists->{
         List<List<Token>> funcList = new ArrayList<>();
@@ -62,24 +64,23 @@ public class TokenStream {
         funcList.addAll(normList);
         return funcList;
     };
+    private boolean hasSort = false;
     private EvaluationContext context;
 
-    // b<a=2+3+(5*4/2)
-    // ba2=
-    // <+
+    //可以在fun运行时调用 T(com.freedy.expression.core.TokenStream).cleanMode=true 改变cleanMode
+    @SuppressWarnings("FieldMayBeFinal")
+    private static boolean cleanMode = StringUtils.hasText(System.getProperty("cleanMode"));
+    @Getter
+    private final List<String> defTokenList = new ArrayList<>();
+    private int bracketsPares = 0;
+    @Getter
+    @Setter
+    private Object metadata;
+
     public TokenStream(String expression) {
         this.expression = expression;
     }
 
-    /**
-     * 执行时遍历该list
-     */
-    private List<List<Token>> blockStream = new ArrayList<>();
-    @Getter
-    private final List<String> defTokenList = new ArrayList<>();
-    private boolean hasSort = false;
-
-    private int bracketsPares = 0;
 
     public void addBracket(boolean isLeft) {
         if (hasSort) {

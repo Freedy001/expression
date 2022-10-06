@@ -16,6 +16,7 @@ import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -60,11 +61,12 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     }
 
     public StanderEvaluationContext importPack(String pack) {
-        importMap.put("package:"+pack.strip(), "*");
+        importMap.put("package:" + pack.strip(), "*");
         return this;
     }
-    public StanderEvaluationContext importClass(String simpleClassname,String fullClassname) {
-        importMap.put(simpleClassname,fullClassname);
+
+    public StanderEvaluationContext importClass(String simpleClassname, String fullClassname) {
+        importMap.put(simpleClassname, fullClassname);
         return this;
     }
 
@@ -80,6 +82,10 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         importMap.put("package:java.util.function", "*");
         importMap.put("package:java.util.regex", "*");
         importMap.put("package:java.util.stream", "*");
+        importMap.put("package:java.nio", "*");
+        importMap.put("package:java.nio.file", "*");
+        importMap.put("package:java.nio.charset", "*");
+        importMap.put("package:java.nio.channels", "*");
         importMap.put("package:com.freedy.expression", "*");
         importMap.put("package:com.freedy.expression.core", "*");
         importMap.put("package:com.freedy.expression.jline", "*");
@@ -246,12 +252,24 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         registerFunction(funcName, functional);
     }
 
-    @Override
+    private StanderClassLoader loader = new StanderClassLoader();
+
+    public StanderClassLoader regardLoader() {
+        StanderClassLoader temp = loader;
+        loader = new StanderClassLoader();
+        return temp;
+    }
+
+    public Collection<Path> addPath(String path) throws Exception {
+        return loader.addPath(path);
+    }
+
+
+//    @Override
     public Class<?> findClass(String className) throws ClassNotFoundException {
         if (!className.matches("\\w+|(?:\\w+[.$])+\\w+")) {
             throw new IllegalArgumentException("illegal class name ?", className);
         }
-        ClassLoader loader = CustomStringJavaCompiler.getSelfClassLoader();
         try {
             return loader.loadClass(className);
         } catch (ClassNotFoundException e) {

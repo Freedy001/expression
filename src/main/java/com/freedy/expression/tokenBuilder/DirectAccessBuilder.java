@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 public class DirectAccessBuilder extends Builder {
 
 
-    private final Pattern prefix = Pattern.compile("^([a-zA-Z_]\\w*)(?: *\\(.*?\\))?(?: *([?\\[.].*))?");
+    private final Pattern prefix = Pattern.compile("^([a-zA-Z_$][\\w$]*)(?: *\\(.*?\\))?(?: *([?\\[.].*))?");
 
 
     @Override
