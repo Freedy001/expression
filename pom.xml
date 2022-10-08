@@ -49,8 +49,8 @@
             <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
-    
-    
+
+
     <dependencies>
         <dependency>
             <groupId>net.bytebuddy</groupId>
@@ -109,23 +109,23 @@
             <artifactId>maven-model</artifactId>
             <version>3.8.6</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.ow2.asm</groupId>-->
-<!--            <artifactId>asm</artifactId>-->
-<!--            <version>9.3</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.ow2.asm</groupId>-->
+        <!--            <artifactId>asm</artifactId>-->
+        <!--            <version>9.3</version>-->
+        <!--        </dependency>-->
 
-<!--        <dependency>-->
-<!--            <groupId>org.ow2.asm</groupId>-->
-<!--            <artifactId>asm-commons</artifactId>-->
-<!--            <version>9.3</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.ow2.asm</groupId>-->
+        <!--            <artifactId>asm-commons</artifactId>-->
+        <!--            <version>9.3</version>-->
+        <!--        </dependency>-->
 
-<!--        <dependency>-->
-<!--            <groupId>org.ow2.asm</groupId>-->
-<!--            <artifactId>asm-util</artifactId>-->
-<!--            <version>9.3</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.ow2.asm</groupId>-->
+        <!--            <artifactId>asm-util</artifactId>-->
+        <!--            <version>9.3</version>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -159,7 +159,6 @@
     </dependencies>
 
 
-    
     <build>
         <plugins>
             <plugin>
@@ -197,7 +196,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -206,10 +205,23 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.freedy.expression.ScriptStarter</mainClass>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>com.freedy.expression.ScriptStarter</Main-Class>
+                                        <Premain-Class>com.freedy.expression.ScriptStarter</Premain-Class>
+                                    </manifestEntries>
                                 </transformer>
                             </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>org/springframework/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+<!--                            <minimizeJar>true</minimizeJar>-->
                         </configuration>
                     </execution>
                 </executions>

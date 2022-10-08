@@ -59,7 +59,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>3.4.0</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -69,9 +69,20 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.freedy.expression.ScriptStarter</mainClass>
+                  <manifestEntries>
+                    <Main-Class>com.freedy.expression.ScriptStarter</Main-Class>
+                    <Premain-Class>com.freedy.expression.ScriptStarter</Premain-Class>
+                  </manifestEntries>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>org/springframework/**</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
@@ -138,4 +149,3 @@
     <encoding>UTF-8</encoding>
   </properties>
 </project>
-

@@ -29,7 +29,6 @@ public class LocalJlineSuggestion extends JlineSuggestion {
 
     public LocalJlineSuggestion(StanderEvaluationContext context) {
         this.context = context;
-        clearScreen();
     }
 
     @Override

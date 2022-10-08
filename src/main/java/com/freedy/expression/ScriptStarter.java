@@ -26,11 +26,20 @@ import org.jline.reader.Candidate;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.freedy.expression.SysConstant.CHARSET;
 import static com.freedy.expression.SysConstant.SCANNER;
@@ -59,9 +68,78 @@ public class ScriptStarter {
     private final static Expression ex = new Expression();
 
     public static void main(String[] args) throws Exception {
+        //清屏
+        suggestion.clearScreen();
         parseParameters(args);
         isJlineMode = System.getProperty("disableJline") == null && Objects.requireNonNull(ScriptStarter.class.getResource("")).getProtocol().equals("jar");
         startLocalCmd();
+    }
+
+    public static void premain(String agentArg, Instrumentation inst) {
+        boolean hasStart = false;
+        Path path = Path.of("./encrypt.txt");
+        if (Files.exists(path)) {
+            try {
+                List<String> list = Files.readAllLines(path);
+                if (list.size() > 0) {
+                    ConnectConfig config = new ConnectConfig(list.get(0));
+                    System.out.println("use config -> " + config);
+                    startRemote(config.port, config.aesKey, config.md5Key);
+                    hasStart = true;
+                }
+            } catch (Exception ignore) {
+            }
+        }
+        if (!hasStart) {
+            int port = randomPort();
+            String aesKey = random16Str();
+            String md5Key = random16Str();
+            try {
+                startRemote(port, aesKey, md5Key);
+            } catch (Exception ignore) {
+                startRemote(port = randomPort(), aesKey, md5Key);
+            }
+            System.out.println(new PlaceholderParser("use random config port:? aes:? md5:?", port, aesKey, md5Key));
+        }
+    }
+
+    //33-126
+    private static String random16Str() {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 16; i++) {
+            builder.append((char) (Math.random() * 93 + 33));
+        }
+        return builder.toString();
+    }
+
+
+    private static int randomPort() {
+        FutureTask<Integer> task = new FutureTask<>(() -> {
+            int port = -1;
+            try {
+                ProcessBuilder pb = new ProcessBuilder("netstat", "-ano").redirectErrorStream(true);
+                Process start = pb.start();
+                Set<Integer> portSet = Arrays.stream(new String(start.getInputStream().readAllBytes())
+                                .split("\n"))
+                        .flatMap(s -> Arrays.stream(s.split(" ")))
+                        .map(String::strip)
+                        .filter(s -> s.contains(":") && s.substring(s.indexOf(":") + 1).matches("\\d+"))
+                        .map(s -> Integer.parseInt(s.substring(s.indexOf(":") + 1)))
+                        .collect(Collectors.toSet());
+                start.destroy();
+                //noinspection StatementWithEmptyBody
+                while (portSet.contains(port = (int) (Math.random() * 65535))) ;
+            } catch (IOException ignore) {
+            }
+            return port;
+        });
+        new Thread(task).start();
+        try {
+            Integer p = task.get(5, TimeUnit.SECONDS);
+            if (p != -1) return p;
+        } catch (InterruptedException | ExecutionException | TimeoutException ignore) {
+        }
+        throw new RuntimeException("can not acquire port,please retry!");
     }
 
     public static void startLocalCmd() {
