@@ -3,15 +3,18 @@ package com.freedy.expression.token;
 import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.Expression;
 import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.stander.Func;
 import com.freedy.expression.stander.LambdaAdapter;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
@@ -26,8 +29,6 @@ import java.util.stream.Collectors;
  * @date 2021/12/14 16:57
  */
 @Getter
-@Setter
-@NoArgsConstructor
 public abstract sealed class ClassToken extends Token implements Assignable
         permits DirectAccessToken, DotSplitToken, ReferenceToken, StaticToken {
     protected static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
@@ -36,7 +37,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
     private static final Pattern relevantOpsPattern = Pattern.compile("(?:\\?|\\[.*]|\\? *?\\[.*])+");
     private static final Pattern varPattern = Pattern.compile("^[a-zA-Z_$][\\w$]*");
 
-
+    @Setter
     protected String reference;
     /**
      * 除去执行本身后，需要链式(调用/执行)的次数
@@ -193,8 +194,8 @@ public abstract sealed class ClassToken extends Token implements Assignable
     }
 
 
-    // TODO: 2022/10/5 将方法参数预处理放到token builder中
 
+    // TODO: 2022/10/5 将方法参数预处理放到token builder中
     /**
      * 对方法的参数进行预处理
      *

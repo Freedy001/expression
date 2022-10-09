@@ -6,7 +6,6 @@ import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.lang.reflect.InvocationTargetException;
@@ -20,7 +19,6 @@ import java.util.*;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 public final class DirectAccessToken extends ClassToken implements Assignable {
 
     private String varName;

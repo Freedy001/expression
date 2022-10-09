@@ -2,6 +2,7 @@ package com.freedy.expression.stander.standerFunc;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.freedy.expression.exception.CombineException;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.stander.HttpObject;
 import com.freedy.expression.stander.*;
@@ -37,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static com.freedy.expression.SysConstant.SEPARATOR;
+
 /**
  * @author Freedy
  * @date 2022/3/6 15:38
@@ -418,5 +420,30 @@ public class StanderUtils extends AbstractStanderFunc {
     public String ftj(Object o) {
         return JSON.toJSONString(o, SerializerFeature.PrettyFormat);
     }
+
+    @ExpressionFunc(value = "reference string invoke")
+    public Object t(String s, Object... arg) throws Throwable {
+        String[] split = Arrays.stream(s.strip().split("#")).map(String::strip).toArray(String[]::new);
+        if (split.length != 2) return null;
+        Class<?> aClass = context.findClass(split[0]);
+        Object filedRet = null;
+        Object methodRet = null;
+        CombineException ex = new CombineException();
+        try {
+            filedRet = ReflectionUtils.getter(aClass, null, split[1]);
+        } catch (Exception e) {
+            ex.addException(e);
+        }
+        try {
+            methodRet = ReflectionUtils.invokeMethod(split[1], aClass, null, arg);
+        } catch (Exception e) {
+            ex.addException(e);
+        }
+        if (filedRet != null && methodRet != null) return List.of(filedRet, methodRet);
+        if (filedRet != null) return filedRet;
+        if (methodRet != null) return methodRet;
+        throw ex;
+    }
+
 
 }

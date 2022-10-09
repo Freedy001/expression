@@ -8,7 +8,6 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Cleanup;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.lang.reflect.ParameterizedType;
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 @JSONType(includes = {"type", "value"})
 public final class CollectionToken extends Token {
     private List<TokenStream> subTokenStream = new ArrayList<>();

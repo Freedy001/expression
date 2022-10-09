@@ -6,7 +6,6 @@ import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.StopSignal;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.*;
@@ -17,7 +16,6 @@ import java.util.*;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 public final class LoopToken extends Token {
     //for i in exp{// do some thing}
     private String variableName;

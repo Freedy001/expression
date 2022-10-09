@@ -11,7 +11,6 @@ import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Cleanup;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.lang.reflect.ParameterizedType;
@@ -27,7 +26,6 @@ import java.util.regex.Pattern;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 @JSONType(includes = {"type", "value"})
 public final class MapToken extends Token {
     private String mapStr;

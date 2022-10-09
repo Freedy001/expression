@@ -38,7 +38,6 @@ public class TokenStream {
             Set.of(".")
     );//从上往下 优先级逐渐变大
 
-    @Getter
     private List<Token> infixExpression = new ArrayList<>();
     /**
      * 执行时遍历该list
@@ -70,7 +69,6 @@ public class TokenStream {
     //可以在fun运行时调用 T(com.freedy.expression.core.TokenStream).cleanMode=true 改变cleanMode
     @SuppressWarnings("FieldMayBeFinal")
     private static boolean cleanMode = StringUtils.hasText(System.getProperty("cleanMode"));
-    @Getter
     private final List<String> defTokenList = new ArrayList<>();
     private int bracketsPares = 0;
     @Getter

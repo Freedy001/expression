@@ -91,6 +91,7 @@ public class Expression {
             throw new IllegalArgumentException("please set a context or call getValue method with context param");
         int size = stream.blockSize();
         Object[] result = new Object[1];
+        //noinspection CodeBlock2Expr
         stream.forEachStream(context, (i, suffixList) -> {
             result[0] = doEvaluate(suffixList, i == size - 1 ? desired : ANY_TYPE);
         });

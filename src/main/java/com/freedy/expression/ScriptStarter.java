@@ -114,19 +114,20 @@ public class ScriptStarter {
 
 
     private static int randomPort() {
+        Process[] start = {null};
         FutureTask<Integer> task = new FutureTask<>(() -> {
             int port = -1;
             try {
                 ProcessBuilder pb = new ProcessBuilder("netstat", "-ano").redirectErrorStream(true);
-                Process start = pb.start();
-                Set<Integer> portSet = Arrays.stream(new String(start.getInputStream().readAllBytes())
+                start[0] = pb.start();
+                Set<Integer> portSet = Arrays.stream(new String(start[0].getInputStream().readAllBytes())
                                 .split("\n"))
                         .flatMap(s -> Arrays.stream(s.split(" ")))
                         .map(String::strip)
                         .filter(s -> s.contains(":") && s.substring(s.indexOf(":") + 1).matches("\\d+"))
                         .map(s -> Integer.parseInt(s.substring(s.indexOf(":") + 1)))
                         .collect(Collectors.toSet());
-                start.destroy();
+                start[0].destroy();
                 //noinspection StatementWithEmptyBody
                 while (portSet.contains(port = (int) (Math.random() * 65535))) ;
             } catch (IOException ignore) {
@@ -138,6 +139,7 @@ public class ScriptStarter {
             Integer p = task.get(5, TimeUnit.SECONDS);
             if (p != -1) return p;
         } catch (InterruptedException | ExecutionException | TimeoutException ignore) {
+            start[0].destroy();
         }
         throw new RuntimeException("can not acquire port,please retry!");
     }
@@ -524,7 +526,7 @@ public class ScriptStarter {
                                     @Override
                                     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
                                         if (cause.getMessage().equals("Connection reset")) {
-                                            System.exit(0);
+                                            channelInactive(ctx);
                                         }
                                         System.out.println(new PlaceholderParser("EXCEPTION ?", cause.getMessage()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_RED));
                                     }

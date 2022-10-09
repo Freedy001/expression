@@ -3,7 +3,6 @@ package com.freedy.expression.log;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.ref.Cleaner;
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author Freedy

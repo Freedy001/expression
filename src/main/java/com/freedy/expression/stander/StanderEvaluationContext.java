@@ -2,6 +2,7 @@ package com.freedy.expression.stander;
 
 import com.freedy.expression.core.PureEvaluationContext;
 import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.exception.CombineException;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Function;
@@ -253,6 +254,8 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     }
 
     private StanderClassLoader loader = new StanderClassLoader();
+    @Setter
+    private Set<ClassLoader> loaderSet;
 
     public StanderClassLoader regardLoader() {
         StanderClassLoader temp = loader;
@@ -265,11 +268,29 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     }
 
 
-//    @Override
+    @Override
     public Class<?> findClass(String className) throws ClassNotFoundException {
         if (!className.matches("\\w+|(?:\\w+[.$])+\\w+")) {
             throw new IllegalArgumentException("illegal class name ?", className);
         }
+        try {
+            return getaClass(loader, className);
+        } catch (ClassNotFoundException e) {
+            if (loaderSet == null) throw e;
+            CombineException exception = new CombineException();
+            exception.addException(e);
+            for (ClassLoader loader : loaderSet) {
+                try {
+                    return getaClass(loader, className);
+                } catch (ClassNotFoundException ex) {
+                    exception.addException(ex);
+                }
+            }
+            throw exception;
+        }
+    }
+
+    private Class<?> getaClass(ClassLoader loader, String className) throws ClassNotFoundException {
         try {
             return loader.loadClass(className);
         } catch (ClassNotFoundException e) {

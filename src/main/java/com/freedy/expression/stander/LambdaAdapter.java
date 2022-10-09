@@ -52,7 +52,13 @@ public class LambdaAdapter {
                 .implement(lambdaType)
                 .intercept(MethodDelegation.to(LambdaAdapter.class))
                 .make()
-                .load(ctx instanceof StanderEvaluationContext s ? s.getLoader() : Thread.currentThread().getContextClassLoader())
+                .load(new ClassLoader() {
+                    final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+                    @Override
+                    public Class<?> loadClass(String name) throws ClassNotFoundException {
+                        return ctx instanceof StanderEvaluationContext std ? std.findClass(name) : loader.loadClass(name);
+                    }
+                })
                 .getLoaded();
         Object proxy = generatedClass.getConstructor().newInstance();
         ReflectionUtils.setter(proxy, "func", func);

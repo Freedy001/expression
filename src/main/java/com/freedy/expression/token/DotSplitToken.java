@@ -2,7 +2,6 @@ package com.freedy.expression.token;
 
 import com.freedy.expression.exception.EvaluateException;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Optional;
@@ -13,7 +12,6 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 public final class DotSplitToken extends ClassToken {
 
     private Token baseToken;

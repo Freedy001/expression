@@ -5,7 +5,6 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.lang.reflect.Type;
@@ -17,7 +16,6 @@ import java.util.Objects;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 @JSONType(includes = {"type", "value", "nullCheck", "propertyName", "methodArgs"})
 public final class ReferenceToken extends ClassToken {
 

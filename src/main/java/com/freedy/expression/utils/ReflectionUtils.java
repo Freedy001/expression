@@ -215,6 +215,11 @@ public class ReflectionUtils {
         return getFieldRecursion(obj.getClass(), fieldName) != null;
     }
 
+    public static boolean hasStaticField(Class<?> clazz, String fieldName) {
+        if (clazz == null || fieldName == null) return false;
+        return Modifier.isStatic(getFieldRecursion(clazz, fieldName).getModifiers());
+    }
+
     /**
      * 通过递归获取注解
      *

@@ -4,16 +4,13 @@ import com.alibaba.fastjson.annotation.JSONType;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.utils.ReflectionUtils;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.regex.Pattern;
 
 /**
  * @author Freedy
  * @date 2021/12/15 16:50
  */
-@NoArgsConstructor
 @JSONType(includes = {"type", "value"})
 public final class BasicVarToken extends Token {
     public BasicVarToken(String type, String value) {

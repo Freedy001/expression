@@ -1,5 +1,4 @@
 import com.freedy.expression.core.TokenStream;
-import com.freedy.expression.token.BasicVarToken;
 import com.freedy.expression.token.Token;
 
 import java.io.IOException;
@@ -19,9 +18,6 @@ public class Test1 {
         }
     }
 
-    public static void t(lambdaA a) {
-        a.test(new BasicVarToken());
-    }
 
     public static void t(lambdaB a) {
         a.test(new TokenStream(""));
