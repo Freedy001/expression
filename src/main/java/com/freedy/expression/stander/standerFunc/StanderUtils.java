@@ -327,9 +327,16 @@ public class StanderUtils extends AbstractStanderFunc {
         return obj;
     }
 
+    private volatile Bootstrap bootstrap;
+
     @ExpressionFunc(value = "send a http request by HttpReqParam", enableCMDParameter = true)
     public HttpObject http(HttpReqParam obj) throws InterruptedException, TimeoutException {
-        Bootstrap bootstrap = new Bootstrap();
+        if (bootstrap == null) {
+            synchronized (this) {
+                if (bootstrap == null) bootstrap = new Bootstrap();
+            }
+        }
+
         NioEventLoopGroup group = new NioEventLoopGroup(1);
         Exchanger<HttpResult> exchanger = new Exchanger<>();
         Channel channel = bootstrap.group(group)
