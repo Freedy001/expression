@@ -349,10 +349,7 @@ public class ReflectionUtils {
 
     public static boolean isRegularType(Class<?> type) {
         switch (type.getSimpleName()) {
-            case "Integer", "int", "Long", "long",
-                    "Double", "double", "Float", "float",
-                    "Boolean", "boolean", "short", "Short",
-                    "Byte", "byte", "Character", "char", "String" -> {
+            case "Integer", "int", "Long", "long", "Double", "double", "Float", "float", "Boolean", "boolean", "short", "Short", "Byte", "byte", "Character", "char", "String" -> {
                 return true;
             }
             default -> {
@@ -363,10 +360,7 @@ public class ReflectionUtils {
 
     public static boolean isBasicType(Class<?> type) {
         switch (type.getSimpleName()) {
-            case "int", "long",
-                    "double", "float",
-                    "boolean", "short",
-                    "byte", "char", "void" -> {
+            case "int", "long", "double", "float", "boolean", "short", "byte", "char", "void" -> {
                 return true;
             }
         }

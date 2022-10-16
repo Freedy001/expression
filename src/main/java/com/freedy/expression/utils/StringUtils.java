@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.BiFunction;
 
 /**
  * @author Freedy
@@ -189,6 +188,9 @@ public class StringUtils {
     }
 
     public static String[] splitWithoutBracket(String toBeSplit, char[] leftBracket, char[] rightBracket, char split, int limit) {
+        if (toBeSplit==null){
+            throw new NullPointerException("toBeSplit is null");
+        }
         if (limit < 0) {
             throw new IllegalArgumentException("arg limit must ge 0");
         }

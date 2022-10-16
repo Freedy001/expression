@@ -161,8 +161,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         }
     }
 
-    public record FunctionalMethod(Object funcObj, Method func,
-                                   HashMap<String, ValInjector> cmdParamMap) implements Functional {
+    public record FunctionalMethod(Object funcObj, Method func, HashMap<String, ValInjector> cmdParamMap) implements Functional {
         public Object parseArgs(String[] args) throws Exception {
             Class<?>[] types = func.getParameterTypes();
             if (types.length > 1) throw new IllegalArgumentException("this fun couldn't generate parameter object");
