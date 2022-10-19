@@ -15,38 +15,46 @@ import java.util.regex.Pattern;
 public class loopBuilder extends Builder {
 
     // for (i:10){// do some thing}
-    private static final Pattern loopPattern = Pattern.compile("^for *?\\(([a-zA-Z_$][\\w$]*) *?([:@])(.*?)\\) *?\\{(.*)}");
-
+    private static final Pattern loopPattern = Pattern.compile("^for *?(?:\\(([a-zA-Z_$][\\w$]*) *?([:@])(.*?)\\))? *?\\{(.*)}");
+    private static final Pattern simpleLoop = Pattern.compile("^for *\\{(.*)}");
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
         ReplacedStr replacedStr = convertStr(token);
-        if (replacedStr ==null) return false;
-        Matcher matcher = loopPattern.matcher(replacedStr.result);
+        if (replacedStr == null) return false;
+        String realToken = replacedStr.result;
+        Matcher matcher = loopPattern.matcher(realToken);
         if (!matcher.find()) return false;
-        if (!token.endsWith("}")){
+        if (!token.endsWith("}")) {
             int i = token.lastIndexOf("}");
             holder.setMsg("illegal loop statement,loop token must end with '};'")
                     .setErrorPart(i == -1 ? token : token.substring(i));
             return false;
         }
         LoopToken loopToken = new LoopToken(token);
-        String variableName = matcher.group(1);
-        if (StringUtils.isEmpty(variableName)) {
-            holder.setMsg("loop variable can not be empty")
-                    .setErrorPart("for in");
-            return false;
-        }
-        loopToken.setVariableName(variableName);
-        loopToken.setDesc(matcher.group(2).equals("@"));
-        String executeEl = matcher.group(3);
-        if ("REPLACE".equals(executeEl)) {
-            if (StringUtils.isEmpty(replacedStr.aimedStr)) {
-                holder.setMsg("executable part can not be empty")
-                        .setErrorPart("in :");
+        if (simpleLoop.matcher(realToken).matches()) {
+            loopToken.setVariableName("i");
+            loopToken.setDesc(false);
+            // TODO: 2022/10/19  添加lambda 构造器
+            loopToken.setExecuteTokenStream(Tokenizer.doGetTokenStream("tokenStream(@block{true});"));
+        } else {
+            String variableName = matcher.group(1);
+            if (StringUtils.isEmpty(variableName)) {
+                holder.setMsg("loop variable can not be empty")
+                        .setErrorPart("for in");
                 return false;
             }
-            loopToken.setExecuteTokenStream(Tokenizer.doGetTokenStream(replacedStr.aimedStr));
+            loopToken.setVariableName(variableName);
+            loopToken.setDesc(matcher.group(2).equals("@"));
+            String executeEl = matcher.group(3);
+            if ("REPLACE".equals(executeEl)) {
+                if (StringUtils.isEmpty(replacedStr.aimedStr)) {
+                    holder.setMsg("executable part can not be empty")
+                            .setErrorPart("in :");
+                    return false;
+                }
+                loopToken.setExecuteTokenStream(Tokenizer.doGetTokenStream(replacedStr.aimedStr));
+            }
         }
 
         loopToken.setLoopTokenStream(Tokenizer.doGetTokenStream(matcher.group(4)));
@@ -78,14 +86,10 @@ public class loopBuilder extends Builder {
                 }
             }
         }
-        if (startIndex==-1||bracket != -1){
-            return null;
-        }
+        if (startIndex == -1 || bracket != -1) return new ReplacedStr(token, null, 0);
         return new ReplacedStr(token.substring(0, startIndex) + "REPLACE" + token.substring(endIndex),
                 token.substring(startIndex, endIndex).trim(), startIndex);
     }
-
-
 
 
     @Override
