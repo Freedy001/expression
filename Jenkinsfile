@@ -5,6 +5,7 @@ pipeline {
             steps {
                 powershell  'mvn --version'
                 powershell 'pwd'
+                powershell 'mvn -DskipTests package'
             }
         }
     }
