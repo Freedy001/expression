@@ -4,7 +4,10 @@ pipeline {
         stage('build') {
             steps {
                 powershell  'mvn --version'
-                echo 'hahahahahahahahahahahahhahahahaha'.repeat(100)
+                powershell 'pwd'
+                for (a in 0..10) {
+                    powershell 'pwd'
+                }
             }
         }
     }
