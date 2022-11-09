@@ -12,16 +12,16 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public final class TernaryToken extends Token {
+public final class TernaryToken extends ExecutableToken {
     private TokenStream trueTokenStream;
     private TokenStream falseTokenStream;
-    private Token boolToken;
+    private ExecutableToken boolToken;
 
     public TernaryToken(String value) {
         super("ternary", value);
     }
 
-    public void setBoolToken(Token boolToken) {
+    public void setBoolToken(ExecutableToken boolToken) {
         this.boolToken = boolToken;
     }
 

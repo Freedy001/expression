@@ -38,19 +38,19 @@ public class TokenStream {
             Set.of(".")
     );//从上往下 优先级逐渐变大
 
-    private List<Token> infixExpression = new ArrayList<>();
+    private List<ExecutableToken> infixExpression = new ArrayList<>();
     /**
      * 执行时遍历该list
      */
-    private List<List<Token>> blockStream = new ArrayList<>();
+    private List<List<ExecutableToken>> blockStream = new ArrayList<>();
     @Getter
     private final String expression;
 
     @Setter
-    private Function<List<List<Token>>, List<List<Token>>> sorter = lists->{
-        List<List<Token>> funcList = new ArrayList<>();
-        List<List<Token>> normList = new ArrayList<>();
-        for (List<Token> stream : lists) {
+    private Function<List<List<ExecutableToken>>, List<List<ExecutableToken>>> sorter = lists->{
+        List<List<ExecutableToken>> funcList = new ArrayList<>();
+        List<List<ExecutableToken>> normList = new ArrayList<>();
+        for (List<ExecutableToken> stream : lists) {
             if ((stream.size() == 1 && stream.get(0) instanceof DefToken def &&
                     def != null && def.isFunc()) ||
                     (stream.size() == 1 && stream.get(0) instanceof DirectAccessToken dir &&
@@ -71,9 +71,6 @@ public class TokenStream {
     private static boolean cleanMode = StringUtils.hasText(System.getProperty("cleanMode"));
     private final List<String> defTokenList = new ArrayList<>();
     private int bracketsPares = 0;
-    @Getter
-    @Setter
-    private Object metadata;
 
     public TokenStream(String expression) {
         this.expression = expression;
@@ -96,9 +93,9 @@ public class TokenStream {
         }
     }
 
-    public void addToken(Token token) {
-        if (token.isType("def")) {
-            defTokenList.add(((DefToken) token).getVariableName());
+    public void addToken(ExecutableToken token) {
+        if (token instanceof DefToken def && !def.isFunc()) {
+            defTokenList.add(def.getVariableName());
         }
         if (hasSort) {
             throw new IllegalArgumentException("token stream has fixed,could not add element");
@@ -120,7 +117,7 @@ public class TokenStream {
     /**
      * 遍历所有token并交由indexSuffixList执行
      */
-    public void forEachStream(EvaluationContext context, BiConsumer<Integer, List<Token>> indexSuffixList) {
+    public void forEachStream(EvaluationContext context, BiConsumer<Integer, List<ExecutableToken>> indexSuffixList) {
         if (this.context != context) {
             this.context = context;
             //注册销毁
@@ -137,7 +134,7 @@ public class TokenStream {
         for (int i = 0; i < size; i++) {
             infixExpression = blockStream.get(i);
             setTokenContext(context, infixExpression);
-            List<Token> suffix = calculateSuffix();
+            List<ExecutableToken> suffix = calculateSuffix();
             indexSuffixList.accept(i, suffix);
         }
     }
@@ -152,7 +149,7 @@ public class TokenStream {
     /**
      * 获取所有token，会将blockStream扁平化输出
      */
-    public List<Token> getAllTokens() {
+    public List<ExecutableToken> getAllTokens() {
         return blockStream.stream().flatMap(Collection::stream).toList();
     }
 
@@ -172,7 +169,7 @@ public class TokenStream {
     public boolean mergeOps(char currentOps) {
         int size = infixExpression.size();
         if (size == 0) return false;
-        Token token = infixExpression.get(size - 1);
+        ExecutableToken token = infixExpression.get(size - 1);
         if (token.isType("operation") && !token.isAnyValue("(", ")")) {
             String nOps = token.getValue() + currentOps;
             if (doubleOps.contains(nOps)) {
@@ -184,7 +181,7 @@ public class TokenStream {
                 //区分a++ + 5
                 if (single2TokenOps.contains(nOps)) {
                     //+++    ---
-                    Token preToken = infixExpression.get(size - 2);
+                    ExecutableToken preToken = infixExpression.get(size - 2);
                     if (preToken.isType("operation")) {
                         // a ++ +++  --->  a ++ + ++
                         token.setValue(nOps.substring(0, 1));
@@ -213,9 +210,9 @@ public class TokenStream {
     /**
      * 对所有的Token设置context
      */
-    private void setTokenContext(EvaluationContext context, List<Token> tokenList) {
-        for (Token token : tokenList) {
-            List<Token> originToken = token.getOriginToken();
+    private void setTokenContext(EvaluationContext context, List<ExecutableToken> tokenList) {
+        for (ExecutableToken token : tokenList) {
+            List<ExecutableToken> originToken = token.getOriginToken();
             if (originToken != null) {
                 setTokenContext(context, originToken);
             }
@@ -223,29 +220,29 @@ public class TokenStream {
         }
     }
 
-    public Token getLastToken() {
+    public ExecutableToken getLastToken() {
         return infixExpression.size() == 0 ? null : infixExpression.get(infixExpression.size() - 1);
     }
 
-    private final Map<List<Token>, List<Token>> suffixCache = new HashMap<>();
+    private final Map<List<ExecutableToken>, List<ExecutableToken>> suffixCache = new HashMap<>();
 
 
     /**
      * 计算后缀表达式
      */
-    private List<Token> calculateSuffix() {
-        List<Token> suffix = suffixCache.get(infixExpression);
+    private List<ExecutableToken> calculateSuffix() {
+        List<ExecutableToken> suffix = suffixCache.get(infixExpression);
         if (suffix != null) return suffix;
         //合并单值操作
         mergeSingleTokenOps();
         //计算偏移量
         calculateOffset(infixExpression);
-        List<Token> suffixExpression = new ArrayList<>();
-        Stack<Token> opsStack = new Stack<>();
+        List<ExecutableToken> suffixExpression = new ArrayList<>();
+        Stack<ExecutableToken> opsStack = new Stack<>();
         //扫描中缀
-        for (Token token : infixExpression) {
+        for (ExecutableToken token : infixExpression) {
             if (token.isType("operation")) {
-                Token pop;
+                ExecutableToken pop;
                 if (token.isValue(")")) {
                     try {
                         while (!(pop = opsStack.pop()).isValue("(")) {
@@ -282,7 +279,7 @@ public class TokenStream {
      */
     private void mergeSingleTokenOps() {
         for (int i = 0; i < infixExpression.size(); i++) {
-            Token token = infixExpression.get(i);
+            ExecutableToken token = infixExpression.get(i);
             String ops = token.getValue();
             try {
                 if (token.isType("operation") && singleOps.contains(ops)) {
@@ -290,14 +287,14 @@ public class TokenStream {
                         if (i + 1 >= infixExpression.size()) {
                             FunRuntimeException.tokenThr(expression, token);
                         }
-                        Token nextToken = infixExpression.get(i + 1);
+                        ExecutableToken nextToken = infixExpression.get(i + 1);
                         if (nextToken.isType("operation")) {
                             if (nextToken.isValue("(")) { // 非操作被括号包围
                                 int leftBreaker = 1;
                                 int j = i + 2;
                                 StringBuilder subExp = new StringBuilder("(");
                                 for (; j < infixExpression.size() && leftBreaker != 0; j++) {
-                                    Token inner = infixExpression.get(j);
+                                    ExecutableToken inner = infixExpression.get(j);
                                     if (inner.isValue("(")) leftBreaker++;
                                     if (inner.isValue(")")) leftBreaker--;
                                     subExp.append(inner.getValue());
@@ -322,11 +319,11 @@ public class TokenStream {
                         nextToken.setNotFlag(true);
                         infixExpression.remove(i);
                     } else {
-                        Token preToken = null;
+                        ExecutableToken preToken = null;
                         if (i - 1 >= 0) {
                             preToken = infixExpression.get(i - 1);
                         }
-                        Token nextToken = null;
+                        ExecutableToken nextToken = null;
                         if (i + 1 < infixExpression.size()) {
                             nextToken = infixExpression.get(i + 1);
                         }
@@ -368,9 +365,9 @@ public class TokenStream {
     /**
      * 计算每个token在expression中的偏移量,方便异常时进行彩色标记
      */
-    private void calculateOffset(List<Token> tokenList) {
-        for (Token token : tokenList) {
-            List<Token> originToken = token.getOriginToken();
+    private void calculateOffset(List<ExecutableToken> tokenList) {
+        for (ExecutableToken token : tokenList) {
+            List<ExecutableToken> originToken = token.getOriginToken();
             if (originToken != null) {
                 int lastCursor = currentCursor;
                 calculateOffset(originToken);

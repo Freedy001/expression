@@ -16,7 +16,7 @@ public class IfBuilder extends Builder {
 
     // if
     //(if|else +if) *?\((.*?)\) *?\{(?:(.*?)}(?= *else)|(.*)})|else *?\{(.*)}
-    private static final Pattern ifPattern = Pattern.compile("(if|else +if) *?\\((.*?)\\) *?\\{(?:(.*?)}(?= *else)|(.*)})|else *?\\{(.*)}");
+    private static final Pattern ifPattern = Pattern.compile("(if|else +if) *?(.*?) *?\\{(?:(.*?)}(?= *else)|(.*)})|else *?\\{(.*)}");
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {

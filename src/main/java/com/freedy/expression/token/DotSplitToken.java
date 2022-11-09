@@ -12,9 +12,9 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public final class DotSplitToken extends ClassToken {
+public final class DotSplitToken extends ReflectToken {
 
-    private Token baseToken;
+    private ExecutableToken baseToken;
 
     public DotSplitToken(String token) {
         super("dotSplit", token);
@@ -33,7 +33,7 @@ public final class DotSplitToken extends ClassToken {
     }
 
     @Override
-    public void assignFrom(Token assignment) {
+    public void assignFrom(ExecutableToken assignment) {
         throw new UnsupportedOperationException("DotSplitToken can not be assigned");
     }
 

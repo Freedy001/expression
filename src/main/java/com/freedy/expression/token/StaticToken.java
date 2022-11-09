@@ -17,7 +17,7 @@ import java.util.Optional;
 @Getter
 @Setter
 @JSONType(includes = {"type", "value", "nullCheck", "propertyName", "methodArgs"})
-public final class StaticToken extends ClassToken{
+public final class StaticToken extends ReflectToken {
 
     public StaticToken(String value) {
         super("static", value);
@@ -30,7 +30,7 @@ public final class StaticToken extends ClassToken{
     }
 
     @Override
-    public void assignFrom(Token assignment) {
+    public void assignFrom(ExecutableToken assignment) {
         ExecuteStep step = getLastPropertyStep();
         if (step == null) {
             throw new EvaluateException("T(?) can not be assigned", reference).errToken(this.errStr(reference));
@@ -47,7 +47,7 @@ public final class StaticToken extends ClassToken{
         );
     }
 
-    private void doChainAssign(Token assignment, ExecuteStep step, Class<?> type) {
+    private void doChainAssign(ExecutableToken assignment, ExecuteStep step, Class<?> type) {
         Object variable = executeChain(type, null, executableCount - 1);
         type = variable == null ? type : variable.getClass();
         Type desiredType = ReflectionUtils.getFieldRecursion(type, step.getPropertyName()).getGenericType();

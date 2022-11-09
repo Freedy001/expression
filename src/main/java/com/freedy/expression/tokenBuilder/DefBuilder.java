@@ -5,7 +5,6 @@ import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.token.DefToken;
 import com.freedy.expression.utils.StringUtils;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,7 +27,7 @@ public class DefBuilder extends Builder {
         Matcher funcMatcher = defFuncPattern.matcher(token);
         DefToken objectToken = new DefToken(token);
         if (funcMatcher.find()) {
-            objectToken.setMethodName(funcMatcher.group(1));
+            objectToken.setMethodName(funcMatcher.group(1)); 
             String args = funcMatcher.group(2);
             objectToken.setMethodArgs(StringUtils.isEmpty(args) ? new String[0] : Arrays.stream(args.split(",")).map(String::strip).toArray(String[]::new));
             objectToken.setMethodBody(Tokenizer.doGetTokenStream(funcMatcher.group(3)));

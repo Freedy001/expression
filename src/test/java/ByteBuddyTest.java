@@ -1,7 +1,7 @@
 import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.core.Expression;
 import com.freedy.expression.stander.standerFunc.StanderUtils;
-import com.freedy.expression.token.Token;
+import com.freedy.expression.token.ExecutableToken;
 import lombok.SneakyThrows;
 import lombok.ToString;
 import net.bytebuddy.ByteBuddy;
@@ -70,7 +70,7 @@ public class ByteBuddyTest {
         Class bar = new ByteBuddy()
                 .redefine(typePool.describe("com.freedy.expression.core.Expression").resolve(), // do not use 'Bar.class'
                         ClassFileLocator.ForClassLoader.ofSystemLoader())
-                .defineField("qux", Token.class) // we learn more about defining fields later
+                .defineField("qux", ExecutableToken.class) // we learn more about defining fields later
                 .make()
                 .load(ClassLoader.getSystemClassLoader(), ClassLoadingStrategy.Default.INJECTION)
                 .getLoaded();

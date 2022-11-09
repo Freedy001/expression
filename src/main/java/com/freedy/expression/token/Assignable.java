@@ -9,6 +9,6 @@ public interface Assignable {
     /**
      * 实现此接口的token表示能够被分配变量
      */
-    void assignFrom(Token assignment);
+    void assignFrom(ExecutableToken assignment);
 
 }

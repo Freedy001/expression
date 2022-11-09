@@ -2,6 +2,7 @@ package com.freedy.expression.token;
 
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
+import com.freedy.expression.function.Functional;
 import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
@@ -19,7 +20,7 @@ import java.util.*;
  */
 @Getter
 @Setter
-public final class DirectAccessToken extends ClassToken implements Assignable {
+public final class DirectAccessToken extends ReflectToken implements Assignable {
 
     private String varName;
     private String methodName;
@@ -43,38 +44,39 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
 
 
     @Override
-    public void assignFrom(Token assignment) {
+    public void assignFrom(ExecutableToken assignment) {
         ExecuteStep step = getLastPropertyStep();
-        if (step == null) {
-            if (StringUtils.isEmpty(varName)) {
-                throw new EvaluateException("can not assign! because no varName").errToken(this.errStr(varName));
-            }
+        if (step != null) {
             relevantAssign(
-                    relevantOps,
+                    step.getRelevantOps(),
                     () -> executeSelf(executableCount, false),
-                    () -> assignment.calculateResult(Token.ANY_TYPE),
-                    () -> {
-                        Object result = assignment.calculateResult(Token.ANY_TYPE);
-                        if (ReflectionUtils.hasField(context.getRoot(), varName)) {
-                            ReflectionUtils.setter(context.getRoot(), varName, result);
-                        } else if (context.containsVariable(varName)) {
-                            context.setVariable(varName, result);
-                        } else {
-                            throw new EvaluateException("you must def ? first", varName).errToken(this.errStr(varName));
-                        }
-                    }
+                    () -> assignment.calculateResult(ExecutableToken.ANY_TYPE),
+                    () -> doChainAssign(assignment, step)
             );
             return;
         }
+        if (StringUtils.isEmpty(varName)) {
+            throw new EvaluateException("can not assign! because no varName").errToken(this.errStr(varName));
+        }
         relevantAssign(
-                step.getRelevantOps(),
+                relevantOps,
                 () -> executeSelf(executableCount, false),
-                () -> assignment.calculateResult(Token.ANY_TYPE),
-                () -> doChainAssign(assignment, step)
+                () -> assignment.calculateResult(ExecutableToken.ANY_TYPE),
+                () -> {
+                    Object result = assignment.calculateResult(ExecutableToken.ANY_TYPE);
+                    if (ReflectionUtils.hasField(context.getRoot(), varName)) {
+                        ReflectionUtils.setter(context.getRoot(), varName, result);
+                    } else if (context.containsVariable(varName)) {
+                        context.setVariable(varName, result);
+                    } else {
+                        throw new EvaluateException("you must def ? first", varName).errToken(this.errStr(varName));
+                    }
+                }
         );
+
     }
 
-    private void doChainAssign(Token assignment, ExecuteStep step) {
+    private void doChainAssign(ExecutableToken assignment, ExecuteStep step) {
         Object last = executeSelf(executableCount - 1, false);
         if (last == null) {
             throw new EvaluateException("can not assign! because the execute chain return a null value").errToken(this);
@@ -120,7 +122,11 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
                 } else {
                     //noinspection ConstantConditions
                     Class<?> functionClass = funcObj.getClass();
-                    method = functionClass.getInterfaces()[0].getDeclaredMethods()[0];
+                    Class<?>[] ins = functionClass.getInterfaces();
+                    if (ins.length>1&& Functional.class.isAssignableFrom(ins[0])){
+                        throw new EvaluateException("invalid function,function class must impl Functional");
+                    }
+                    method = ins[0].getDeclaredMethods()[0];
                 }
                 method.setAccessible(true);
                 int count = method.getParameterCount();

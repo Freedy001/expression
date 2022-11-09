@@ -7,9 +7,6 @@ import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author Freedy
@@ -28,6 +25,11 @@ public class FunBaseException extends RuntimeException {
         super(msg);
     }
 
+    /**
+     * 所有继承还exception的类都具备placeholder解析的能力，并且会自动的设置cause
+     * @param msg 异常信息
+     * @param placeholder 填充值 请参考 {@link PlaceholderParser}
+     */
     @SneakyThrows
     public FunBaseException(String msg, Object... placeholder) {
         try {

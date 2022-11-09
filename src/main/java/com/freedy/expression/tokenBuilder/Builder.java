@@ -2,7 +2,7 @@ package com.freedy.expression.tokenBuilder;
 
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.MethodOrPropBuildFailedException;
-import com.freedy.expression.token.ClassToken;
+import com.freedy.expression.token.ReflectToken;
 import com.freedy.expression.utils.StringUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -50,7 +50,7 @@ public abstract class Builder {
     /**
      * 构建执行链
      */
-    protected void buildExecuteChain(ClassToken token, String suffixStr, ExceptionMsgHolder holder) {
+    protected void buildExecuteChain(ReflectToken token, String suffixStr, ExceptionMsgHolder holder) {
         //构建执行链
         String[] step = StringUtils.splitWithoutBracket(suffixStr, '(', ')', '.');
         for (int i = 0; i < step.length; i++) {

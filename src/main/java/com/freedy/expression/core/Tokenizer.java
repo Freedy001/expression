@@ -2,9 +2,9 @@ package com.freedy.expression.core;
 
 import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.token.ErrMsgToken;
+import com.freedy.expression.token.ExecutableToken;
 import com.freedy.expression.token.OpsToken;
 import com.freedy.expression.token.TernaryToken;
-import com.freedy.expression.token.Token;
 import com.freedy.expression.tokenBuilder.Builder;
 import com.freedy.expression.utils.PackageScanner;
 import com.freedy.expression.utils.StringUtils;
@@ -298,7 +298,7 @@ public class Tokenizer {
         } catch (FunRuntimeException e) {
             new FunRuntimeException(expression)
                     .buildErrorStr(e.getSyntaxErrStr().toArray(new String[0]))
-                    .buildToken(e.getLayer().toArray(new Token[0]))
+                    .buildToken(e.getLayer().toArray(new ExecutableToken[0]))
                     .buildMsg("sub expression err")
                     .buildCause(e)
                     .buildConsoleErrorMsg()
@@ -335,7 +335,7 @@ public class Tokenizer {
         } catch (FunRuntimeException e) {
             new FunRuntimeException(tokenStream.getExpression())
                     .buildErrorStr(e.getSyntaxErrStr().toArray(new String[0]))
-                    .buildToken(e.getLayer().toArray(new Token[0]))
+                    .buildToken(e.getLayer().toArray(new ExecutableToken[0]))
                     .buildMsg("sub expression err")
                     .buildCause(e)
                     .buildConsoleErrorMsg()

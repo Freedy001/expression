@@ -16,7 +16,7 @@ import java.util.*;
  */
 @Getter
 @Setter
-public final class LoopToken extends Token {
+public final class LoopToken extends ExecutableToken {
     //for i in exp{// do some thing}
     private String variableName;
     // exp

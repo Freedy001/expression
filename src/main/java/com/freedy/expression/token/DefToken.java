@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DefToken extends Token implements Assignable {
+public final class DefToken extends ExecutableToken implements Assignable {
     private String variableName;
 
     private String methodName;
@@ -28,7 +28,7 @@ public final class DefToken extends Token implements Assignable {
     }
 
     @Override
-    public void assignFrom(Token assignment) {
+    public void assignFrom(ExecutableToken assignment) {
         if (isFunc()){
             throw new EvaluateException("function can't be assign!");
         }

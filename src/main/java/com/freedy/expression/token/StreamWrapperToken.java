@@ -9,7 +9,7 @@ import lombok.Setter;
  * @date 2021/12/20 21:38
  */
 
-public final class StreamWrapperToken extends Token{
+public final class StreamWrapperToken extends ExecutableToken {
 
     @Setter
     private TokenStream wrappedStream;

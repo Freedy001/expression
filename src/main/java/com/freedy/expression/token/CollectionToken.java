@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @JSONType(includes = {"type", "value"})
-public final class CollectionToken extends Token {
+public final class CollectionToken extends ExecutableToken {
     private List<TokenStream> subTokenStream = new ArrayList<>();
     private TokenStream relevantOps;
     private Expression expression;

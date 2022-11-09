@@ -14,21 +14,21 @@ public class BasicBuilder extends Builder{
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
-        //构建 numeric Token
+        //构建 numeric ExecutableToken
         Matcher matcher = numericPattern.matcher(token);
         if (matcher.matches()) {
             BasicVarToken numeric = new BasicVarToken("numeric", token);
             tokenStream.addToken(numeric);
             return true;
         }
-        //构建string Token
+        //构建string ExecutableToken
         matcher = strPattern.matcher(token);
         if (matcher.find()) {
             BasicVarToken str = new BasicVarToken("str", token);
             tokenStream.addToken(str);
             return true;
         }
-        //构建boolean Token
+        //构建boolean ExecutableToken
         matcher = boolPattern.matcher(token);
         if (matcher.matches()) {
             BasicVarToken bool = new BasicVarToken("bool", token);

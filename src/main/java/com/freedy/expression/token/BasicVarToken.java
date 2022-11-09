@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * @date 2021/12/15 16:50
  */
 @JSONType(includes = {"type", "value"})
-public final class BasicVarToken extends Token {
+public final class BasicVarToken extends ExecutableToken {
     public BasicVarToken(String type, String value) {
         super(type, value);
     }

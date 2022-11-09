@@ -16,7 +16,7 @@ import java.util.List;
  * @author Freedy
  * @date 2021/12/23 21:43
  */
-public final class IfToken extends Token {
+public final class IfToken extends ExecutableToken {
     private final List<ExecuteUnit> executeUnits = new ArrayList<>();
     @Setter
     private TokenStream elseTokenStream;

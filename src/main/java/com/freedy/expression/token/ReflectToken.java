@@ -8,7 +8,6 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.stander.Func;
-import com.freedy.expression.stander.LambdaAdapter;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.AllArgsConstructor;
@@ -29,7 +28,7 @@ import java.util.stream.Collectors;
  * @date 2021/12/14 16:57
  */
 @Getter
-public abstract sealed class ClassToken extends Token implements Assignable
+public abstract sealed class ReflectToken extends ExecutableToken implements Assignable
         permits DirectAccessToken, DotSplitToken, ReferenceToken, StaticToken {
     protected static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
     protected static final Pattern numeric = Pattern.compile("-?\\d+|-?\\d+[lL]|-?\\d+?\\.\\d+");
@@ -56,7 +55,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
         expression = new Expression(context);
     }
 
-    public ClassToken(String type, String value) {
+    public ReflectToken(String type, String value) {
         super(type, value);
     }
 
@@ -209,17 +208,13 @@ public abstract sealed class ClassToken extends Token implements Assignable
                 methodArg = methodArg.trim();
                 Matcher matcher = blockTokenStream.matcher(methodArg);
                 if (matcher.find()) {
-                    TokenStream ts = Tokenizer.getTokenStream(matcher.group(3));
                     Func func = new Func(() -> context);
-                    String lambdaArgs = matcher.group(2);
                     func.setFuncName("__lambda$$func");
+                    String lambdaArgs = matcher.group(2);
                     func.setArgName(StringUtils.isEmpty(lambdaArgs) ? new String[0] : Arrays.stream(lambdaArgs.split(",")).map(String::strip).toArray(String[]::new));
-                    func.setFuncBody(ts);
-                    LambdaAdapter adapter = new LambdaAdapter(func);
-                    String functionalInterfaceName = matcher.group(1);
-                    adapter.setInterfaceName(functionalInterfaceName);
-                    ts.setMetadata(adapter);
-                    args.add(new UnsteadyArg(UnsteadyArg.DELAY_TOKEN_STREAM, ts));
+                    func.setFuncBody(Tokenizer.getTokenStream(matcher.group(3)));
+                    func.initAdapter().setInterfaceName(matcher.group(1));
+                    args.add(new UnsteadyArg(UnsteadyArg.DELAY_TOKEN_STREAM, func));
                     continue;
                 }
                 matcher = strPattern.matcher(methodArg);
@@ -331,7 +326,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
     }
 
     /**
-     * ClassToken assignFrom方法的工具方法
+     * ReflectToken assignFrom方法的工具方法
      *
      * @param relevantOps      相关操作
      * @param baseObjProvider  基类提供者
@@ -440,7 +435,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
         return step;
     }
 
-    private ClassToken getThis() {
+    private ReflectToken getThis() {
         return this;
     }
 
@@ -495,7 +490,7 @@ public abstract sealed class ClassToken extends Token implements Assignable
          */
         public static final int NUMERIC = 1 << 2;
         /**
-         * tokenSteam类型会在调用{@link ClassToken#getMethodArgs(List)}是计算出结果
+         * tokenSteam类型会在调用{@link ReflectToken#getMethodArgs(List)}是计算出结果
          */
         public static final int TOKEN_STREAM = 1 << 3;
         /**

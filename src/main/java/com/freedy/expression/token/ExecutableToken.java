@@ -36,8 +36,8 @@ import java.util.List;
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
 @JSONType(includes = {"type", "value"})
-public abstract sealed class Token implements Comparable
-        permits BasicVarToken, ClassToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, DefToken, OpsToken, StopToken, TernaryToken, StreamWrapperToken {
+public abstract sealed class ExecutableToken implements Comparable
+        permits BasicVarToken, ReflectToken, CollectionToken, ErrMsgToken, IfToken, LoopToken, MapToken, DefToken, OpsToken, StopToken, TernaryToken, StreamWrapperToken {
     //Token的type 结合isType()方法省去使用使用instance of进行判断
     @ToString.Include
     protected final String type;
@@ -45,9 +45,9 @@ public abstract sealed class Token implements Comparable
     @ToString.Include
     protected String value;
     //获取原始token 表示此token是由原始token计算而来
-    protected List<Token> originToken;
+    protected List<ExecutableToken> originToken;
     //获取子token ,其子token是有该token与其他token计算而来
-    protected Token sonToken;
+    protected ExecutableToken sonToken;
     //偏移量
     protected int offset;
     //异常时需要标记的局部字符串
@@ -70,7 +70,7 @@ public abstract sealed class Token implements Comparable
     public final static Class<Object> ANY_TYPE = Object.class;
 
 
-    public Token(String type, String value) {
+    public ExecutableToken(String type, String value) {
         this.type = type;
         this.value = value;
     }
@@ -97,11 +97,11 @@ public abstract sealed class Token implements Comparable
         return false;
     }
 
-    public Token setOriginToken(Token... token) {
+    public ExecutableToken setOriginToken(ExecutableToken... token) {
         if (originToken == null) {
             originToken = new ArrayList<>();
         }
-        for (Token t : token) {
+        for (ExecutableToken t : token) {
             if (t == this) {
                 originToken.add(ReflectionUtils.copyProperties(t, "originToken", "sonToken"));
                 continue;
@@ -111,12 +111,12 @@ public abstract sealed class Token implements Comparable
         return this;
     }
 
-    public Token setOffset(int offset) {
+    public ExecutableToken setOffset(int offset) {
         this.offset = offset;
         return this;
     }
 
-    public Token errStr(String... str) {
+    public ExecutableToken errStr(String... str) {
         if (str == null) return this;
         if (errStr == null) {
             errStr = new ArrayList<>();
@@ -147,7 +147,7 @@ public abstract sealed class Token implements Comparable
     /**
      * 两个token进行比较运算
      */
-    public double compareTo(Token o) {
+    public double compareTo(ExecutableToken o) {
         BigDecimal a;
         BigDecimal b;
         try {
@@ -174,7 +174,7 @@ public abstract sealed class Token implements Comparable
      * @param type 逻辑运算的类型
      */
     @SuppressWarnings("ConstantConditions")
-    public boolean logicOps(Token o, Token type) {
+    public boolean logicOps(ExecutableToken o, ExecutableToken type) {
         boolean a;
         boolean b;
         try {
@@ -205,7 +205,7 @@ public abstract sealed class Token implements Comparable
      * @param type 运算的类型
      */
     @SuppressWarnings("DuplicateExpressions")
-    public String numSelfOps(Token o, Token type) {
+    public String numSelfOps(ExecutableToken o, ExecutableToken type) {
         Object o1;
         Object o2;
         try {
@@ -301,7 +301,7 @@ public abstract sealed class Token implements Comparable
         }
     }
 
-    private String opsAndAssign(String result, Token type) {
+    private String opsAndAssign(String result, ExecutableToken type) {
         if (this instanceof Assignable assignable) {
             assignable.assignFrom(new BasicVarToken("numeric", result));
             return calculateResult(ANY_TYPE) + "";
@@ -310,7 +310,7 @@ public abstract sealed class Token implements Comparable
         }
     }
 
-    private void intTypeCheck(Token o, BigDecimal a, BigDecimal b) {
+    private void intTypeCheck(ExecutableToken o, BigDecimal a, BigDecimal b) {
         if (a.toString().contains(".")) {
             throw new EvaluateException("Bit operation only support integer").errToken(this);
         }

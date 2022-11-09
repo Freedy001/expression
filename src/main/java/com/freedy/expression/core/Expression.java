@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import static com.freedy.expression.token.Token.ANY_TYPE;
+import static com.freedy.expression.token.ExecutableToken.ANY_TYPE;
 
 /**
  * 执行器,在{@link Expression#defaultContext}环境中调用{@link Expression#getValue()}执行{@link TokenStream}
@@ -99,15 +99,15 @@ public class Expression {
     }
 
 
-    private Object doEvaluate(List<Token> suffixTokenList, Class<?> desired) {
-        Stack<Token> varStack = new Stack<>();
-        List<Token> list = new ArrayList<>();
-        for (Token token : suffixTokenList) {
+    private Object doEvaluate(List<ExecutableToken> suffixTokenList, Class<?> desired) {
+        Stack<ExecutableToken> varStack = new Stack<>();
+        List<ExecutableToken> list = new ArrayList<>();
+        for (ExecutableToken token : suffixTokenList) {
             try {
                 if (token.isType("operation")) {
                     list.add(token);
-                    Token token1 = varStack.pop();
-                    Token token2 = varStack.pop();
+                    ExecutableToken token1 = varStack.pop();
+                    ExecutableToken token2 = varStack.pop();
                     varStack.push(calculate(token, token2, token1));
                     continue;
                 }
@@ -122,7 +122,7 @@ public class Expression {
             }
         }
         if (varStack.size() == 1) {
-            Token token = varStack.pop();
+            ExecutableToken token = varStack.pop();
             Object result = null;
             try {
                 result = token.calculateResult(desired);
@@ -137,12 +137,12 @@ public class Expression {
             return result;
         }
         if (varStack.size() == 0) return null;
-        FunRuntimeException.tokenThr(expression, list.toArray(Token[]::new));
+        FunRuntimeException.tokenThr(expression, list.toArray(ExecutableToken[]::new));
         throw new IllegalArgumentException("unreachable statement");
     }
 
 
-    private Token calculate(Token opsToken, Token t1, Token t2) {
+    private ExecutableToken calculate(ExecutableToken opsToken, ExecutableToken t1, ExecutableToken t2) {
         switch (opsToken.getValue()) {
             case "." -> {
                 return mergeDotSplit(t1, t2, opsToken);
@@ -173,7 +173,7 @@ public class Expression {
         }
     }
 
-    private Token ternaryOps(Token t1, Token t2, Token opsToken) {
+    private ExecutableToken ternaryOps(ExecutableToken t1, ExecutableToken t2, ExecutableToken opsToken) {
         if (t2 instanceof TernaryToken token) {
             token.setBoolToken(t1);
             return t2;
@@ -182,7 +182,7 @@ public class Expression {
 
     }
 
-    private Token mergeDotSplit(Token t1, Token t2, Token opsToken) {
+    private ExecutableToken mergeDotSplit(ExecutableToken t1, ExecutableToken t2, ExecutableToken opsToken) {
         if (t2 instanceof DotSplitToken dotSplitToken) {
             dotSplitToken.setBaseToken(t1);
             return dotSplitToken;
@@ -191,7 +191,7 @@ public class Expression {
     }
 
 
-    private Token assign(Token t1, Token t2, Token opsToken) {
+    private ExecutableToken assign(ExecutableToken t1, ExecutableToken t2, ExecutableToken opsToken) {
         if (t1 instanceof Assignable token) {
             try {
                 token.assignFrom(t2);
@@ -204,12 +204,12 @@ public class Expression {
         }
     }
 
-    private Token logicOps(Token t1, Token t2, Token ops) {
+    private ExecutableToken logicOps(ExecutableToken t1, ExecutableToken t2, ExecutableToken ops) {
         return new BasicVarToken("bool", t1.logicOps(t2, ops) + "").setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
     }
 
 
-    private Token compare(Token t1, Token t2, Token ops) {
+    private ExecutableToken compare(ExecutableToken t1, ExecutableToken t2, ExecutableToken ops) {
         switch (ops.getValue()) {
             case "<" -> {
                 return new BasicVarToken("bool", (t1.compareTo(t2) < 0) + "").setOriginToken(t1, ops, t2).setOffset(t1.getOffset());
@@ -244,7 +244,7 @@ public class Expression {
     }
 
 
-    private Token numOps(Token t1, Token t2, Token ops) {
+    private ExecutableToken numOps(ExecutableToken t1, ExecutableToken t2, ExecutableToken ops) {
         String selfOps = t1.numSelfOps(t2, ops);
         if (selfOps.matches("^'.*'$")) {
             return new BasicVarToken("str", selfOps).setOriginToken(t1, ops, t2).setOffset(t1.getOffset());

@@ -3,7 +3,7 @@
 func('getWinIp','originIp','originMask',@block{
     def addr=new('InetSocketAddress',originIp, 0);
     def maskAddr=new('InetSocketAddress',originMask, 0);
-    def ip = addr.getAddress().getAddress();
+    def ip = addr  .getAddress().getAddress();
     def mask = maskAddr.getAddress().getAddress();
     def joiner = new('StringJoiner','.');
     for(i:4){

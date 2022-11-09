@@ -20,7 +20,7 @@ public class DirectAccessBuilder extends Builder {
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
-        //构建变量 Token
+        //构建变量 ExecutableToken
         Matcher matcher = prefix.matcher(removeLF(token));
         if (!matcher.matches()) return false;
         matcher = prefix.matcher(removeLF(token));

@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class StopToken extends Token {
+public final class StopToken extends ExecutableToken {
 
     TokenStream returnStream;
 

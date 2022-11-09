@@ -17,7 +17,7 @@ public class ReferenceBuilder extends Builder {
 
     @Override
     public boolean build(TokenStream tokenStream, String token, ExceptionMsgHolder holder) {
-        //构建reference Token
+        //构建reference ExecutableToken
         Matcher matcher = referencePattern.matcher(token);
         if (matcher.find()) {
             ReferenceToken referenceToken = new ReferenceToken(token);

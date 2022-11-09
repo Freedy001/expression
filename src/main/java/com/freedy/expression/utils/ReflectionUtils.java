@@ -1,9 +1,8 @@
 package com.freedy.expression.utils;
 
 
-import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.stander.LambdaAdapter;
+import com.freedy.expression.stander.Func;
 import lombok.SneakyThrows;
 
 import java.lang.annotation.Annotation;
@@ -596,14 +595,17 @@ public class ReflectionUtils {
                             Object o = tryConvert(originMethodArgs, args[i]);
                             if (o != Boolean.FALSE) {
                                 args[i] = o;
-                            } else if (args[i] instanceof TokenStream ts && ts.getMetadata() instanceof LambdaAdapter adapter) {
-                                Class<?> type = adapter.getInterfaceType();
-                                if ((type != null && !originMethodArgs.isAssignableFrom(type)) || adapter.notFunctional(originMethodArgs)) {
+                            } else {
+                                Func.LambdaAdapter adapter;
+                                if (args[i] instanceof Func f && (adapter = f.getAdapter()) != null) {
+                                    Class<?> type = adapter.getInterfaceType();
+                                    if ((type != null && !originMethodArgs.isAssignableFrom(type)) || adapter.notFunctional(originMethodArgs)) {
+                                        break;
+                                    }
+                                    lambdaIndex.put(i, originMethodArgs);
+                                } else {
                                     break;
                                 }
-                                lambdaIndex.put(i, originMethodArgs);
-                            } else {
-                                break;
                             }
                         }
                     }
@@ -613,8 +615,9 @@ public class ReflectionUtils {
                     //参数lambda参数替换
                     if (lambdaIndex.size() > 0) {
                         args = Arrays.copyOf(args, args.length, Object[].class);
+                        Func.LambdaAdapter adapter;
                         for (Map.Entry<Integer, Class<?>> entry : lambdaIndex.entrySet()) {
-                            if (args[entry.getKey()] instanceof TokenStream ts && ts.getMetadata() instanceof LambdaAdapter adapter) {
+                            if (args[entry.getKey()] instanceof Func f && (adapter=f.getAdapter())!=null) {
                                 args[entry.getKey()] = adapter.getInstance(entry.getValue());
                             }
                         }

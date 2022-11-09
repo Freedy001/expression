@@ -17,7 +17,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @JSONType(includes = {"type", "value", "nullCheck", "propertyName", "methodArgs"})
-public final class ReferenceToken extends ClassToken {
+public final class ReferenceToken extends ReflectToken {
 
     public ReferenceToken(String token) {
         super("reference", token);
@@ -32,7 +32,7 @@ public final class ReferenceToken extends ClassToken {
 
 
     @Override
-    public void assignFrom(Token assignment) {
+    public void assignFrom(ExecutableToken assignment) {
         ExecuteStep step = getLastPropertyStep();
         Object variable = getVariable();
         if (step == null) {
@@ -56,7 +56,7 @@ public final class ReferenceToken extends ClassToken {
     }
 
 
-    private void doChainAssign(Token assignment, ExecuteStep step, Object variable) {
+    private void doChainAssign(ExecutableToken assignment, ExecuteStep step, Object variable) {
         variable = executeChain(variable.getClass(), variable, executableCount - 1);
         if (variable==null){
             throw new EvaluateException("can not assign! because the execute chain return a null value").errToken(this);

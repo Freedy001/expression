@@ -1,14 +1,11 @@
 package com.freedy.expression.core;
 
-import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Functional;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 

@@ -1,8 +1,7 @@
 package com.freedy.expression.exception;
 
-import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.SysConstant;
-import com.freedy.expression.token.Token;
+import com.freedy.expression.token.ExecutableToken;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.StringUtils;
@@ -10,19 +9,19 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * 将FunBaseException包装成更加可视化的异常信息
  * @author Freedy
  * @date 2021/12/15 9:49
  */
 public class FunRuntimeException extends RuntimeException {
 
-    public static void buildThr(Class<?> builderClass, String msg, String expression, StackTraceElement[] ele, Token... tokens) {
+    public static void buildThr(Class<?> builderClass, String msg, String expression, StackTraceElement[] ele, ExecutableToken... tokens) {
         new FunRuntimeException(expression)
                 .buildMsg(msg)
                 .buildToken(tokens)
@@ -33,7 +32,7 @@ public class FunRuntimeException extends RuntimeException {
     }
 
 
-    public static void tokenThr(String msg, String expression, Token... tokens) {
+    public static void tokenThr(String msg, String expression, ExecutableToken... tokens) {
         new FunRuntimeException(expression)
                 .buildMsg(msg)
                 .buildToken(tokens)
@@ -43,7 +42,7 @@ public class FunRuntimeException extends RuntimeException {
     }
 
 
-    public static void tokenThr(String expression, Token... tokens) {
+    public static void tokenThr(String expression, ExecutableToken... tokens) {
         new FunRuntimeException(expression)
                 .buildToken(tokens)
                 .buildConsoleErrorMsg()
@@ -52,7 +51,7 @@ public class FunRuntimeException extends RuntimeException {
     }
 
 
-    public static void tokenThr(Throwable cause, String expression, Token... tokens) {
+    public static void tokenThr(Throwable cause, String expression, ExecutableToken... tokens) {
         new FunRuntimeException(expression)
                 .buildCause(cause)
                 .buildToken(tokens)
@@ -62,12 +61,12 @@ public class FunRuntimeException extends RuntimeException {
     }
 
 
-    public static void thrEvaluateException(EvaluateException e, String expression, Token token) {
-        List<Token> tokens = e.getTokenList();
+    public static void thrEvaluateException(EvaluateException e, String expression, ExecutableToken token) {
+        List<ExecutableToken> tokens = e.getTokenList();
         String sub = e.getExpression();
         new FunRuntimeException(StringUtils.hasText(sub) ? sub : expression)
                 .buildCause(e)
-                .buildToken(tokens.isEmpty() ? new Token[]{token} : tokens.toArray(Token[]::new))
+                .buildToken(tokens.isEmpty() ? new ExecutableToken[]{token} : tokens.toArray(ExecutableToken[]::new))
                 .buildConsoleErrorMsg()
                 .buildStackTrace()
                 .thr();
@@ -93,7 +92,7 @@ public class FunRuntimeException extends RuntimeException {
     public static void thrThis(String expression, FunRuntimeException thisException) {
         new FunRuntimeException(expression)
                 .buildErrorStr(thisException.getSyntaxErrStr().toArray(String[]::new))
-                .buildToken(thisException.getLayer().toArray(Token[]::new))
+                .buildToken(thisException.getLayer().toArray(ExecutableToken[]::new))
                 .buildMsg("sub expression err")
                 .buildCause(thisException)
                 .buildConsoleErrorMsg()
@@ -104,12 +103,12 @@ public class FunRuntimeException extends RuntimeException {
     private String msg;
     private Throwable cause;
     @Getter
-    private final List<Token> layer = new ArrayList<>();
+    private final List<ExecutableToken> layer = new ArrayList<>();
     @Getter
     private final List<String> syntaxErrStr = new ArrayList<>();
     private PlaceholderParser placeholder;
     //每一层相应token对应的坐标
-    private Map<Token, int[]> currentTokenIndex = new TreeMap<>(Comparator.comparing(Token::getOffset));
+    private Map<ExecutableToken, int[]> currentTokenIndex = new TreeMap<>(Comparator.comparing(ExecutableToken::getOffset));
 
     public FunRuntimeException(String expression) {
         this.expression = expression;
@@ -119,21 +118,21 @@ public class FunRuntimeException extends RuntimeException {
         super(msg, cause);
     }
 
-    public FunRuntimeException buildToken(Token... tokens) {
+    public FunRuntimeException buildToken(ExecutableToken... tokens) {
         if (tokens == null || tokens.length == 0) {
             return this;
         }
         layer.clear();
 
-        LinkedList<Token> queue = new LinkedList<>(Arrays.asList(tokens));
-        queue.sort(Comparator.comparingInt(Token::getOffset));
+        LinkedList<ExecutableToken> queue = new LinkedList<>(Arrays.asList(tokens));
+        queue.sort(Comparator.comparingInt(ExecutableToken::getOffset));
 
         while (!queue.isEmpty()) {
-            Token poll = queue.poll();
+            ExecutableToken poll = queue.poll();
 
-            List<Token> originToken = poll.getOriginToken();
+            List<ExecutableToken> originToken = poll.getOriginToken();
             if (originToken != null) {
-                for (Token origin : originToken) {
+                for (ExecutableToken origin : originToken) {
                     origin.setSonToken(poll);
                     queue.add(origin);
                 }
@@ -212,7 +211,7 @@ public class FunRuntimeException extends RuntimeException {
         if (placeholder == null) {
             throw new java.lang.UnsupportedOperationException("please call buildConsoleErrorMsg() first!");
         }
-        Map<Token, int[]> layer;
+        Map<ExecutableToken, int[]> layer;
 
         while ((layer = getNextLayer()) != null) {
             currentTokenIndex = layer;
@@ -240,14 +239,14 @@ public class FunRuntimeException extends RuntimeException {
         throw new FunRuntimeException(placeholder == null ? "white blank" : placeholder.toString(), cause);
     }
 
-    private Map<Token, int[]> getNextLayer() {
-        Token sonToken = null;
+    private Map<ExecutableToken, int[]> getNextLayer() {
+        ExecutableToken sonToken = null;
         int startIndex = 0;
         int endIndex = 0;
-        Map<Token, int[]> resultMap = new LinkedHashMap<>();
-        Map<Token, int[]> tokenMap = new LinkedHashMap<>();
+        Map<ExecutableToken, int[]> resultMap = new LinkedHashMap<>();
+        Map<ExecutableToken, int[]> tokenMap = new LinkedHashMap<>();
         boolean noSonToken = true;
-        for (Map.Entry<Token, int[]> entry : currentTokenIndex.entrySet()) {
+        for (Map.Entry<ExecutableToken, int[]> entry : currentTokenIndex.entrySet()) {
             while (true) {
                 if (sonToken == null) {
                     sonToken = entry.getKey().getSonToken();
@@ -279,7 +278,7 @@ public class FunRuntimeException extends RuntimeException {
         return noSonToken ? null : resultMap;
     }
 
-    private boolean isAllFind(Token sonToken, int startIndex, int endIndex, Map<Token, int[]> resultMap, Map<Token, int[]> tokenMap, boolean noSonToken) {
+    private boolean isAllFind(ExecutableToken sonToken, int startIndex, int endIndex, Map<ExecutableToken, int[]> resultMap, Map<ExecutableToken, int[]> tokenMap, boolean noSonToken) {
         if (sonToken.getOriginToken().size() == tokenMap.size()) {
             int midIndex = (endIndex + startIndex) / 2;
             int len = sonToken.getValue().length();
@@ -384,7 +383,7 @@ public class FunRuntimeException extends RuntimeException {
     static class SyntaxErr {
         String info;
         int startIndex;
-        Token relevantToken;
+        ExecutableToken relevantToken;
         int middleIndex;
 
         boolean isTokenType() {
@@ -395,7 +394,7 @@ public class FunRuntimeException extends RuntimeException {
             this.info = info;
         }
 
-        public SyntaxErr(Token token) {
+        public SyntaxErr(ExecutableToken token) {
             info = token.getValue();
             startIndex = token.getOffset();
             relevantToken = token;

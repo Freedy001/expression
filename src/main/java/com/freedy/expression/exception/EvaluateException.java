@@ -1,7 +1,7 @@
 package com.freedy.expression.exception;
 
 import com.freedy.expression.core.TokenStream;
-import com.freedy.expression.token.Token;
+import com.freedy.expression.token.ExecutableToken;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import java.util.List;
 public class EvaluateException extends FunBaseException {
 
     @Getter
-    private final List<Token> tokenList=new ArrayList<>();
+    private final List<ExecutableToken> tokenList=new ArrayList<>();
     @Getter
     private String expression;
     @Getter
@@ -34,7 +34,7 @@ public class EvaluateException extends FunBaseException {
         return this;
     }
 
-    public EvaluateException errToken(Token ...syntaxErrSubStr) {
+    public EvaluateException errToken(ExecutableToken...syntaxErrSubStr) {
         tokenList.addAll(Arrays.asList(syntaxErrSubStr));
         return this;
     }

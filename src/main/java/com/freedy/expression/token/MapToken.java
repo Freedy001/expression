@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 @Getter
 @Setter
 @JSONType(includes = {"type", "value"})
-public final class MapToken extends Token {
+public final class MapToken extends ExecutableToken {
     private String mapStr;
     private String relevantOpsName;
     private final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");

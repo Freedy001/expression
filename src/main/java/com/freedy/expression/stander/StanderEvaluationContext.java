@@ -14,6 +14,7 @@ import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -46,7 +47,8 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     public StanderEvaluationContext(String... packages) {
         HashSet<String> set = new HashSet<>(Arrays.asList(packages));
         set.add("com.freedy.expression.stander.standerFunc");
-        init(set);
+        initDefaultBehaves();
+        initStanderFunc(set);
         this.root = new StanderRoot(this);
     }
 
@@ -72,7 +74,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     }
 
 
-    private void init(Set<String> standerFuncPackage) {
+    private void initDefaultBehaves(){
         variableMap.put("ctx", this);
         importMap.put("package:java.lang", "*");
         importMap.put("package:java.util", "*");
@@ -99,31 +101,29 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         importMap.put("package:com.freedy.expression.stander.standerFunc", "*");
         registerFunctionWithHelp("condition", "use in for statement,to indicate whether should stop loop.\n\texample:def a=10; for(i:condition(@block{a++<10})){print(num);}; \n\t it will print 1 to 10", (Function._1ParameterFunction<TokenStream, TokenStream>) t -> t);
         registerFunctionWithHelp("tokenStream", "transfer to token stream", (Function._1ParameterFunction<TokenStream, TokenStream>) o -> o);
+    }
+
+    private void initStanderFunc(Set<String> standerFuncPackage) {
         Set<String> keywords = CodeDeCompiler.getKeywords();
-        for (Class<?> aClass : PackageScanner.doScan(standerFuncPackage.toArray(String[]::new), new String[0])) {
-            if (aClass.getSuperclass() != AbstractStanderFunc.class) continue;
+        for (Class<?> funClass : PackageScanner.doScan(standerFuncPackage.toArray(String[]::new), new String[0])) {
+            if (funClass.getSuperclass() != AbstractStanderFunc.class) continue;
             AbstractStanderFunc o;
             try {
-                o = (AbstractStanderFunc) aClass.getConstructor().newInstance();
+                o = (AbstractStanderFunc) funClass.getConstructor().newInstance();
             } catch (Exception e) {
                 throw new EvaluateException("init stander func failed", e);
             }
             o.setContext(this);
-            for (Method method : aClass.getDeclaredMethods()) {
+            for (Method method : funClass.getDeclaredMethods()) {
                 ExpressionFunc func = method.getAnnotation(ExpressionFunc.class);
                 if (func == null) continue;
                 HashMap<String, FunctionalMethod.ValInjector> valInjectorMap = null;
                 StringBuilder paramHelp = null;
                 if (func.enableCMDParameter()) {
-                    Class<?>[] types = method.getParameterTypes();
-                    if (types.length > 1) {
-                        throw new IllegalArgumentException("?(?*) couldn't enable CMDParameter,because the number of parameter of this function is not 1",
-                                method.getName(), Arrays.stream(method.getParameters())
-                                .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
-                    }
+                    Class<?> types = getToBeParsedType(method);
                     valInjectorMap = new HashMap<>();
                     paramHelp = new StringBuilder();
-                    for (Field f : ReflectionUtils.getFieldsRecursion(types[0])) {
+                    for (Field f : ReflectionUtils.getFieldsRecursion(types)) {
                         CMDParameter cmd = f.getAnnotation(CMDParameter.class);
                         if (cmd == null) continue;
                         if (!cmd.value().startsWith("-")) {
@@ -134,7 +134,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                         paramHelp.append(cmd.value()).append(" ".repeat(Math.max(20 - cmd.value().length(), 5))).append(cmd.helpText()).append("\n");
                         valInjectorMap.put(cmd.value(), new FunctionalMethod.ValInjector(f, cmd.value()));
                     }
-                    for (Method m : ReflectionUtils.getMethodsRecursion(types[0])) {
+                    for (Method m : ReflectionUtils.getMethodsRecursion(types)) {
                         CMDParameter cmd = m.getAnnotation(CMDParameter.class);
                         if (cmd == null) continue;
                         if (!cmd.value().startsWith("-")) {
@@ -153,12 +153,28 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                 }
                 String name = method.getName();
                 registerFunctionWithHelp(
-                        name.startsWith("_") && keywords.contains(name.substring(1)) ? name.substring(1) : name,
+                        getRealName(keywords, name),
                         func.value() + (paramHelp == null ? "" : "\ndetail usage:\n\033[95m" + paramHelp + "\033[0;39m"),
                         new FunctionalMethod(o, method, valInjectorMap)
                 );
             }
         }
+    }
+
+    @NotNull
+    private static String getRealName(Set<String> keywords, String name) {
+        return name.startsWith("_") && keywords.contains(name.substring(1)) ? name.substring(1) : name;
+    }
+
+    @NotNull
+    private static Class<?> getToBeParsedType(Method method) {
+        Class<?>[] types = method.getParameterTypes();
+        if (types.length > 1) {
+            throw new IllegalArgumentException("?(?*) couldn't enable CMDParameter,because the number of parameter of this function is not 1",
+                    method.getName(), Arrays.stream(method.getParameters())
+                    .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
+        }
+        return types[0];
     }
 
     public record FunctionalMethod(Object funcObj, Method func, HashMap<String, ValInjector> cmdParamMap) implements Functional {
@@ -188,12 +204,14 @@ public class StanderEvaluationContext extends PureEvaluationContext {
             private Method valMethod;
 
             private ValInjector(Field valField, String parameter) {
+               valField.setAccessible(true);
                 this.valField = valField;
                 origClass = valField.getDeclaringClass();
                 this.parameter = parameter;
             }
 
             private ValInjector(Method valMethod, String parameter) {
+                valMethod.setAccessible(true);
                 this.valMethod = valMethod;
                 origClass = valMethod.getDeclaringClass();
                 this.parameter = parameter;
