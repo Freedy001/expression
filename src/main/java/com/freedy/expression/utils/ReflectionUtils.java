@@ -2,7 +2,7 @@ package com.freedy.expression.utils;
 
 
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.stander.Func;
+import com.freedy.expression.standard.Func;
 import lombok.SneakyThrows;
 
 import java.lang.annotation.Annotation;

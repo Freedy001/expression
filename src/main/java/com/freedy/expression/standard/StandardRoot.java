@@ -1,4 +1,4 @@
-package com.freedy.expression.stander;
+package com.freedy.expression.standard;
 
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -20,9 +20,9 @@ import java.util.*;
 @Getter
 @Setter
 @SuppressWarnings("unused")
-public class StanderRoot {
+public class StandardRoot {
     private final static SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    private final StanderEvaluationContext ctx;
+    private final StandardEvaluationContext ctx;
     private final Properties env = System.getProperties();
     private String pwd;
     private String ls;
@@ -31,7 +31,7 @@ public class StanderRoot {
     private Set<String> allVar;
 
 
-    public StanderRoot(StanderEvaluationContext ctx) {
+    public StandardRoot(StandardEvaluationContext ctx) {
         this.ctx = ctx;
     }
 

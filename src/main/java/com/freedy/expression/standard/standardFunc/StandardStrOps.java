@@ -1,6 +1,6 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
-import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.standard.ExpressionFunc;
 
 import java.util.Locale;
 
@@ -8,7 +8,7 @@ import java.util.Locale;
  * @author Freedy
  * @date 2022/3/6 15:48
  */
-public class StanderStrOps extends AbstractStanderFunc {
+public class StandardStrOps extends AbstractStandardFunc {
 
     @ExpressionFunc("similar to linux grep")
     public String grep(String str, String pat) {

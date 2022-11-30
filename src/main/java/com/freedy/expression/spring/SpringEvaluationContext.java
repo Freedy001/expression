@@ -1,6 +1,6 @@
 package com.freedy.expression.spring;
 
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Arrays;
@@ -11,7 +11,7 @@ import java.util.TreeSet;
  * @author Freedy
  * @date 2022/8/9 1:28
  */
-public class SpringEvaluationContext extends StanderEvaluationContext {
+public class SpringEvaluationContext extends StandardEvaluationContext {
 
     private final ApplicationContext app;
 

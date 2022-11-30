@@ -1,4 +1,4 @@
-package com.freedy.expression.stander;
+package com.freedy.expression.standard;
 
 import com.freedy.expression.core.PureEvaluationContext;
 import com.freedy.expression.core.TokenStream;
@@ -7,7 +7,7 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Function;
 import com.freedy.expression.function.Functional;
-import com.freedy.expression.stander.standerFunc.AbstractStanderFunc;
+import com.freedy.expression.standard.standardFunc.AbstractStandardFunc;
 import com.freedy.expression.utils.PackageScanner;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * @date 2021/12/15 16:22
  */
 @Getter
-public class StanderEvaluationContext extends PureEvaluationContext {
+public class StandardEvaluationContext extends PureEvaluationContext {
     /**
      * 标准方法帮助信息
      */
@@ -44,31 +44,31 @@ public class StanderEvaluationContext extends PureEvaluationContext {
     private String currentPath = ".";
 
 
-    public StanderEvaluationContext(String... packages) {
+    public StandardEvaluationContext(String... packages) {
         HashSet<String> set = new HashSet<>(Arrays.asList(packages));
-        set.add("com.freedy.expression.stander.standerFunc");
+        set.add("com.freedy.expression.standard.standardFunc");
         initDefaultBehaves();
-        initStanderFunc(set);
-        this.root = new StanderRoot(this);
+        initStandardFunc(set);
+        this.root = new StandardRoot(this);
     }
 
 
-    public StanderEvaluationContext root(Object root) {
+    public StandardEvaluationContext root(Object root) {
         this.root = root;
         return this;
     }
 
-    public StanderEvaluationContext putVar(String key, Object val) {
+    public StandardEvaluationContext putVar(String key, Object val) {
         variableMap.put(key, val);
         return this;
     }
 
-    public StanderEvaluationContext importPack(String pack) {
+    public StandardEvaluationContext importPack(String pack) {
         importMap.put("package:" + pack.strip(), "*");
         return this;
     }
 
-    public StanderEvaluationContext importClass(String simpleClassname, String fullClassname) {
+    public StandardEvaluationContext importClass(String simpleClassname, String fullClassname) {
         importMap.put(simpleClassname, fullClassname);
         return this;
     }
@@ -97,21 +97,21 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         importMap.put("package:com.freedy.expression.token", "*");
         importMap.put("package:com.freedy.expression.tokenBuilder", "*");
         importMap.put("package:com.freedy.expression.utils", "*");
-        importMap.put("package:com.freedy.expression.stander", "*");
-        importMap.put("package:com.freedy.expression.stander.standerFunc", "*");
+        importMap.put("package:com.freedy.expression.standard", "*");
+        importMap.put("package:com.freedy.expression.standard.standardFunc", "*");
         registerFunctionWithHelp("condition", "use in for statement,to indicate whether should stop loop.\n\texample:def a=10; for(i:condition(@block{a++<10})){print(num);}; \n\t it will print 1 to 10", (Function._1ParameterFunction<TokenStream, TokenStream>) t -> t);
         registerFunctionWithHelp("tokenStream", "transfer to token stream", (Function._1ParameterFunction<TokenStream, TokenStream>) o -> o);
     }
 
-    private void initStanderFunc(Set<String> standerFuncPackage) {
+    private void initStandardFunc(Set<String> standardFuncPackage) {
         Set<String> keywords = CodeDeCompiler.getKeywords();
-        for (Class<?> funClass : PackageScanner.doScan(standerFuncPackage.toArray(String[]::new), new String[0])) {
-            if (funClass.getSuperclass() != AbstractStanderFunc.class) continue;
-            AbstractStanderFunc o;
+        for (Class<?> funClass : PackageScanner.doScan(standardFuncPackage.toArray(String[]::new), new String[0])) {
+            if (funClass.getSuperclass() != AbstractStandardFunc.class) continue;
+            AbstractStandardFunc o;
             try {
-                o = (AbstractStanderFunc) funClass.getConstructor().newInstance();
+                o = (AbstractStandardFunc) funClass.getConstructor().newInstance();
             } catch (Exception e) {
-                throw new EvaluateException("init stander func failed", e);
+                throw new EvaluateException("init standard func failed", e);
             }
             o.setContext(this);
             for (Method method : funClass.getDeclaredMethods()) {
@@ -146,7 +146,7 @@ public class StanderEvaluationContext extends PureEvaluationContext {
                         valInjectorMap.put(cmd.value(), new FunctionalMethod.ValInjector(m, cmd.value()));
                     }
                     if (valInjectorMap.size() == 0) {
-                        throw new IllegalArgumentException("no CMDParameter annotation found in stander function's arg ?(?*)",
+                        throw new IllegalArgumentException("no CMDParameter annotation found in standard function's arg ?(?*)",
                                 method.getName(), Arrays.stream(method.getParameters())
                                 .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
                     }
@@ -270,13 +270,13 @@ public class StanderEvaluationContext extends PureEvaluationContext {
         registerFunction(funcName, functional);
     }
 
-    private StanderClassLoader loader = new StanderClassLoader();
+    private StandardClassLoader loader = new StandardClassLoader();
     @Setter
     private Set<ClassLoader> loaderSet;
 
-    public StanderClassLoader regardLoader() {
-        StanderClassLoader temp = loader;
-        loader = new StanderClassLoader();
+    public StandardClassLoader regardLoader() {
+        StandardClassLoader temp = loader;
+        loader = new StandardClassLoader();
         return temp;
     }
 

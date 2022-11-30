@@ -1,5 +1,3 @@
-import com.freedy.expression.core.Expression;
-import com.freedy.expression.stander.StanderEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.SneakyThrows;
 
@@ -18,12 +16,12 @@ public class Main {
         Pattern copile = Pattern.compile("\\d{3}.\\d{3}.\\d{3}");
 //        System.out.println(Main.class.getClassLoader().getParent().getParent());
         //
-//        Class<?> aClass = Main.class.getClassLoader().loadClass("com.freedy.expression.stander.standerFunc.StanderDefiner");
-//        System.out.println(StanderDefiner.class==aClass);
+//        Class<?> aClass = Main.class.getClassLoader().loadClass("com.freedy.expression.stander.standerFunc.StandardDefiner");
+//        System.out.println(StandardDefiner.class==aClass);
 //        System.out.println("haha");
 //        Class<?> aClass = Reflection.getCallerClass();
 //        System.out.println(aClass);
-//        System.out.println(new Expression("def a=12;def b=23;a+b+10;", new StanderEvaluationContext()).getValue());
+//        System.out.println(new Expression("def a=12;def b=23;a+b+10;", new StandardEvaluationContext()).getValue());
 //        Package.getPackages()
 
         for (Package aPackage : Main.class.getClassLoader().getDefinedPackages()) {

@@ -1,6 +1,6 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
-import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.standard.ExpressionFunc;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -11,7 +11,7 @@ import java.util.List;
  * @author Freedy
  * @date 2022/3/6 15:40
  */
-public class StanderNumericOps extends AbstractStanderFunc {
+public class StandardNumericOps extends AbstractStandardFunc {
 
     @ExpressionFunc("generate a list start with param 1 and end with param 2")
     public List<Integer> range(Integer a, Integer b) {

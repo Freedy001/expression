@@ -1,4 +1,4 @@
-package com.freedy.expression.stander;
+package com.freedy.expression.standard;
 
 import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.Expression;
@@ -126,7 +126,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
                     .load(new ClassLoader() {
                         @Override
                         public Class<?> loadClass(String name) throws ClassNotFoundException {
-                            return ctx instanceof StanderEvaluationContext std ? std.findClass(name) : Thread.currentThread().getContextClassLoader().loadClass(name);
+                            return ctx instanceof StandardEvaluationContext std ? std.findClass(name) : Thread.currentThread().getContextClassLoader().loadClass(name);
                         }
                     })
                     .getLoaded();

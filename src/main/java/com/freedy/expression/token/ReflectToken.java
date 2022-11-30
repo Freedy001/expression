@@ -7,7 +7,7 @@ import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.FunRuntimeException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.stander.Func;
+import com.freedy.expression.standard.Func;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.AllArgsConstructor;

@@ -1,4 +1,4 @@
-package com.freedy.expression.stander;
+package com.freedy.expression.standard;
 
 import com.freedy.expression.utils.ReflectionUtils;
 
@@ -6,7 +6,7 @@ import com.freedy.expression.utils.ReflectionUtils;
  * @author Freedy
  * @date 2022/1/10 20:11
  */
-public class ExpressionClassEvaluateContext extends StanderEvaluationContext {
+public class ExpressionClassEvaluateContext extends StandardEvaluationContext {
 
     Object expressionObj;
 

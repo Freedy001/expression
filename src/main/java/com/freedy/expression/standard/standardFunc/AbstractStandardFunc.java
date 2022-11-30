@@ -1,27 +1,19 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.core.Expression;
-import com.freedy.expression.stander.CMDParameter;
-import com.freedy.expression.stander.StanderEvaluationContext;
-import com.freedy.expression.utils.ReflectionUtils;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import lombok.Setter;
 import lombok.SneakyThrows;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Locale;
 
 /**
  * @author Freedy
  * @date 2022/3/6 15:09
  */
-public abstract class AbstractStanderFunc {
+public abstract class AbstractStandardFunc {
     protected final Expression selfExp = new Expression();
 
     @Setter
-    protected StanderEvaluationContext context;
+    protected StandardEvaluationContext context;
 
 
     @SneakyThrows

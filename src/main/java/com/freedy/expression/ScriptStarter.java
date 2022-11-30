@@ -5,7 +5,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.freedy.expression.core.Expression;
 import com.freedy.expression.jline.*;
 import com.freedy.expression.log.LogRecorder;
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.EncryptUtil;
 import com.freedy.expression.utils.PlaceholderParser;
@@ -63,7 +63,7 @@ public class ScriptStarter {
     @Setter
     @Getter
     // TODO: 2022/8/29 启动检查
-    private static StanderEvaluationContext context = new StanderEvaluationContext();
+    private static StandardEvaluationContext context = new StandardEvaluationContext();
     private static JlineSuggestion suggestion = new LocalJlineSuggestion(context);
     private final static Expression ex = new Expression();
 

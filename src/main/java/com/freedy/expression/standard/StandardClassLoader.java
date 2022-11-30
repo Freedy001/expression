@@ -1,4 +1,4 @@
-package com.freedy.expression.stander;
+package com.freedy.expression.standard;
 
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.utils.Color;
@@ -21,12 +21,12 @@ import java.util.regex.Pattern;
  * @author Freedy
  * @date 2022/9/30 22:51
  */
-public class StanderClassLoader extends URLClassLoader {
+public class StandardClassLoader extends URLClassLoader {
 
     public String repositoryPath = System.getProperty("user.home") + "\\.m2\\repository\\";
 
 
-    public StanderClassLoader() {
+    public StandardClassLoader() {
         super(new URL[]{}, CustomJavaCompiler.getSelfClassLoader());
     }
 
@@ -126,7 +126,7 @@ public class StanderClassLoader extends URLClassLoader {
         try {
             return super.findClass(name);
         } catch (ClassNotFoundException e) {
-            return StanderClassLoader.class.getClassLoader().loadClass(name);
+            return StandardClassLoader.class.getClassLoader().loadClass(name);
         }
     }
 

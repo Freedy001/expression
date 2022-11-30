@@ -1,7 +1,7 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.ScriptStarter;
-import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.standard.ExpressionFunc;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
@@ -9,7 +9,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.StringJoiner;
 
 import static com.freedy.expression.SysConstant.CHARSET;
 import static com.freedy.expression.SysConstant.SEPARATOR;
@@ -18,7 +19,7 @@ import static com.freedy.expression.SysConstant.SEPARATOR;
  * @author Freedy
  * @date 2022/3/6 0:10
  */
-public class StanderIo extends AbstractStanderFunc {
+public class StandardIo extends AbstractStandardFunc {
 
     @ExpressionFunc("same as System.out.println()")
     public void print(Object o) {
@@ -30,7 +31,7 @@ public class StanderIo extends AbstractStanderFunc {
         System.out.print(o);
     }
 
-    @ExpressionFunc("stander input same as new Scanner(System.in).nextLine()")
+    @ExpressionFunc("standard input same as new Scanner(System.in).nextLine()")
     public String stdin() {
         return ScriptStarter.stdin("");
     }

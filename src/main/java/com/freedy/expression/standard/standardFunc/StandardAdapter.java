@@ -1,11 +1,11 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.stander.ExpressionFunc;
-import com.freedy.expression.stander.Func;
+import com.freedy.expression.standard.ExpressionFunc;
+import com.freedy.expression.standard.Func;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * @author Freedy
  * @date 2022/3/6 14:55
  */
-public class StanderAdapter extends AbstractStanderFunc {
+public class StandardAdapter extends AbstractStandardFunc {
 
 
     @SneakyThrows

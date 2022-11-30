@@ -1,8 +1,7 @@
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import org.jline.reader.Candidate;
-import org.jline.reader.Completer;
 import org.jline.reader.ParsedLine;
 
 import java.lang.reflect.Field;
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
  * @date 2022/8/28 23:47
  */
 public class ConsoleTest {
-    private final static StanderEvaluationContext context = new StanderEvaluationContext();
+    private final static StandardEvaluationContext context = new StandardEvaluationContext();
     private final static Pattern staticPattern = Pattern.compile("^T *?\\((.*?)\\)");
 
     private static void injectTips(List<Candidate> candidates, String suffix, String baseStr, String[] varArr, Class<?> varType, boolean staticType) {

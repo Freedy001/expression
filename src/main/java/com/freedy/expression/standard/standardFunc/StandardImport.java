@@ -1,9 +1,9 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.core.Tokenizer;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.stander.ExpressionFunc;
-import com.freedy.expression.stander.StanderClassLoader;
+import com.freedy.expression.standard.ExpressionFunc;
+import com.freedy.expression.standard.StandardClassLoader;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
@@ -18,7 +18,7 @@ import static com.freedy.expression.SysConstant.CHARSET;
  * @author Freedy
  * @date 2022/3/6 15:29
  */
-public class StanderImport extends AbstractStanderFunc {
+public class StandardImport extends AbstractStandardFunc {
 
     @ExpressionFunc(value = "import statement for expression language")
     public void _import(String... packageName) {
@@ -71,7 +71,7 @@ public class StanderImport extends AbstractStanderFunc {
     }
 
     @ExpressionFunc("clear added path!")
-    public StanderClassLoader clearPath(){
+    public StandardClassLoader clearPath(){
         return context.regardLoader();
     }
 

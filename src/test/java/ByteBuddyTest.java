@@ -1,6 +1,6 @@
 import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.core.Expression;
-import com.freedy.expression.stander.standerFunc.StanderUtils;
+import com.freedy.expression.standard.standardFunc.StandardUtils;
 import com.freedy.expression.token.ExecutableToken;
 import lombok.SneakyThrows;
 import lombok.ToString;
@@ -74,7 +74,7 @@ public class ByteBuddyTest {
                 .make()
                 .load(ClassLoader.getSystemClassLoader(), ClassLoadingStrategy.Default.INJECTION)
                 .getLoaded();
-        new StanderUtils().lf(Expression.class);
+        new StandardUtils().lf(Expression.class);
     }
 
     public static void premain(String arguments, Instrumentation instrumentation) {

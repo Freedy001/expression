@@ -1,6 +1,6 @@
 package com.freedy.expression.jline;
 
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -25,9 +25,9 @@ public class LocalJlineSuggestion extends JlineSuggestion {
     protected final static Pattern staticPattern = Pattern.compile("^T *?\\((.*?)\\)");
     @Getter
     @Setter
-    protected StanderEvaluationContext context;
+    protected StandardEvaluationContext context;
 
-    public LocalJlineSuggestion(StanderEvaluationContext context) {
+    public LocalJlineSuggestion(StandardEvaluationContext context) {
         this.context = context;
     }
 

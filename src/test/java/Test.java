@@ -1,7 +1,5 @@
 import lombok.SneakyThrows;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
  * @author Freedy
  * @date 2022/7/7 2:37
@@ -12,7 +10,7 @@ public class Test {
     public static void main(String[] args) {
 //        LogRecorder recorder = new LogRecorder(System.out);
 //        ASMifier.main(new String[]{"-nodebug", "ASMTest"});
-//        new StanderUtils().clip(recorder.getLog());
+//        new StandardUtils().clip(recorder.getLog());
 //        ClassLoader loader = new ClassLoader() {
 //            @Override
 //            protected Class<?> findClass(String name) throws ClassNotFoundException {

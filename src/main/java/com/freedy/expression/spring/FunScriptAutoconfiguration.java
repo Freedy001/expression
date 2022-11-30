@@ -2,7 +2,7 @@ package com.freedy.expression.spring;
 
 import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.core.Expression;
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 @EnableConfigurationProperties(ScriptStarterProperties.class)
 public class FunScriptAutoconfiguration implements ApplicationContextAware, SmartLifecycle {
-    private final Expression ex = new Expression(new StanderEvaluationContext());
+    private final Expression ex = new Expression(new StandardEvaluationContext());
 
     {
         ex.getValue("def log=T(org.slf4j.LoggerFactory).getLogger(T(Class).forName('com.freedy.expression.spring.FunScriptAutoconfiguration'));");

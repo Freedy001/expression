@@ -1,11 +1,11 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.freedy.expression.exception.CombineException;
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.stander.HttpObject;
-import com.freedy.expression.stander.*;
+import com.freedy.expression.standard.HttpObject;
+import com.freedy.expression.standard.*;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.*;
 import io.netty.bootstrap.Bootstrap;
@@ -43,7 +43,7 @@ import static com.freedy.expression.SysConstant.SEPARATOR;
  * @author Freedy
  * @date 2022/3/6 15:38
  */
-public class StanderUtils extends AbstractStanderFunc {
+public class StandardUtils extends AbstractStandardFunc {
 
     @ExpressionFunc("list function")
     public void lf(Object o) {

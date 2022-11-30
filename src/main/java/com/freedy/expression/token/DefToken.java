@@ -2,7 +2,7 @@ package com.freedy.expression.token;
 
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.stander.Func;
+import com.freedy.expression.standard.Func;
 import lombok.Getter;
 import lombok.Setter;
 

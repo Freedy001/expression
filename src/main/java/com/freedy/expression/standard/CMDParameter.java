@@ -1,4 +1,4 @@
-package com.freedy.expression.stander;
+package com.freedy.expression.standard;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,14 +7,12 @@ import java.lang.annotation.Target;
 
 /**
  * @author Freedy
- * @date 2022/3/6 14:45
+ * @date 2022/6/28 14:05
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD,ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ExpressionFunc {
-    //注释
-    String value() default "";
-
-    boolean enableCMDParameter() default false;
+public @interface CMDParameter {
+    String value();
+    String helpText() default "";
 
 }

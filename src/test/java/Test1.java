@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ public class Test1 {
 
     @SuppressWarnings("static-access")
     public static void main(String[] args) throws Exception {
+        System.out.println(URLDecoder.decode("__$%7BT(java.lang.Runtime).getRuntime().exec(%22calc%22)%7D__::.x"));
+        System.out.println(URLDecoder.decode("__$%7BT(java.lang.Runtime).getRuntime().exec('open%20-a%20Calculator')%7D__::.x"));
         InetAddress ia = null;
         try {
             ia = ia.getLocalHost();

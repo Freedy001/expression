@@ -3,7 +3,7 @@ package com.freedy.expression.token;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Functional;
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -112,7 +112,7 @@ public final class DirectAccessToken extends ReflectToken implements Assignable 
             Object invoke;
             try {
                 Method method;
-                if (funcObj instanceof StanderEvaluationContext.FunctionalMethod func) {
+                if (funcObj instanceof StandardEvaluationContext.FunctionalMethod func) {
                     funcObj = func.funcObj();
                     method = func.func();
                     if (isInlineFunc && func.cmdParamMap() != null && checkArrType(args, 0, args.length) == String.class) {

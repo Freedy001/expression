@@ -1,11 +1,11 @@
-package com.freedy.expression.stander.standerFunc;
+package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.function.Functional;
-import com.freedy.expression.stander.CustomJavaCompiler;
-import com.freedy.expression.stander.ExpressionFunc;
-import com.freedy.expression.stander.Func;
-import com.freedy.expression.stander.StanderEvaluationContext;
+import com.freedy.expression.standard.CustomJavaCompiler;
+import com.freedy.expression.standard.ExpressionFunc;
+import com.freedy.expression.standard.Func;
+import com.freedy.expression.standard.StandardEvaluationContext;
 import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
@@ -17,7 +17,7 @@ import java.util.*;
  * @author Freedy
  * @date 2022/3/6 15:28
  */
-public class StanderDefiner extends AbstractStanderFunc {
+public class StandardDefiner extends AbstractStandardFunc {
     public final static Map<String, TokenStream> CLASS_MAP = new HashMap<>();
 
 
@@ -27,7 +27,7 @@ public class StanderDefiner extends AbstractStanderFunc {
         int lastDot = cName.lastIndexOf(".");
         String packageName = cName.substring(0, lastDot);
         String className = cName.substring(lastDot + 1);
-        StanderEvaluationContext context = new StanderEvaluationContext();
+        StandardEvaluationContext context = new StandardEvaluationContext();
         //计算表达式
         selfExp.setDefaultContext(context);
         selfExp.setTokenStream(tokenStreams);
@@ -36,8 +36,8 @@ public class StanderDefiner extends AbstractStanderFunc {
         Map<String, Functional> funcMap = context.getFunMap();
         Set<String> importSet = new HashSet<>();
         importSet.add("import com.freedy.expression.core.Expression;");
-        importSet.add("import com.freedy.expression.stander.Func;");
-        importSet.add("import com.freedy.expression.stander.ExpressionClassEvaluateContext;");
+        importSet.add("import com.freedy.expression.standard.Func;");
+        importSet.add("import com.freedy.expression.standard.ExpressionClassEvaluateContext;");
         importSet.add("import com.freedy.expression.core.TokenStream;");
         importSet.add("import com.freedy.expression.function.Functional;");
         importSet.add("import java.util.Map;");
@@ -48,7 +48,7 @@ public class StanderDefiner extends AbstractStanderFunc {
                                     
                 \t{
                 \t    ExpressionClassEvaluateContext ownContext = new ExpressionClassEvaluateContext(this);
-                \t    new Expression(com.freedy.expression.stander.standerFunc.StanderDefiner.CLASS_MAP.get("?"), ownContext).getValue();
+                \t    new Expression(com.freedy.expression.standard.standardFunc.standardDefiner.CLASS_MAP.get("?"), ownContext).getValue();
                 \t    funcMap = ownContext.getFunMap();
                 \t    varMap = ownContext.getVariableMap();
                 \t    hasInit=true;
@@ -137,7 +137,7 @@ public class StanderDefiner extends AbstractStanderFunc {
     public Set<Class<?>> loadedClass(String tip) {
         Unsafe unsafe = (Unsafe) ReflectionUtils.getter(Unsafe.class, null, "theUnsafe");
         long classOffset = unsafe.objectFieldOffset(ClassLoader.class, "classes");
-        ClassLoader classLoader = StanderEvaluationContext.class.getClassLoader();
+        ClassLoader classLoader = StandardEvaluationContext.class.getClassLoader();
         //noinspection unchecked
         List<Class<?>> extLoad = (List<Class<?>>) unsafe.getReference(classLoader.getParent(), classOffset);
         //noinspection unchecked
