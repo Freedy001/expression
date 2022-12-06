@@ -1,0 +1,270 @@
+package com.freedy.expression.token;
+
+import com.freedy.expression.core.EvaluationContext;
+import com.freedy.expression.core.Expression;
+import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.exception.EvaluateException;
+import com.freedy.expression.exception.StopSignal;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.*;
+
+/**
+ * @author Freedy
+ * @date 2021/12/22 19:54
+ */
+@Getter
+@Setter
+public final class LoopToken extends Token {
+    //for i in exp{// do some thing}
+    private String variableName;
+    // exp
+    private TokenStream executeTokenStream;
+    // {// do some thing}
+    private TokenStream loopTokenStream;
+
+    private Expression subExpression;
+
+    private boolean isDesc;
+
+    public LoopToken(String value) {
+        super("loop", value);
+    }
+
+    @Override
+    public void setContext(EvaluationContext context) {
+        super.setContext(context);
+        subExpression = new Expression(context);
+    }
+
+    @Override
+    protected Object doCalculate(Class<?> desiredType) {
+        subExpression.setTokenStream(executeTokenStream);
+        Object iterable = subExpression.getValue();
+        //准备执行loop
+        subExpression.setTokenStream(loopTokenStream);
+        Object result = null;
+
+        if (context.containsVariable(variableName)) {
+            throw new EvaluateException("you have already def var ?", variableName);
+        }
+
+        try {
+            if (iterable instanceof Number) {
+                Number num = (Number) iterable;
+                if (isDesc) {
+                    for (long i = num.longValue() - 1; i >= 0; i--) {
+                        try {
+                            context.setVariable(variableName, i);
+                            result = subExpression.getValue();
+                        } catch (Throwable e) {
+                            StopSignal signal = StopSignal.getInnerSignal(e);
+                            if (signal != null) {
+                                String signalMsg = signal.getMessage();
+                                if ("continue".equals(signalMsg)) {
+                                    continue;
+                                }
+                                if ("break".equals(signalMsg)) {
+                                    break;
+                                }
+                            }
+                            throw e;
+
+                        } finally {
+                            loopTokenStream.close();
+                        }
+                    }
+                } else {
+                    for (long i = 0; i < num.longValue(); i++) {
+                        try {
+                            context.setVariable(variableName, i);
+                            result = subExpression.getValue();
+                        } catch (Throwable e) {
+                            StopSignal signal = StopSignal.getInnerSignal(e);
+                            if (signal != null) {
+                                String signalMsg = signal.getMessage();
+                                if ("continue".equals(signalMsg)) {
+                                    continue;
+                                }
+                                if ("break".equals(signalMsg)) {
+                                    break;
+                                }
+                            }
+                            throw e;
+
+                        } finally {
+                            loopTokenStream.close();
+                        }
+                    }
+                }
+                return result;
+            }
+            if (iterable instanceof Object[]) {
+                iterable = Arrays.asList((Object[]) iterable);
+            }
+            if (iterable instanceof Iterable) {
+                Iterable collection = (Iterable) iterable;
+                if (isDesc) {
+                    listMode:
+                    if (iterable instanceof List<?>) {
+                        List<?> list = (List<?>) iterable;
+                        try {
+                            Collections.reverse(list);
+                        } catch (Exception e) {
+                            break listMode;
+                        }
+                        for (Object o : list) {
+                            try {
+                                context.setVariable(variableName, o);
+                                result = subExpression.getValue();
+                            } catch (Throwable e) {
+                                StopSignal signal = StopSignal.getInnerSignal(e);
+                                if (signal != null) {
+                                    String signalMsg = signal.getMessage();
+                                    if ("continue".equals(signalMsg)) {
+                                        continue;
+                                    }
+                                    if ("break".equals(signalMsg)) {
+                                        break;
+                                    }
+                                }
+                                throw e;
+
+                            } finally {
+                                loopTokenStream.close();
+                            }
+                        }
+                        return result;
+                    }
+                    if (iterable instanceof Collection<?>) {
+                        Collection<?> c = (Collection<?>) iterable;
+                        Object[] array = c.toArray();
+                        for (int i = array.length - 1; i >= 0; i--) {
+                            try {
+                                context.setVariable(variableName, array[i]);
+                                result = subExpression.getValue();
+                            } catch (Throwable e) {
+                                StopSignal signal = StopSignal.getInnerSignal(e);
+                                if (signal != null) {
+                                    String signalMsg = signal.getMessage();
+                                    if ("continue".equals(signalMsg)) {
+                                        continue;
+                                    }
+                                    if ("break".equals(signalMsg)) {
+                                        break;
+                                    }
+                                }
+                                throw e;
+
+                            } finally {
+                                loopTokenStream.close();
+                            }
+                        }
+                        return result;
+                    }
+                    LinkedList<Object> list = new LinkedList<>();
+                    for (Object o : collection) {
+                        list.addFirst(o);
+                    }
+                    for (Object o : list) {
+                        try {
+                            context.setVariable(variableName, o);
+                            result = subExpression.getValue();
+                        } catch (Throwable e) {
+                            StopSignal signal = StopSignal.getInnerSignal(e);
+                            if (signal != null) {
+                                String signalMsg = signal.getMessage();
+                                if ("continue".equals(signalMsg)) {
+                                    continue;
+                                }
+                                if ("break".equals(signalMsg)) {
+                                    break;
+                                }
+                            }
+                            throw e;
+
+                        } finally {
+                            loopTokenStream.close();
+                        }
+                    }
+                    return result;
+                }
+                for (Object o : collection) {
+                    try {
+                        context.setVariable(variableName, o);
+                        result = subExpression.getValue();
+                    } catch (Throwable e) {
+                        StopSignal signal = StopSignal.getInnerSignal(e);
+                        if (signal != null) {
+                            String signalMsg = signal.getMessage();
+                            if ("continue".equals(signalMsg)) {
+                                continue;
+                            }
+                            if ("break".equals(signalMsg)) {
+                                break;
+                            }
+                        }
+                        throw e;
+                    } finally {
+                        loopTokenStream.close();
+                    }
+                }
+                return result;
+
+            }
+            if (iterable instanceof TokenStream) {
+                TokenStream ifStream = (TokenStream) iterable;
+                int loopCount = 0;
+                while (true) {
+                    Boolean value = subExpression.setTokenStream(ifStream).getValue(Boolean.class);
+                    if (value == null) {
+                        throw new EvaluateException("null value return").errToken(this.errStr(executeTokenStream.getExpression()));
+                    }
+                    if (value) {
+                        try {
+                            context.setVariable(variableName, loopCount++);
+                            result = subExpression.setTokenStream(loopTokenStream).getValue();
+                        } catch (Throwable e) {
+                            StopSignal signal = StopSignal.getInnerSignal(e);
+                            if (signal != null) {
+                                String signalMsg = signal.getMessage();
+                                if ("continue".equals(signalMsg)) {
+                                    continue;
+                                }
+                                if ("break".equals(signalMsg)) {
+                                    break;
+                                }
+                            }
+                            throw e;
+                        } finally {
+                            ifStream.close();
+                            loopTokenStream.close();
+                        }
+                    } else {
+                        return result;
+                    }
+                }
+                return result;
+            }
+            //非可迭代元素
+            try {
+                context.setVariable(variableName, iterable);
+                result = subExpression.getValue();
+                loopTokenStream.close();
+            } catch (Throwable e) {
+                StopSignal signal = StopSignal.getInnerSignal(e);
+                if (signal == null) {
+                    throw e;
+                }
+            }
+        } finally {
+            context.removeVariable(variableName);
+            executeTokenStream.close();
+            loopTokenStream.close();
+        }
+
+
+        return result;
+    }
+}
