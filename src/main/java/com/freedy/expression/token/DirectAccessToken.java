@@ -42,6 +42,10 @@ public final class DirectAccessToken extends ClassToken implements Assignable {
         return checkAndSelfOps(executeSelf(executableCount, true));
     }
 
+    @Override
+    protected Object doGenericCalculate(ParameterizedType desiredType) {
+        return checkAndSelfOps(executeSelf(executableCount, true));
+    }
 
     @Override
     public void assignFrom(Token assignment) {
