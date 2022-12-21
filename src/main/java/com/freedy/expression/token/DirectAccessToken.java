@@ -4,6 +4,7 @@ import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.function.Functional;
 import com.freedy.expression.standard.StandardEvaluationContext;
+import com.freedy.expression.standard.Func.LambdaAdapter;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
@@ -151,7 +152,7 @@ public final class DirectAccessToken extends ReflectToken implements Assignable 
                     //解析 Lambda
                     Class<?>[] types = method.getParameterTypes();
                     for (int i = 0; i < args.length; i++) {
-                        if (args[i] instanceof TokenStream ts && ts.getMetadata() instanceof LambdaAdapter adapter) {
+                        if (args[i] instanceof TokenStream ts && ts.getMetadata() instanceof Func.LambdaAdapter adapter) {
                             args[i] = adapter.getInstance(types[i]);
                         }
                     }
