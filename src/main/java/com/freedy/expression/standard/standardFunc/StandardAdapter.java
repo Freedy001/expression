@@ -4,8 +4,10 @@ import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.TokenStream;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.standard.ExpressionFunc;
-import com.freedy.expression.standard.Func;
+import com.freedy.expression.function.Consumer;
+import com.freedy.expression.stander.ExpressionFunc;
+import com.freedy.expression.stander.Func;
+import com.freedy.expression.stander.LambdaAdapter;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
@@ -17,7 +19,6 @@ import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 /**
  * @author Freedy
  * @date 2022/3/6 14:55
@@ -29,6 +30,20 @@ public class StandardAdapter extends AbstractStandardFunc {
     @ExpressionFunc(value = "new a instance,param 1 is full class name,the rest param is constructor's param")
     public Object _new(String className, Object... args) {
         return ReflectionUtils.invokeMethod("<init>", context.findClass(className), null, args);
+    }
+
+    @ExpressionFunc(value = "throw exception")
+    public void thr(Throwable throwable) throws Throwable {
+        throw throwable;
+    }
+
+    @ExpressionFunc(value = "throw exception")
+    public void _try(Runnable runnable, Consumer._1ParameterConsumer<Throwable> thrHandler) throws Throwable {
+        try {
+            runnable.run();
+        }catch (Throwable e){
+            thrHandler.accept(e);
+        }
     }
 
 

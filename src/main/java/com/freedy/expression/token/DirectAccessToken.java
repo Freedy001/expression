@@ -130,22 +130,31 @@ public final class DirectAccessToken extends ReflectToken implements Assignable 
                 }
                 method.setAccessible(true);
                 int count = method.getParameterCount();
-                if (method.isVarArgs() && args != null) {
-                    Object[] nArgs = new Object[count];
-                    //拷贝非可变参数参数
-                    System.arraycopy(args, 0, nArgs, 0, count - 1);
-                    //检测可变参数数组的所有元素是否都是相同类型
-                    Class<?> eleType = checkArrType(args, count - 1, args.length);
-                    Object[] varArg;
-                    //拷贝可变数组
-                    if (eleType != null) {
-                        //noinspection unchecked
-                        varArg = Arrays.copyOfRange(args, count - 1, args.length, (Class<Object[]>) eleType.arrayType());
-                    } else {
-                        varArg = Arrays.copyOfRange(args, count - 1, args.length);
+                if (args != null) {
+                    if (method.isVarArgs()) {
+                        Object[] nArgs = new Object[count];
+                        //拷贝非可变参数参数
+                        System.arraycopy(args, 0, nArgs, 0, count - 1);
+                        //检测可变参数数组的所有元素是否都是相同类型
+                        Class<?> eleType = checkArrType(args, count - 1, args.length);
+                        Object[] varArg;
+                        //拷贝可变数组
+                        if (eleType != null) {
+                            //noinspection unchecked
+                            varArg = Arrays.copyOfRange(args, count - 1, args.length, (Class<Object[]>) eleType.arrayType());
+                        } else {
+                            varArg = Arrays.copyOfRange(args, count - 1, args.length);
+                        }
+                        nArgs[count - 1] = varArg;
+                        args = nArgs;
                     }
-                    nArgs[count - 1] = varArg;
-                    args = nArgs;
+                    //解析 Lambda
+                    Class<?>[] types = method.getParameterTypes();
+                    for (int i = 0; i < args.length; i++) {
+                        if (args[i] instanceof TokenStream ts && ts.getMetadata() instanceof LambdaAdapter adapter) {
+                            args[i] = adapter.getInstance(types[i]);
+                        }
+                    }
                 }
 
 

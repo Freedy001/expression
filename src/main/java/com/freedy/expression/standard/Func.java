@@ -143,7 +143,7 @@ public class Func implements VarFunction._1ParameterFunction<Object, Object> {
                 int length = args.length;
                 String[] argName = new String[length];
                 for (int i = 0; i < length; i++) {
-                    argName[i] = "a" + (i + 1);
+                    argName[i] = "$arg" + (i + 1);
                 }
                 func.setArgName(argName);
             }
