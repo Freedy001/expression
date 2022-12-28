@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -40,6 +41,11 @@ public final class DirectAccessToken extends ReflectToken implements Assignable 
 
     @Override
     protected Object doCalculate(Class<?> desiredType) {
+        return checkAndSelfOps(executeSelf(executableCount, true));
+    }
+
+    @Override
+    protected Object doGenericCalculate(ParameterizedType desiredType) {
         return checkAndSelfOps(executeSelf(executableCount, true));
     }
 
