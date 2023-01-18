@@ -43,7 +43,7 @@ jobs:
         username: ${{ secrets.SSHUSSER }}
         password: ${{ secrets.SSHPASSWORD }}
         port: 22
-        source: "staging/expression-${{ env.RELEASE_VERSION }}.jar"
+        source: "./staging/expression-${{ env.RELEASE_VERSION }}.jar"
         target: "/root"
         strip_components: 2
 
