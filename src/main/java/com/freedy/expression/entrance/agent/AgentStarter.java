@@ -1,9 +1,9 @@
 package com.freedy.expression.entrance.agent;
 
-import com.freedy.expression.entrance.cmd.TerminalExpr;
-import com.freedy.expression.standard.StandardEvaluationContext;
 import com.freedy.expression.utils.PlaceholderParser;
+import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
+import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
@@ -24,29 +24,49 @@ public class AgentStarter {
     private static final TreeMap<String, byte[]> classBytes = new TreeMap<>();
     @Getter
     private static Instrumentation inst;
+    private static AgentIsolateClassLoader loader;
 
     public static void agentmain(String agentArg, Instrumentation inst) {
         premain(agentArg, inst);
     }
 
+    @SneakyThrows
     public static void premain(String agentArg, Instrumentation inst) {
-        TerminalExpr expr = new TerminalExpr(new StandardEvaluationContext());
+        if (agentArg != null && agentArg.equals("uninstall")) {
+            if (loader != null) {
+                AgentStarter.inst = null;
+                loader.close();
+                loader = null;
+                System.gc();
+                System.out.println("uninstall success!");
+                return;
+            }
+        }
+        if (AgentStarter.inst != null) {
+            System.out.println("has start agent already!");
+            return;
+        }
+        loader = new AgentIsolateClassLoader();
+        Class<?> exprClazz = loader.loadClass("com.freedy.expression.entrance.cmd.TerminalExpr");
+        Class<?> ctxClazz = loader.loadClass("com.freedy.expression.standard.StandardEvaluationContext");
+        Object o = ReflectionUtils.invokeMethod("<init>", ctxClazz, (Object) null);
+        Object expr = ReflectionUtils.invokeMethod("<init>", exprClazz, (Object) null, o);
         if (agentArg != null) {
-            expr.eval("asService# " + agentArg);
+            ReflectionUtils.invokeMethod("eval", expr, "asService# " + agentArg);
         } else if (Files.exists(Path.of("./encrypt.txt"))) {
-            expr.eval("asServiceByFile# #null");
+            ReflectionUtils.invokeMethod("eval", expr, "asServiceByFile# #null");
         } else {
             String key = new PlaceholderParser("asService#  -p ? -aes ? -auth ?", randomPort(), random16Str(), random16Str()).toString();
             try {
-                expr.eval(key);
+                ReflectionUtils.invokeMethod("eval", expr, key);
             } catch (Exception ignore) {
                 key = new PlaceholderParser("asService#  -p ? -aes ? -auth ?", randomPort(), random16Str(), random16Str()).toString();
-                expr.eval(key);
+                ReflectionUtils.invokeMethod("eval", expr, key);
             }
             System.out.println(new PlaceholderParser("use random config(?)", key));
         }
         Set<ClassLoader> loaders = Collections.newSetFromMap(new WeakHashMap<>());
-        expr.getContext().setLoaderSet(loaders);
+        ReflectionUtils.setter(ReflectionUtils.getter(expr, "context"), "loaderSet", loaders);
         AgentStarter.inst = inst;
         inst.addTransformer(new ClassFileTransformer() {
             @Override

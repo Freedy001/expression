@@ -5,9 +5,10 @@
     <groovy codeStyle="LEGACY" />
   </component>
   <component name="EntryPointsManager">
-    <list size="2">
-      <item index="0" class="java.lang.String" itemvalue="com.freedy.expression.stander.ExpressionFunc" />
-      <item index="1" class="java.lang.String" itemvalue="com.freedy.tinyFramework.annotation.beanContainer.Inject" />
+    <list size="3">
+      <item index="0" class="java.lang.String" itemvalue="com.freedy.expression.standard.ExpressionFunc" />
+      <item index="1" class="java.lang.String" itemvalue="com.freedy.expression.stander.ExpressionFunc" />
+      <item index="2" class="java.lang.String" itemvalue="com.freedy.tinyFramework.annotation.beanContainer.Inject" />
     </list>
     <writeAnnotations>
       <writeAnnotation name="com.freedy.tinyFramework.annotation.beanContainer.Inject" />

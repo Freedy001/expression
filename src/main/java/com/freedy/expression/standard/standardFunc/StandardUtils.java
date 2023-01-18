@@ -20,8 +20,6 @@ import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.*;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -406,25 +404,25 @@ public class StandardUtils extends AbstractStandardFunc {
             args = terminalHandler.stdin("input a java agent args(Nullable):");
         }
         VirtualMachine.attach(id).loadAgent(path, args);
-        return "success";
+        return "success!";
     }
 
     @ExpressionFunc(value = "attach to target vm")
-    public String attachSelf(String... name) throws Exception {
+    public String attachSelf(String... arg) throws Exception {
         AttachInfo info = new AttachInfo();
-        info.setAgentPath(getLocalJarPath());
+        info.setAgentPath(ReflectionUtils.getLocalJarPath());
         info.setAgentArg(SysConstant.DEFAULT_KEY);
-        info.setName(name.length == 0 ? "*" : name[0]);
+        info.setName(arg.length == 0 ? "*" : arg[0]);
         return attachAgent(info);
     }
 
-    public static String getLocalJarPath() {
-        URL localUrl = StandardUtils.class.getProtectionDomain().getCodeSource().getLocation();
-        String path;
-        path = URLDecoder.decode(localUrl.getFile().replace("+", "%2B"), StandardCharsets.UTF_8);
-        File file = new File(path);
-        path = file.getAbsolutePath();
-        return path;
+    @ExpressionFunc(value = "attach to target vm")
+    public String detachSelf(String... arg) throws Exception {
+        AttachInfo info = new AttachInfo();
+        info.setAgentPath(ReflectionUtils.getLocalJarPath());
+        info.setAgentArg(SysConstant.DETACH);
+        info.setName(arg.length == 0 ? "*" : arg[0]);
+        return attachAgent(info);
     }
 
 

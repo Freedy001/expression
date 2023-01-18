@@ -17,4 +17,5 @@ public record SysConstant() {
     public final static StandardNet.ConnectConfig DEFAULT_CONNECT_CONFIG = new StandardNet.ConnectConfig("noTag", "127.0.0.1", "2678", "0123456789abcdef", "anyString");
     public final static String DEFAULT_KEY = DEFAULT_CONNECT_CONFIG.toString();
     public final static boolean JAR_ENV =  Objects.requireNonNull(SysConstant.class.getResource("")).getProtocol().equals("jar");;
+    public final static String DETACH ="uninstall";
 }

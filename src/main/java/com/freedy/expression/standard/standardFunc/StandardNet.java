@@ -46,17 +46,17 @@ import static com.freedy.expression.SysConstant.CHARSET;
 public class StandardNet extends AbstractStandardFunc {
 
     @ExpressionFunc(value = "connect to a remote server use a default config")
-    public void connect0() throws Exception {
-        connect(SysConstant.DEFAULT_CONNECT_CONFIG);
+    public String connect0() throws Exception {
+        return connect(SysConstant.DEFAULT_CONNECT_CONFIG);
     }
 
     @ExpressionFunc(value = "start a netty server use a config file")
-    public void connectByFile(String fileName) throws Exception {
-        connect(getConnectConfig(fileName));
+    public String connectByFile(String fileName) throws Exception {
+        return connect(getConnectConfig(fileName));
     }
 
     @ExpressionFunc(value = "connect to a remote server and run script on remote server", enableCMDParameter = true)
-    private void connect(ConnectConfig config) throws Exception {
+    private String connect(ConnectConfig config) throws Exception {
         supplyLackConfig(config);
         byte[] bytes = EncryptUtil.stringToMD5(config.getMd5Key()).getBytes(StandardCharsets.UTF_8);
         boolean[] shutDown = new boolean[]{true};
@@ -86,7 +86,7 @@ public class StandardNet extends AbstractStandardFunc {
                                     @Override
                                     public void channelInactive(ChannelHandlerContext ctx) {
                                         synchronized (channel) {
-                                            System.out.println("\033[92mserver stopped!\033[0;39m");
+                                            System.out.println(Color.dYellow("disconnect from server --> " + channel.remoteAddress()));
                                             shutDown[0] = false;
                                             channel.notifyAll();
                                         }
@@ -120,39 +120,40 @@ public class StandardNet extends AbstractStandardFunc {
                             channel.writeAndFlush(new String(stream.readAllBytes(), CHARSET));
                             channel.wait();
                         } catch (Exception e) {
-                            System.out.println("\033[91m" + e.getMessage() + "\033[0;39m");
+                            System.out.println(Color.dRed(e.getMessage()));
                         }
                         return false;
                     }
                     return true;
                 }, "fun@" + config.ip + ":" + config.port + "> ");
-            } catch (Exception e) {
-                System.out.println(Color.dYellow("disconnect from server!"));
+            } catch (Exception ignore) {
             }
         }
         group.shutdownGracefully();
+        return "client shut down!";
     }
 
 
     @ExpressionFunc("start a netty server and act as a remote script runner")
-    public void asServiceByFile(String fileName) throws Exception {
-        asService(getConnectConfig(fileName));
+    public String asServiceByFile(String fileName) throws Exception {
+        return asService(getConnectConfig(fileName));
     }
 
     @ExpressionFunc(value = "start a netty server and act as a remote script runner", enableCMDParameter = true)
-    public void asService(ConnectConfig config) {
+    public String asService(ConnectConfig config) {
         supplyLackConfig(config);
-        doAsService(Integer.parseInt(config.port), config.aesKey, config.md5Key, ctx -> System.out.println(new PlaceholderParser("one client? connect", ctx.channel().remoteAddress()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE)));
+        return doAsService(Integer.parseInt(config.port), config.aesKey, config.md5Key, ctx -> System.out.println(new PlaceholderParser("one client? connect", ctx.channel().remoteAddress()).configPlaceholderHighLight(PlaceholderParser.PlaceholderHighLight.HIGH_LIGHT_BLUE)));
     }
 
     @ExpressionFunc("shutdown a netty server")
-    public void shutDownServer() {
+    public String shutDownServer() {
         if (pc != null) {
             pc.close();
             boss.shutdownGracefully();
             worker.shutdownGracefully();
-            System.out.println("ok!");
+            return "success!";
         }
+        return "not start!";
     }
 
 
@@ -161,7 +162,7 @@ public class StandardNet extends AbstractStandardFunc {
     private final NioEventLoopGroup worker = new NioEventLoopGroup();
 
     @SneakyThrows
-    private void doAsService(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
+    private String doAsService(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
         TerminalExpr expr = new TerminalExpr(context);
         LocalJlineTerminal terminal = new LocalJlineTerminal(context);
 
@@ -197,7 +198,7 @@ public class StandardNet extends AbstractStandardFunc {
                                         }
                                         //清空日志缓存
                                         LOG_RECORDER.getLog();
-                                        expr.eval(s, "\033[95mempty\033[0;39m");
+                                        expr.eval(s, Color.dPink("server start success on port"));
                                         ctx.channel().writeAndFlush(LOG_RECORDER.getLog());
                                     }
 
@@ -223,7 +224,7 @@ public class StandardNet extends AbstractStandardFunc {
                         );
                     }
                 }).bind(port).sync().channel();
-        System.out.println("\033[95mserver start success on port" + port + "\033[0;39m");
+        return Color.dPink("server start success on port " + port);
     }
 
 
@@ -326,7 +327,7 @@ public class StandardNet extends AbstractStandardFunc {
             while (true) {
                 config.aesKey = terminalHandler.stdin("aes-key:");
                 if (config.aesKey.length() != 16) {
-                    System.out.println("\033[95maes-key'length must 16\033[0;39m");
+                    System.out.println(Color.dPink("the length of aes-key must be 16!"));
                 } else {
                     break;
                 }
@@ -354,8 +355,8 @@ public class StandardNet extends AbstractStandardFunc {
             }
             String configNum = null;
             do {
-                if (configNum != null) System.out.println("\033[95millegal input!\033[0;39m");
-                configNum = terminalHandler.stdin("\033[95mplease select one config:\033[0;39m");
+                if (configNum != null) System.out.println(Color.dPink("illegal input!"));
+                configNum = terminalHandler.stdin(Color.dPink("please select one config:"));
             } while (!configNum.matches("\\d+"));
             connectConfig = list.get(Integer.parseInt(configNum));
         }

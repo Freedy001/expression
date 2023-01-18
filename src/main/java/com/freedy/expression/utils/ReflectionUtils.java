@@ -3,11 +3,16 @@ package com.freedy.expression.utils;
 
 import com.freedy.expression.exception.IllegalArgumentException;
 import com.freedy.expression.standard.Func;
+import com.freedy.expression.standard.standardFunc.StandardUtils;
 import lombok.SneakyThrows;
 
+import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.reflect.*;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -19,6 +24,15 @@ import java.util.*;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ReflectionUtils {
+
+    public static String getLocalJarPath() {
+        URL localUrl = StandardUtils.class.getProtectionDomain().getCodeSource().getLocation();
+        String path;
+        path = URLDecoder.decode(localUrl.getFile().replace("+", "%2B"), StandardCharsets.UTF_8);
+        File file = new File(path);
+        path = file.getAbsolutePath();
+        return path;
+    }
 
     /**
      * 通过getter方法获取指定字段名的值
