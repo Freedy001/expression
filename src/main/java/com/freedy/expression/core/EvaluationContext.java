@@ -1,6 +1,6 @@
 package com.freedy.expression.core;
 
-import com.freedy.expression.function.Functional;
+import com.freedy.expression.core.function.Functional;
 import com.freedy.expression.standard.StandardEvaluationContext;
 
 import java.lang.ref.Cleaner;

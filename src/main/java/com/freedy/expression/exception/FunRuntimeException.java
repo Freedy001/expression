@@ -1,7 +1,7 @@
 package com.freedy.expression.exception;
 
 import com.freedy.expression.SysConstant;
-import com.freedy.expression.token.ExecutableToken;
+import com.freedy.expression.core.token.ExecutableToken;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.PlaceholderParser;
 import com.freedy.expression.utils.StringUtils;

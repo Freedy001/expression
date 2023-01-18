@@ -2,7 +2,7 @@ package com.freedy.expression.standard;
 
 import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.PureEvaluationContext;
-import com.freedy.expression.function.Functional;
+import com.freedy.expression.core.function.Functional;
 
 import java.util.Set;
 

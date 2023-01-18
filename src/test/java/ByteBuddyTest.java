@@ -1,7 +1,6 @@
-import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.core.Expression;
+import com.freedy.expression.core.token.ExecutableToken;
 import com.freedy.expression.standard.standardFunc.StandardUtils;
-import com.freedy.expression.token.ExecutableToken;
 import lombok.SneakyThrows;
 import lombok.ToString;
 import net.bytebuddy.ByteBuddy;
@@ -62,7 +61,6 @@ public class ByteBuddyTest {
 //        Class<?> hello = Class.forName("Hello");
 //        System.out.println(hello);
         testMethod();
-        ScriptStarter.main(new String[0]);
     }
 
     public static void testUnloadedClass() {

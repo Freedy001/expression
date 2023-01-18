@@ -1,6 +1,5 @@
 package com.freedy.expression.standard.standardFunc;
 
-import com.freedy.expression.ScriptStarter;
 import com.freedy.expression.standard.ExpressionFunc;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
@@ -33,7 +32,7 @@ public class StandardIo extends AbstractStandardFunc {
 
     @ExpressionFunc("standard input same as new Scanner(System.in).nextLine()")
     public String stdin() {
-        return ScriptStarter.stdin("");
+        return terminalHandler.stdin("");
     }
 
     @SneakyThrows

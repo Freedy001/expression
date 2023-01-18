@@ -70,8 +70,11 @@
               <transformers>
                 <transformer>
                   <manifestEntries>
-                    <Main-Class>com.freedy.expression.ScriptStarter</Main-Class>
-                    <Premain-Class>com.freedy.expression.ScriptStarter</Premain-Class>
+                    <Main-Class>com.freedy.expression.entrance.cmd.TerminalStarter</Main-Class>
+                    <Premain-Class>com.freedy.expression.entrance.agent.AgentStarter</Premain-Class>
+                    <Agentmain-Class>com.freedy.expression.entrance.agent.AgentStarter</Agentmain-Class>
+                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
                   </manifestEntries>
                 </transformer>
               </transformers>
@@ -86,17 +89,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
-        <configuration>
-          <encoding>UTF-8</encoding>
-          <compilerArgs>
-            <arg>--add-exports</arg>
-            <arg>java.base/jdk.internal.misc=ALL-UNNAMED</arg>
-          </compilerArgs>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
@@ -122,6 +114,33 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>testCompile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <encoding>UTF-8</encoding>
+          <compilerArgs>
+            <arg>--add-exports</arg>
+            <arg>java.base/jdk.internal.misc=ALL-UNNAMED</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <dependencies>
@@ -130,6 +149,13 @@
       <artifactId>lombok</artifactId>
       <version>1.18.24</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+      <version>2.2.13.RELEASE</version>
+      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
   </dependencies>
   <distributionManagement>
@@ -144,7 +170,7 @@
   </distributionManagement>
   <properties>
     <maven.compiler.target>17</maven.compiler.target>
-    <kotlin.version>1.6.10</kotlin.version>
+    <kotlin.version>1.7.20</kotlin.version>
     <maven.compiler.source>17</maven.compiler.source>
     <encoding>UTF-8</encoding>
   </properties>

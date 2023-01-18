@@ -1,8 +1,8 @@
 package com.freedy.expression.standard;
 
+import com.freedy.expression.entrance.agent.AgentStarter;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.StringUtils;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -50,10 +50,56 @@ public class CodeDeCompiler {
     private static final Pattern numPattern = Pattern.compile("[*/+-]?\\d*_*\\d*\\.?\\d*_*\\d*");
 
     @Data
-    @AllArgsConstructor
     public static class ClassByteCode {
         private String className;
         private byte[] bytecode;
+
+        public ClassByteCode(String className, byte[] bytecode) {
+            className = className.replace(".", "/");
+            this.className = className.endsWith(".class") ? className : className + ".class";
+            this.bytecode = bytecode;
+        }
+    }
+
+    /**
+     * 反编译指定字节码对象
+     *
+     * @param clazz  字节码对象
+     * @param raw    是否展示语法高亮
+     * @param method 反编译的方法,如需反编译整个类则只需要传入 ""
+     * @return 反编译后的java代码
+     */
+    @SneakyThrows
+    public static String getCode(Class<?> clazz, boolean raw, String method) {
+        String fullName = clazz.getName();
+        Map<String, CustomJavaCompiler.ByteJavaFileObject> javaFileObjectMap = CustomJavaCompiler.getJavaFileObjectMap();
+        if (javaFileObjectMap.get(fullName) != null) {
+            List<ClassByteCode> list = new ArrayList<>();
+            getExpressionByteCode(clazz, javaFileObjectMap, list);
+            return getCode(list, raw, method);
+        }
+        return getCode(getCodeBytes(clazz), raw, method);
+    }
+
+
+    public static String getCodeFromAgent(Class<?> clazz, boolean raw, String method) throws Exception {
+        Map<String, byte[]> classBytes = AgentStarter.getClassBytes();
+        String clazzName = clazz.getName();
+        byte[] bytes = classBytes.get(clazzName);
+        if (bytes == null) {
+            AgentStarter.getInst().retransformClasses(clazz);
+            bytes = classBytes.get(clazzName);
+            if (bytes == null) return null;
+        }
+        ArrayList<ClassByteCode> list = new ArrayList<>();
+        list.add(new ClassByteCode(clazzName, bytes));
+        for (Class<?> declaredClass : clazz.getDeclaredClasses()) {
+            clazzName = declaredClass.getName();
+            bytes = classBytes.get(clazzName);
+            if (bytes == null) continue;
+            list.add(new ClassByteCode(clazzName, bytes));
+        }
+        return getCode(list, raw, method);
     }
 
     private static String getCode(List<ClassByteCode> classNameAndByteCode, boolean raw, String method) {
@@ -106,28 +152,8 @@ public class CodeDeCompiler {
     }
 
 
-    /**
-     * 反编译指定字节码对象
-     *
-     * @param clazz  字节码对象
-     * @param raw    是否展示语法高亮
-     * @param method 反编译的方法,如需反编译整个类则只需要传入 ""
-     * @return 反编译后的java代码
-     */
     @SneakyThrows
-    public static String getCode(Class<?> clazz, boolean raw, String method) {
-        String fullName = clazz.getName();
-        Map<String, CustomJavaCompiler.ByteJavaFileObject> javaFileObjectMap = CustomJavaCompiler.getJavaFileObjectMap();
-        if (javaFileObjectMap.get(fullName) != null) {
-            List<ClassByteCode> list = new ArrayList<>();
-            getExpressionByteCode(clazz, javaFileObjectMap, list);
-            return getCode(list, raw, method);
-        }
-        return getCode(getFiles(clazz), raw, method);
-    }
-
-    @SneakyThrows
-    private static List<ClassByteCode> getFiles(Class<?> clazz) {
+    private static List<ClassByteCode> getCodeBytes(Class<?> clazz) {
         String fullName = clazz.getName().replace(".", "/");
         URL url = clazz.getResource("");
         assert url != null;
@@ -184,6 +210,10 @@ public class CodeDeCompiler {
         boolean singleQuote = false;
         int length = chars.length;
         for (int i = 0; i < length; i++) {
+            if (chars[i] == '\\') {
+                i++; //不解析转义字符
+                continue;
+            }
             if (chars[i] == '"') {
                 if (quoteIndex != -1) {
                     builder.append(codeString, lastSplit, quoteIndex)

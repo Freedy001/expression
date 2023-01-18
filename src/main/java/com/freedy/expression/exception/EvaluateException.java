@@ -1,7 +1,7 @@
 package com.freedy.expression.exception;
 
 import com.freedy.expression.core.TokenStream;
-import com.freedy.expression.token.ExecutableToken;
+import com.freedy.expression.core.token.ExecutableToken;
 import lombok.Getter;
 
 import java.util.ArrayList;

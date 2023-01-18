@@ -1,11 +1,11 @@
 package com.freedy.expression.core;
 
+import com.freedy.expression.core.token.ErrMsgToken;
+import com.freedy.expression.core.token.ExecutableToken;
+import com.freedy.expression.core.token.OpsToken;
+import com.freedy.expression.core.token.TernaryToken;
+import com.freedy.expression.core.tokenBuilder.Builder;
 import com.freedy.expression.exception.FunRuntimeException;
-import com.freedy.expression.token.ErrMsgToken;
-import com.freedy.expression.token.ExecutableToken;
-import com.freedy.expression.token.OpsToken;
-import com.freedy.expression.token.TernaryToken;
-import com.freedy.expression.tokenBuilder.Builder;
 import com.freedy.expression.utils.PackageScanner;
 import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
@@ -37,8 +37,8 @@ public class Tokenizer {
     @SneakyThrows
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static void scanBuilder() {
-        for (Class aClass : PackageScanner.doScan(new String[]{"com.freedy.expression.tokenBuilder"}, null)) {
-            if (Optional.ofNullable(aClass.getSuperclass()).orElse(Object.class).getName().equals("com.freedy.expression.tokenBuilder.Builder")) {
+        for (Class aClass : PackageScanner.doScan(new String[]{"com.freedy.expression.core.tokenBuilder"}, null)) {
+            if (aClass.getSuperclass() == Builder.class) {
                 builderSet.add((Builder) aClass.getConstructor().newInstance());
             }
         }

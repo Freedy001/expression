@@ -2,11 +2,11 @@ package com.freedy.expression.standard;
 
 import com.freedy.expression.core.PureEvaluationContext;
 import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.core.function.Function;
+import com.freedy.expression.core.function.Functional;
 import com.freedy.expression.exception.CombineException;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.function.Function;
-import com.freedy.expression.function.Functional;
 import com.freedy.expression.standard.standardFunc.AbstractStandardFunc;
 import com.freedy.expression.utils.PackageScanner;
 import com.freedy.expression.utils.ReflectionUtils;
@@ -14,7 +14,6 @@ import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -43,7 +42,6 @@ public class StandardEvaluationContext extends PureEvaluationContext {
     @Setter
     private String currentPath = ".";
 
-
     public StandardEvaluationContext(String... packages) {
         HashSet<String> set = new HashSet<>(Arrays.asList(packages));
         set.add("com.freedy.expression.standard.standardFunc");
@@ -59,7 +57,7 @@ public class StandardEvaluationContext extends PureEvaluationContext {
     }
 
     public StandardEvaluationContext putVar(String key, Object val) {
-        variableMap.put(key, val);
+        super.setVariable(key, val);
         return this;
     }
 
@@ -74,8 +72,8 @@ public class StandardEvaluationContext extends PureEvaluationContext {
     }
 
 
-    private void initDefaultBehaves(){
-        variableMap.put("ctx", this);
+    private void initDefaultBehaves() {
+        super.setVariable("ctx", this);
         importMap.put("package:java.lang", "*");
         importMap.put("package:java.util", "*");
         importMap.put("package:java.net", "*");
@@ -161,15 +159,13 @@ public class StandardEvaluationContext extends PureEvaluationContext {
         }
     }
 
-    @NotNull
     private static String getRealName(Set<String> keywords, String name) {
         return name.startsWith("_") && keywords.contains(name.substring(1)) ? name.substring(1) : name;
     }
 
-    @NotNull
     private static Class<?> getToBeParsedType(Method method) {
         Class<?>[] types = method.getParameterTypes();
-        if (types.length > 1) {
+        if (types.length != 1) {
             throw new IllegalArgumentException("?(?*) couldn't enable CMDParameter,because the number of parameter of this function is not 1",
                     method.getName(), Arrays.stream(method.getParameters())
                     .map(p -> p.getType().getSimpleName() + " " + p.getName()).toList());
@@ -177,7 +173,8 @@ public class StandardEvaluationContext extends PureEvaluationContext {
         return types[0];
     }
 
-    public record FunctionalMethod(Object funcObj, Method func, HashMap<String, ValInjector> cmdParamMap) implements Functional {
+    public record FunctionalMethod(Object funcObj, Method func,
+                                   HashMap<String, ValInjector> cmdParamMap) implements Functional {
         public Object parseArgs(String[] args) throws Exception {
             Class<?>[] types = func.getParameterTypes();
             if (types.length > 1) throw new IllegalArgumentException("this fun couldn't generate parameter object");
@@ -204,7 +201,7 @@ public class StandardEvaluationContext extends PureEvaluationContext {
             private Method valMethod;
 
             private ValInjector(Field valField, String parameter) {
-               valField.setAccessible(true);
+                valField.setAccessible(true);
                 this.valField = valField;
                 origClass = valField.getDeclaringClass();
                 this.parameter = parameter;
@@ -267,7 +264,8 @@ public class StandardEvaluationContext extends PureEvaluationContext {
     public void registerFunctionWithHelp(String funcName, String help, Functional functional) {
         Method method = functional instanceof FunctionalMethod m ? m.func : functional.getClass().getDeclaredMethods()[0];
         selfFuncHelp.put(funcName + Arrays.stream(method.getParameters()).map(param -> param.getType().getSimpleName() + " " + param.getName()).collect(Collectors.joining(",", "(", ")")), help);
-        registerFunction(funcName, functional);
+        Functional old = registerFunction(funcName, functional);
+        if (old != null) throw new IllegalArgumentException("you have already def ? function", funcName);
     }
 
     private StandardClassLoader loader = new StandardClassLoader();
@@ -293,7 +291,7 @@ public class StandardEvaluationContext extends PureEvaluationContext {
         try {
             return getaClass(loader, className);
         } catch (ClassNotFoundException e) {
-            if (loaderSet == null) throw e;
+            if (loaderSet == null || loaderSet.size() == 0) throw e;
             CombineException exception = new CombineException();
             exception.addException(e);
             for (ClassLoader loader : loaderSet) {

@@ -2,12 +2,15 @@ package com.freedy.expression.standard.standardFunc;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.freedy.expression.SysConstant;
+import com.freedy.expression.entrance.agent.AgentStarter;
 import com.freedy.expression.exception.CombineException;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.standard.HttpObject;
 import com.freedy.expression.standard.*;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.*;
+import com.sun.tools.attach.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -21,11 +24,11 @@ import lombok.SneakyThrows;
 
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
+import java.lang.instrument.Instrumentation;
 import java.lang.reflect.*;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -69,6 +72,28 @@ public class StandardUtils extends AbstractStandardFunc {
                 throw new EvaluateException("?", e);
             }
         }).forEach(System.out::println);
+    }
+
+    @ExpressionFunc("decompile class to java source from agent mode")
+    public String jad(Object... o) throws Exception {
+        if (o.length != 1 && o.length != 2) {
+            throw new EvaluateException("parameters count must be 1 or 2");
+        }
+        Class<?> classByArg;
+        try {
+            classByArg = getClassByArg(o[0]);
+        } catch (Exception e) {
+            String className = (String) o[0];
+            Instrumentation inst = AgentStarter.getInst();
+            Class<?> aClass = Arrays.stream(inst.getAllLoadedClasses()).filter(clazz -> clazz.getName().equals(className)).findFirst().orElse(null);
+            if (aClass == null) throw new ClassNotFoundException(className);
+            classByArg = aClass;
+        }
+
+        if (o.length == 1) {
+            return CodeDeCompiler.getCodeFromAgent(classByArg, false, "");
+        }
+        return CodeDeCompiler.getCodeFromAgent(classByArg, false, String.valueOf(o[1]));
     }
 
 
@@ -444,6 +469,61 @@ public class StandardUtils extends AbstractStandardFunc {
         if (filedRet != null) return filedRet;
         if (methodRet != null) return methodRet;
         throw ex;
+    }
+
+    @ExpressionFunc(value = "attach to target vm", enableCMDParameter = true)
+    public String attachAgent(AttachInfo info) throws IOException, AttachNotSupportedException, AgentLoadException, AgentInitializationException {
+        String id = info.getPid();
+        if (id == null) {
+            System.out.println(Color.dYellow("======================================================"));
+            String name = Optional.of(info.getName()).orElse("*");
+            ArrayList<String> pidList = new ArrayList<>();
+            int i = 1;
+            for (VirtualMachineDescriptor descriptor : VirtualMachine.list()) {
+                String s = descriptor.displayName();
+                if (!StringUtils.fuzzyEqual(s, name)) continue;
+                pidList.add(descriptor.id());
+                System.out.println((i == 1 ? "*" : " ") + "[" + i++ + "]: " + descriptor.id() + "   " + (s.length() >= 75 ? s.substring(0, 75) + "..." : s));
+            }
+            if (pidList.size() == 0) {
+                return "not found target application for name " + name + "\t\t\t\t\t\t\t\t\t\t\t\t";
+            }
+            String num = terminalHandler.stdin("chose a jvm to attach:");
+            try {
+                if (num.isEmpty()) num = "1";
+                id = pidList.get(Integer.parseInt(num) - 1);
+            } catch (NumberFormatException e) {
+                return "Please input an integer to select pid.\t\t\t\t\t\t\t\t\t\t\t\t";
+            }
+        }
+        String path = info.getAgentPath();
+        if (path == null) {
+            path = terminalHandler.stdin("input a java agent path(NonNull):");
+        }
+        String args = info.getAgentArg();
+        if (args == null) {
+            args = terminalHandler.stdin("input a java agent args(Nullable):");
+        }
+        VirtualMachine.attach(id).loadAgent(path, args);
+        return "success";
+    }
+
+    @ExpressionFunc(value = "attach to target vm")
+    public String attachSelf(String... name) throws Exception {
+        AttachInfo info = new AttachInfo();
+        info.setAgentPath(getLocalJarPath());
+        info.setAgentArg(SysConstant.DEFAULT_KEY);
+        info.setName(name.length == 0 ? "*" : name[0]);
+        return attachAgent(info);
+    }
+
+    public static String getLocalJarPath() {
+        URL localUrl = StandardUtils.class.getProtectionDomain().getCodeSource().getLocation();
+        String path;
+        path = URLDecoder.decode(localUrl.getFile().replace("+", "%2B"), StandardCharsets.UTF_8);
+        File file = new File(path);
+        path = file.getAbsolutePath();
+        return path;
     }
 
 

@@ -1,8 +1,8 @@
 package com.freedy.expression.core;
 
+import com.freedy.expression.core.token.*;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.FunRuntimeException;
-import com.freedy.expression.token.*;
 import com.freedy.expression.utils.ReflectionUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import static com.freedy.expression.token.ExecutableToken.ANY_TYPE;
+import static com.freedy.expression.core.token.ExecutableToken.ANY_TYPE;
 
 /**
  * 执行器,在{@link Expression#defaultContext}环境中调用{@link Expression#getValue()}执行{@link TokenStream}

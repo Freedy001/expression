@@ -2,16 +2,15 @@ package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.core.EvaluationContext;
 import com.freedy.expression.core.TokenStream;
+import com.freedy.expression.core.function.Consumer;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.IllegalArgumentException;
-import com.freedy.expression.function.Consumer;
 import com.freedy.expression.standard.ExpressionFunc;
 import com.freedy.expression.standard.Func;
 import com.freedy.expression.utils.ReflectionUtils;
 import com.freedy.expression.utils.StringUtils;
 import lombok.NonNull;
 import lombok.SneakyThrows;
-
 
 import java.io.InputStream;
 import java.lang.reflect.Method;

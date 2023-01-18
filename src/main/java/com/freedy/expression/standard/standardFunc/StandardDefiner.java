@@ -1,7 +1,7 @@
 package com.freedy.expression.standard.standardFunc;
 
 import com.freedy.expression.core.TokenStream;
-import com.freedy.expression.function.Functional;
+import com.freedy.expression.core.function.Functional;
 import com.freedy.expression.standard.CustomJavaCompiler;
 import com.freedy.expression.standard.ExpressionFunc;
 import com.freedy.expression.standard.Func;

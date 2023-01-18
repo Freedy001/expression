@@ -1,8 +1,8 @@
 package com.freedy.expression.core;
 
+import com.freedy.expression.core.token.*;
 import com.freedy.expression.exception.EvaluateException;
 import com.freedy.expression.exception.FunRuntimeException;
-import com.freedy.expression.token.*;
 import com.freedy.expression.utils.StringUtils;
 import lombok.Getter;
 import lombok.Setter;

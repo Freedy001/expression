@@ -274,4 +274,29 @@ public class StringUtils {
         return cursor;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public static boolean fuzzyEqual(String fullName, String fuzzyName) {
+        if (fuzzyName.equals("*")) return true;
+        String[] split = fuzzyName.split("\\*", -1);
+        int splitLen = split.length;
+        if (splitLen == 1) {
+            return fullName.equals(fuzzyName);
+        }
+        int strLen = fullName.length();
+        for (int i = 0, ci = 0; i < splitLen; i++) {
+            if (i == splitLen - 1) {
+                if (ci > strLen - split[splitLen - 1].length()) return false;
+                return fullName.endsWith(split[splitLen - 1]);
+            }
+
+            if ((ci = fullName.indexOf(split[i], ci)) == -1) {
+                return false;
+            }
+            if (i == 0 && ci != 0) return false;
+
+            ci += split[i].length();
+        }
+        return true;
+    }
+
 }
