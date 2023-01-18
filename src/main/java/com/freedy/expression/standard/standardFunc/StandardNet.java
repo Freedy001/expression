@@ -10,8 +10,8 @@ import com.freedy.expression.jline.LocalJlineTerminal;
 import com.freedy.expression.jline.SerializableCandidate;
 import com.freedy.expression.jline.SuggestionMetadata;
 import com.freedy.expression.log.LogRecorder;
-import com.freedy.expression.standard.CMDParameter;
-import com.freedy.expression.standard.ExpressionFunc;
+import com.freedy.expression.standard.HttpObject;
+import com.freedy.expression.standard.*;
 import com.freedy.expression.standard.codec.AuthenticAndDecrypt;
 import com.freedy.expression.standard.codec.AuthenticAndEncrypt;
 import com.freedy.expression.utils.*;
@@ -23,6 +23,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
@@ -32,11 +33,12 @@ import org.jline.reader.Candidate;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import static com.freedy.expression.SysConstant.CHARSET;
@@ -222,6 +224,95 @@ public class StandardNet extends AbstractStandardFunc {
                     }
                 }).bind(port).sync().channel();
         System.out.println("\033[95mserver start success on port" + port + "\033[0;39m");
+    }
+
+
+    @ExpressionFunc(value = "resolve the given parameters as concrete objects", enableCMDParameter = true)
+    public HttpReqParam parseRequest(HttpReqParam obj) {
+        return obj;
+    }
+
+
+    @ExpressionFunc(value = "send a http request by HttpReqParam", enableCMDParameter = true)
+    public HttpObject http(HttpReqParam obj) throws InterruptedException {
+        Bootstrap bootstrap = new Bootstrap();
+        NioEventLoopGroup group = new NioEventLoopGroup(1);
+        Exchanger<HttpResult> exchanger = new Exchanger<>();
+        Channel channel = bootstrap.group(group)
+                .channel(NioSocketChannel.class)
+                .handler(new ChannelInitializer<>() {
+                    @Override
+                    protected void initChannel(Channel ch) {
+                        ch.pipeline().addLast(
+                                new HttpRequestEncoder(),
+                                new HttpResponseDecoder(),
+                                new HttpObjectAggregator(Integer.MAX_VALUE),
+                                new SimpleChannelInboundHandler<FullHttpResponse>() {
+                                    @Override
+                                    public void channelActive(ChannelHandlerContext ctx) {
+                                        System.out.println("connect->" + ctx.channel().remoteAddress());
+                                    }
+
+                                    @Override
+                                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws InterruptedException {
+                                        exchanger.exchange(new HttpResult(
+                                                obj,
+                                                msg.status().code(),
+                                                msg.headers(),
+                                                msg.content().toString(Charset.defaultCharset())
+                                        ));
+                                    }
+
+                                    @Override
+                                    public void channelInactive(ChannelHandlerContext ctx) throws InterruptedException {
+                                        exchanger.exchange(null);
+                                    }
+
+                                    @Override
+                                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                        System.out.println(Color.dRed("error->" + cause.getMessage()));
+                                    }
+                                }
+                        );
+                    }
+                }).connect(obj.getIp(), obj.getPort()).sync().channel();
+        DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+                HttpVersion.HTTP_1_1,
+                obj.getMethod(),
+                obj.getUri());
+        HttpHeaders headers = request.headers();
+        headers.set(HttpHeaderNames.USER_AGENT, "FUN_HTTP_CLIENT(https://github.com/Freedy001/expression)");
+        headers.set(HttpHeaderNames.ACCEPT, "*/*");
+        headers.set(HttpHeaderNames.ACCEPT_ENCODING, "gzip, deflate, br");
+        headers.set(HttpHeaderNames.CONNECTION, "close");
+        headers.set(HttpHeaderNames.HOST, obj.getIp());
+        if (obj.getLength() > 0) {
+            headers.set(HttpHeaderNames.CONTENT_LENGTH, obj.getLength());
+        }
+        if (StringUtils.hasText(obj.getContentType())) {
+            headers.set(HttpHeaderNames.CONTENT_TYPE, obj.getContentType());
+        }
+        List<Map.Entry<String, String>> reqHeaders = obj.getHeaders();
+        for (Map.Entry<String, String> entry : reqHeaders) {
+            headers.set(entry.getKey(), entry.getValue());
+        }
+        if (obj.getContent() != null) {
+            request.content().writeBytes(obj.getContent());
+        }
+        channel.writeAndFlush(request);
+        HttpResult res;
+        try {
+            res = exchanger.exchange(null, obj.getTimeout(), TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            System.out.println(Color.dRed("request timeout!"));
+            return obj;
+        }
+        if (res == null) {
+            System.out.println(Color.dRed("connect refuse!"));
+            return obj;
+        }
+        group.shutdownGracefully();
+        return res;
     }
 
 

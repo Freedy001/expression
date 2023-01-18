@@ -6,19 +6,12 @@ import com.freedy.expression.SysConstant;
 import com.freedy.expression.entrance.agent.AgentStarter;
 import com.freedy.expression.exception.CombineException;
 import com.freedy.expression.exception.EvaluateException;
-import com.freedy.expression.standard.HttpObject;
-import com.freedy.expression.standard.*;
+import com.freedy.expression.standard.AttachInfo;
+import com.freedy.expression.standard.CodeDeCompiler;
+import com.freedy.expression.standard.ExpressionFunc;
 import com.freedy.expression.utils.Color;
 import com.freedy.expression.utils.*;
 import com.sun.tools.attach.*;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.http.*;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 
@@ -29,16 +22,12 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.*;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.Exchanger;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static com.freedy.expression.SysConstant.SEPARATOR;
 
@@ -345,94 +334,6 @@ public class StandardUtils extends AbstractStandardFunc {
         @Cleanup FileOutputStream stream = new FileOutputStream(file);
         stream.write(CodeDeCompiler.getCode(clazz, true, method).getBytes(StandardCharsets.UTF_8));
         System.out.println("dump success to " + file.getAbsolutePath());
-    }
-
-    @ExpressionFunc(value = "resolve the given parameters as concrete objects", enableCMDParameter = true)
-    public HttpReqParam parseRequest(HttpReqParam obj) {
-        return obj;
-    }
-
-
-    @ExpressionFunc(value = "send a http request by HttpReqParam", enableCMDParameter = true)
-    public HttpObject http(HttpReqParam obj) throws InterruptedException {
-        Bootstrap bootstrap = new Bootstrap();
-        NioEventLoopGroup group = new NioEventLoopGroup(1);
-        Exchanger<HttpResult> exchanger = new Exchanger<>();
-        Channel channel = bootstrap.group(group)
-                .channel(NioSocketChannel.class)
-                .handler(new ChannelInitializer<>() {
-                    @Override
-                    protected void initChannel(Channel ch) {
-                        ch.pipeline().addLast(
-                                new HttpRequestEncoder(),
-                                new HttpResponseDecoder(),
-                                new HttpObjectAggregator(Integer.MAX_VALUE),
-                                new SimpleChannelInboundHandler<FullHttpResponse>() {
-                                    @Override
-                                    public void channelActive(ChannelHandlerContext ctx) {
-                                        System.out.println("connect->" + ctx.channel().remoteAddress());
-                                    }
-
-                                    @Override
-                                    protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws InterruptedException {
-                                        exchanger.exchange(new HttpResult(
-                                                obj,
-                                                msg.status().code(),
-                                                msg.headers(),
-                                                msg.content().toString(Charset.defaultCharset())
-                                        ));
-                                    }
-
-                                    @Override
-                                    public void channelInactive(ChannelHandlerContext ctx) throws InterruptedException {
-                                        exchanger.exchange(null);
-                                    }
-
-                                    @Override
-                                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-                                        System.out.println(Color.dRed("error->" + cause.getMessage()));
-                                    }
-                                }
-                        );
-                    }
-                }).connect(obj.getIp(), obj.getPort()).sync().channel();
-        DefaultFullHttpRequest request = new DefaultFullHttpRequest(
-                HttpVersion.HTTP_1_1,
-                obj.getMethod(),
-                obj.getUri());
-        HttpHeaders headers = request.headers();
-        headers.set(HttpHeaderNames.USER_AGENT, "FUN_HTTP_CLIENT(https://github.com/Freedy001/expression)");
-        headers.set(HttpHeaderNames.ACCEPT, "*/*");
-        headers.set(HttpHeaderNames.ACCEPT_ENCODING, "gzip, deflate, br");
-        headers.set(HttpHeaderNames.CONNECTION, "close");
-        headers.set(HttpHeaderNames.HOST, obj.getIp());
-        if (obj.getLength() > 0) {
-            headers.set(HttpHeaderNames.CONTENT_LENGTH, obj.getLength());
-        }
-        if (StringUtils.hasText(obj.getContentType())) {
-            headers.set(HttpHeaderNames.CONTENT_TYPE, obj.getContentType());
-        }
-        List<Map.Entry<String, String>> reqHeaders = obj.getHeaders();
-        for (Map.Entry<String, String> entry : reqHeaders) {
-            headers.set(entry.getKey(), entry.getValue());
-        }
-        if (obj.getContent() != null) {
-            request.content().writeBytes(obj.getContent());
-        }
-        channel.writeAndFlush(request);
-        HttpResult res;
-        try {
-            res = exchanger.exchange(null, obj.getTimeout(), TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            System.out.println(Color.dRed("request timeout!"));
-            return obj;
-        }
-        if (res == null) {
-            System.out.println(Color.dRed("connect refuse!"));
-            return obj;
-        }
-        group.shutdownGracefully();
-        return res;
     }
 
     @ExpressionFunc(value = "resolve the given parameters as concrete objects")
