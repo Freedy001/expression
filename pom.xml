@@ -196,7 +196,7 @@
                                     <manifestEntries>
                                         <Main-Class>com.freedy.expression.entrance.cmd.TerminalStarter</Main-Class>
                                         <Premain-Class>com.freedy.expression.entrance.agent.AgentStarter</Premain-Class>
-                                        <Agentmain-Class>com.freedy.expression.entrance.agent.AgentStarter</Agentmain-Class>
+                                        <Agent-Class>com.freedy.expression.entrance.agent.AgentStarter</Agent-Class>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                     </manifestEntries>
@@ -210,7 +210,7 @@
                                     </excludes>
                                 </filter>
                             </filters>
-<!--                            <minimizeJar>true</minimizeJar>-->
+                            <!--                            <minimizeJar>true</minimizeJar>-->
                         </configuration>
                     </execution>
                 </executions>
