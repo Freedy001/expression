@@ -365,7 +365,7 @@ public class StandardNet extends AbstractStandardFunc {
     private NioEventLoopGroup lb;
     private NioEventLoopGroup lw;
 
-    @ExpressionFunc(value = "listener a port and echo msg", enableCMDParameter = true)
+    @ExpressionFunc(value = "listener a port and echo msg")
     public String listen(int port) throws InterruptedException {
         lc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
@@ -404,7 +404,7 @@ public class StandardNet extends AbstractStandardFunc {
         return "bind success on " + port;
     }
 
-    @ExpressionFunc(value = "stop listener server", enableCMDParameter = true)
+    @ExpressionFunc(value = "stop listener server")
     public String stopListen() {
         if (lc != null) lc.close();
         if (lb != null) lb.shutdownGracefully();
