@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
+import io.netty.handler.codec.string.StringDecoder;
 import lombok.*;
 import org.jline.reader.Candidate;
 
@@ -147,19 +148,16 @@ public class StandardNet extends AbstractStandardFunc {
 
     @ExpressionFunc("shutdown a netty server")
     public String shutDownServer() {
-        if (pc != null) {
-            pc.close();
-            boss.shutdownGracefully();
-            worker.shutdownGracefully();
-            return "success!";
-        }
-        return "not start!";
+        if (pc != null) pc.close();
+        if (boss != null) boss.shutdownGracefully();
+        if (worker != null) worker.shutdownGracefully();
+        return "ok!";
     }
 
 
     private Channel pc;
-    private final NioEventLoopGroup boss = new NioEventLoopGroup(1);
-    private final NioEventLoopGroup worker = new NioEventLoopGroup();
+    private NioEventLoopGroup boss;
+    private NioEventLoopGroup worker;
 
     @SneakyThrows
     private String doAsService(int port, String aesKey, String md5AuthStr, Consumer<ChannelHandlerContext> interceptor) {
@@ -170,7 +168,7 @@ public class StandardNet extends AbstractStandardFunc {
         byte[] auth = EncryptUtil.stringToMD5(md5AuthStr).getBytes(StandardCharsets.UTF_8);
         pc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
                 .channel(NioServerSocketChannel.class)
-                .group(boss, worker)
+                .group(boss = new NioEventLoopGroup(1), worker = new NioEventLoopGroup())
                 .childHandler(new ChannelInitializer<>() {
                     @Override
                     protected void initChannel(Channel channel) {
@@ -363,6 +361,56 @@ public class StandardNet extends AbstractStandardFunc {
         return connectConfig;
     }
 
+    private Channel lc;
+    private NioEventLoopGroup lb;
+    private NioEventLoopGroup lw;
+
+    @ExpressionFunc(value = "listener a port and echo msg", enableCMDParameter = true)
+    public String listen(int port) throws InterruptedException {
+        lc = new ServerBootstrap().option(ChannelOption.SO_BACKLOG, 10240)
+                .channel(NioServerSocketChannel.class)
+                .group(lb = new NioEventLoopGroup(1), lw = new NioEventLoopGroup())
+                .childHandler(new ChannelInitializer<>() {
+                    @Override
+                    protected void initChannel(Channel channel) {
+                        channel.pipeline().addLast(new StringDecoder()).addLast(
+                                new SimpleChannelInboundHandler<String>() {
+
+                                    @Override
+                                    public void channelActive(ChannelHandlerContext ctx) {
+                                        System.out.println(new PlaceholderParser("client[?] establish connection!", ctx.channel().remoteAddress()));
+                                    }
+
+                                    @Override
+                                    protected void channelRead0(ChannelHandlerContext ctx, String s) {
+                                        System.out.println(Color.dRed("receive msg below -> "));
+                                        System.out.println(Color.dYellow(s));
+                                    }
+
+                                    @Override
+                                    public void channelInactive(ChannelHandlerContext ctx) {
+                                        System.out.println(new PlaceholderParser("client[?] disconnected!", ctx.channel().remoteAddress()));
+                                    }
+
+                                    @Override
+                                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                        cause.printStackTrace();
+                                        ctx.channel().writeAndFlush(cause.getMessage());
+                                    }
+                                }
+                        );
+                    }
+                }).bind(port).sync().channel();
+        return "bind success on " + port;
+    }
+
+    @ExpressionFunc(value = "stop listener server", enableCMDParameter = true)
+    public String stopListen() {
+        if (lc != null) lc.close();
+        if (lb != null) lb.shutdownGracefully();
+        if (lw != null) lw.shutdownGracefully();
+        return "ok!";
+    }
 
     @Data
     @NoArgsConstructor
