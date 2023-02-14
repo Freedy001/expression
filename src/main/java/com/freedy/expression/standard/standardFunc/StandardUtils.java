@@ -373,9 +373,9 @@ public class StandardUtils extends AbstractStandardFunc {
     @ExpressionFunc(value = "attach to target vm", enableCMDParameter = true)
     public String attachAgent(AttachInfo info) throws IOException, AttachNotSupportedException, AgentLoadException, AgentInitializationException {
         String id = info.getPid();
-        if (id == null) {
+        if (StringUtils.isEmpty(id)) {
             System.out.println(Color.dYellow("======================================================"));
-            String name = Optional.of(info.getName()).orElse("*");
+            String name = Optional.ofNullable(info.getName()).orElse("*");
             ArrayList<String> pidList = new ArrayList<>();
             int i = 1;
             for (VirtualMachineDescriptor descriptor : VirtualMachine.list()) {
@@ -396,11 +396,11 @@ public class StandardUtils extends AbstractStandardFunc {
             }
         }
         String path = info.getAgentPath();
-        if (path == null) {
+        if (StringUtils.isEmpty(path)) {
             path = terminalHandler.stdin("input a java agent path(NonNull):");
         }
         String args = info.getAgentArg();
-        if (args == null) {
+        if (StringUtils.isEmpty(args)) {
             args = terminalHandler.stdin("input a java agent args(Nullable):");
         }
         VirtualMachine.attach(id).loadAgent(path, args);

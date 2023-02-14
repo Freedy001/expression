@@ -28,9 +28,15 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import lombok.*;
 import org.jline.reader.Candidate;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -43,8 +49,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import static com.freedy.expression.SysConstant.CHARSET;
+import static io.netty.handler.ssl.SslProvider.JDK;
 
 public class StandardNet extends AbstractStandardFunc {
+
+    public StandardNet() throws SSLException {
+    }
 
     @ExpressionFunc(value = "connect to a remote server use a default config")
     public String connect0() throws Exception {
@@ -233,15 +243,23 @@ public class StandardNet extends AbstractStandardFunc {
 
 
     @ExpressionFunc(value = "send a http request by HttpReqParam", enableCMDParameter = true)
-    public HttpObject http(HttpReqParam obj) throws InterruptedException {
+    public HttpObject http(HttpReqParam obj) throws InterruptedException, SSLException {
         Bootstrap bootstrap = new Bootstrap();
         NioEventLoopGroup group = new NioEventLoopGroup(1);
         Exchanger<HttpResult> exchanger = new Exchanger<>();
+        SslContext sslContext = SslContextBuilder.forClient()
+                .sslProvider(JDK)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+
         Channel channel = bootstrap.group(group)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<>() {
                     @Override
                     protected void initChannel(Channel ch) {
+                        if (obj.getProtocol().equals("https")){
+                            ch.pipeline().addLast(sslContext.newHandler(ch.alloc(), obj.getIp(), obj.getPort()));
+                        }
                         ch.pipeline().addLast(
                                 new HttpRequestEncoder(),
                                 new HttpResponseDecoder(),
@@ -275,6 +293,7 @@ public class StandardNet extends AbstractStandardFunc {
                         );
                     }
                 }).connect(obj.getIp(), obj.getPort()).sync().channel();
+
         DefaultFullHttpRequest request = new DefaultFullHttpRequest(
                 HttpVersion.HTTP_1_1,
                 obj.getMethod(),
@@ -411,6 +430,16 @@ public class StandardNet extends AbstractStandardFunc {
         if (lw != null) lw.shutdownGracefully();
         return "ok!";
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ListenConfig {
+        String port;
+        String httpMode;
+        String enableHttps;
+    }
+
 
     @Data
     @NoArgsConstructor
