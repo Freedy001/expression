@@ -29,7 +29,7 @@ jobs:
     - run: mkdir staging && cp target/*.jar staging
     
     # 设置 jobs Maven pom 版本环境变量
-    - name: Set Release version env variable
+    - name: 🚄 Set Release version env variable
       run: |
         echo "RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
     - name: "Build & test"
