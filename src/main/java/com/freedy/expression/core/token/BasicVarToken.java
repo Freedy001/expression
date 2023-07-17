@@ -22,9 +22,7 @@ public final class BasicVarToken extends ExecutableToken {
     public Object doCalculate(Class<?> desiredType) {
         if (isType("str")) {
             return checkAndSelfOps(ReflectionUtils.convertType(
-                    checkAndConverseTemplateStr(
-                            value.substring(1, value.length() - 1)
-                    ),
+                    checkAndConverseTemplateStr(value),
                     desiredType
             ));
         }

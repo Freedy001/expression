@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Getter
 public abstract sealed class ReflectToken extends ExecutableToken implements Assignable
         permits DirectAccessToken, DotSplitToken, ReferenceToken, StaticToken {
-    protected static final Pattern strPattern = Pattern.compile("^'([^']*?)'$|^\"([^\"]*?)\"$");
+    protected static final Pattern strPattern = Pattern.compile("(^'[^']*?'$)|(^\"[^\"]*?\"$)");
     protected static final Pattern numeric = Pattern.compile("-?\\d+|-?\\d+[lL]|-?\\d+?\\.\\d+");
     protected static final Pattern blockTokenStream = Pattern.compile("^@block(?:\\[([\\w$]*?)])? *(?:\\(( *[\\w$]+ *|(?: *[\\w$]+ *, *)+ *[\\w$]+ *)?\\))? *\\{(.*)}$");
     private static final Pattern relevantOpsPattern = Pattern.compile("(?:\\?|\\[.*]|\\? *?\\[.*])+");
