@@ -523,7 +523,7 @@ public abstract sealed class ExecutableToken implements Comparable
     }
 
     protected String checkAndConverseTemplateStr(String str) {
-        str=esc(str)
+        str=esc(str);
         if(str.startsWith("'")&&str.endsWith("'"))return str;
         char[] chars = str.toCharArray();
         int length = chars.length;
