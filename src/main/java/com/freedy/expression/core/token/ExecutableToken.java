@@ -495,7 +495,36 @@ public abstract sealed class ExecutableToken implements Comparable
         throw new UnsupportedOperationException("Number type ? not support", n.getClass().getName());
     }
 
+    private String esc(String o) {
+        StringBuilder builder = new StringBuilder();
+        int lastSplit=0;
+        int len=o.length();
+        for(int i=0;i<len;i++){
+            if(o.charAt(i)=='\\'&&i+1<len){
+                builder.append(o,lastSplit,i);
+                switch (o.charAt(i+1)) {
+                    case '"' -> builder.append("\"");
+                    case '\'' -> builder.append("'");
+                    case 't' -> builder.append("\t");
+                    case 'b' -> builder.append("\b");
+                    case 'n' -> builder.append("\n");
+                    case 'r' -> builder.append("\r");
+                    case 'f' -> builder.append("\f");
+                    case '\\' -> builder.append("\\");
+                    case '$' -> builder.append("$");
+                    default ->  throw new java.lang.IllegalArgumentException("illegal escape character \\" + o.charAt(i+1));
+                }
+                lastSplit=i+2;
+                i++;
+            }
+        }
+        builder.append(o, lastSplit, len);
+        return builder.toString();
+    }
+
     protected String checkAndConverseTemplateStr(String str) {
+        str=esc(str)
+        if(str.startsWith("'")&&str.endsWith("'"))return str;
         char[] chars = str.toCharArray();
         int length = chars.length;
         boolean quote = false;
